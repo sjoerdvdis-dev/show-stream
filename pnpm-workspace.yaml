@@ -1,0 +1,23 @@
+packages:
+  - apps/*
+  - packages/*
+
+overrides:
+  next@>=15.0.0 <15.2.3: '>=15.2.3'
+  '@babel/runtime-corejs3@<7.26.10': '>=7.26.10'
+
+ignoredBuiltDependencies:
+  - color-name
+  - color-string
+  - core-js-pure
+  - is-arrayish
+  - semver
+  - simple-swizzle
+
+onlyBuiltDependencies:
+  - color-name
+  - color-string
+  - is-arrayish
+  - semver
+  - sharp
+  - simple-swizzle
