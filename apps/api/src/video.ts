@@ -3,12 +3,14 @@
 import fs from 'fs';
 import path from 'path';
 import ffmpeg, { ffprobe } from 'fluent-ffmpeg';
+import { config } from './config';
+import { notFound } from './errors';
 import { findTranscodeMediaInfo, findMediaVideoPath } from './media';
 import { sendNotificationToClients } from './notification';
 import { ensureDbConnection, TranscodeModel } from './db';
-import type { Response, Request } from 'express';
+import type { Response } from 'express';
 import type { Logger } from 'winston';
-import type { BaseAPIResponse, TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/contract/api-types';
+import type { TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/contract/api-types';
 import type { TranscodeDocument } from '@workspace/contract/db-types';
 
 /**
@@ -23,27 +25,27 @@ import type { TranscodeDocument } from '@workspace/contract/db-types';
 export const transcodeRequest = async (params: {
 	id: number;
 	logger: Logger;
-}): Promise<BaseAPIResponse & { data?: TranscodeRequestAPIData }> => {
+}): Promise<TranscodeRequestAPIData> => {
 	const { id, logger } = params;
 
 	const transcoding = await getTranscoding(id);
 	const status = transcoding?.status || 'not ready';
 
 	if (['ready', 'in progress'].includes(status)) {
-		return { status: 200, data: { status } };
+		return { status };
 	}
 
 	const { path: mediaPath, title: mediaTitle } = (await findTranscodeMediaInfo(id)) || {};
 
 	if (!mediaPath) {
-		return { status: 400, error: 'Media not found', data: { status: 'not ready' } };
+		throw notFound('Movie');
 	}
 
-	const mediaResolvedPath = path.resolve(__dirname, '../media', mediaPath);
+	const mediaResolvedPath = path.resolve(config.mediaFolder, mediaPath);
 	const videoPath = await findMediaVideoPath(mediaResolvedPath);
 
 	if (!videoPath) {
-		return { status: 400, error: 'Video not found', data: { status: 'not ready' } };
+		throw notFound('Video');
 	}
 
 	const cachePath = getCachePath(id);
@@ -53,7 +55,7 @@ export const transcodeRequest = async (params: {
 	if (fs.existsSync(playlistPath)) {
 		logger.log('info', `Found cached transcoding for video ${id}`);
 		setTranscoding(id, { status: 'ready' });
-		return { status: 200, data: { status: 'ready' } };
+		return { status: 'ready' };
 	}
 
 	// Create transcoding
@@ -80,12 +82,13 @@ export const transcodeRequest = async (params: {
 				'-hls_list_size 0',
 				'-hls_flags independent_segments',
 				'-hls_segment_type mpegts',
-				`-hls_segment_filename ${segmentPath}`,
 				'-f hls',
 			])
+			// Two arguments, because fluent-ffmpeg splits a single string at a space in the path.
+			.outputOptions('-hls_segment_filename', segmentPath)
 			.on('start', () => {
 				setTranscoding(id, { status: 'in progress' });
-				resolve({ status: 200, data: { status: 'in progress' } });
+				resolve({ status: 'in progress' });
 			})
 			.on('end', () => {
 				// TEMP delay
@@ -108,57 +111,49 @@ export const transcodeRequest = async (params: {
 export const transcodePlaylist = async (params: {
 	id: number;
 	logger: Logger;
-}): Promise<BaseAPIResponse & { data?: TranscodePlaylistAPIData }> => {
+}): Promise<TranscodePlaylistAPIData> => {
 	const { id } = params;
 	const transcoding = await getTranscoding(id);
 
 	if (transcoding?.status !== 'ready') {
-		return { status: 404, error: 'Transcoding not found' };
+		throw notFound('Transcoding');
 	}
 
 	setTranscoding(id, { lastRequestDate: new Date() });
 
-	return { status: 200, data: { playlistUrl: `${getStreamPath(id)}/playlist.m3u8` } };
+	return { playlistUrl: `${getStreamPath(id)}/playlist.m3u8` };
 };
 
 /*
  * /streams/:id/:file
  * -> static serve of transcoded video files
  */
-const acceptedVideoFiles = ['.m3u8', '.ts'];
-export const streamVideoFile = async (params: {
-	id: number;
-	file: string;
-	logger: Logger;
-	req: Request;
-	res: Response;
-}) => {
-	const { id, file, logger, res } = params;
+export const streamVideoFile = async (params: { id: number; file: string; res: Response }) => {
+	const { id, file, res } = params;
 	const transcoding = await getTranscoding(id);
 
-	if (
-		!acceptedVideoFiles.includes(path.extname(file)) ||
-		!validPath(file) ||
-		!validPath(String(id)) ||
-		transcoding?.status !== 'ready'
-	) {
-		logger.log('security', `Invalid video file request: ${id}/${file}`);
-		res.status(400).send('Invalid video file');
-		return;
+	if (transcoding?.status !== 'ready') {
+		throw notFound('Stream');
 	}
 
-	const filePath = path.resolve(getCachePath(id), file);
-	res.sendFile(filePath);
+	await new Promise<void>((resolve, reject) => {
+		// `root` limits the file to the cache, and limits the check for dot folders to `file`.
+		res.sendFile(file, { root: getCachePath(id) }, (error: (Error & { code?: string; status?: number }) | undefined) => {
+			if (!error || error.code === 'ECONNABORTED') {
+				// Players drop segments they no longer need, which is not a failure.
+				resolve();
+			} else if (error.status === 404) {
+				reject(notFound('Stream'));
+			} else {
+				reject(error);
+			}
+		});
+	});
 };
 
 /**
  * Utility functions
  */
-
-// Check if path is valid
-const validPath = (path: string): boolean => {
-	return !(path.includes('..') || path.includes('/') || path.includes('\\'));
-};
 
 const cachedTranscodings: Record<number, TranscodeDocument> = {};
 
@@ -200,7 +195,7 @@ export const setTranscoding = async (id: number, update: Partial<TranscodeDocume
 };
 
 const getCachePath = (id: number): string => {
-	return path.resolve(__dirname, `../media/cache/${id}`);
+	return path.resolve(config.mediaFolder, 'cache', String(id));
 };
 
 const getStreamPath = (id: number): string => {

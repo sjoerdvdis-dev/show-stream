@@ -1,18 +1,19 @@
 import path from 'path';
 import fs from 'fs';
-import { ensureDbConnection, MediaModel, MetadataModel, MovieModel, ShowModel } from './db';
+import { config } from './config';
+import { MediaModel, MetadataModel, MovieModel, requireDbConnection, ShowModel } from './db';
+import { notFound } from './errors';
 import { getTranscoding } from './video';
 import { TMDB } from 'tmdb-ts';
 import type { MovieDetails, TvShowDetails } from 'tmdb-ts';
 import type { Logger } from 'winston';
 import type {
-	BaseAPIResponse,
 	MovieAPIData,
 	MovieMetadata,
 	MoviesAPIData,
 	ShowsAPIData,
 } from '@workspace/contract/api-types';
-import type { MediaDocument, ShowDocument, MovieDocument, MediaType } from '@workspace/contract/db-types';
+import type { MediaDocument, ShowDocument, MovieDocument } from '@workspace/contract/db-types';
 
 const includedCrewJobs = ['Director'];
 
@@ -23,39 +24,35 @@ const includedCrewJobs = ['Director'];
 
 // /movies
 // -> metadata of all movies
-export const getMovies = async (): Promise<BaseAPIResponse & { data?: MoviesAPIData }> => {
-	const { movies, error } = await findMovies();
-	if (movies === undefined || error) {
-		return { status: 400, error };
-	}
+export const getMovies = async (): Promise<MoviesAPIData> => {
+	const movies = await findMovies();
 	const moviesData: MovieMetadata[] = [];
 	for (const movie of movies) {
 		const { id, metadata } = movie;
 		const transcoding = await getTranscoding(id);
 		moviesData.push({ ...metadata, transcodeStatus: transcoding?.status || 'not ready' });
 	}
-	return { status: 200, data: { movies: moviesData } };
+	return { movies: moviesData };
 };
 
 // /movies/:id
 // -> metadata of a specific movie
-export const getMovie = async (params: { id: number }): Promise<BaseAPIResponse & { data?: MovieAPIData }> => {
+export const getMovie = async (params: { id: number }): Promise<MovieAPIData> => {
 	const { id } = params;
-	const { error, type, data } = await findMediaData(id);
-	if (error || type !== 'movie' || !data) {
-		return { status: 400, error: error || 'Movie not found' };
+	const media = await findMedia(id);
+	const movie = media?.type === 'movie' ? await MovieModel.findOne({ id }).lean() : null;
+	if (!movie) {
+		throw notFound('Movie');
 	}
-	return { status: 200, data };
-}
+	const transcoding = await getTranscoding(id);
+	return { metadata: { ...movie.metadata, transcodeStatus: transcoding?.status || 'not ready' } };
+};
 
 // /shows
 // -> metadata of all shows
-export const getShows = async (): Promise<BaseAPIResponse & { data?: ShowsAPIData }> => {
-	const { shows, error } = await findShows();
-	if (shows === undefined || error) {
-		return { status: 400, error };
-	}
-	return { status: 200, data: { shows: shows.map((show) => show.metadata) } };
+export const getShows = async (): Promise<ShowsAPIData> => {
+	const shows = await findShows();
+	return { shows: shows.map((show) => show.metadata) };
 };
 
 // /shows/:id
@@ -68,15 +65,12 @@ export const getShows = async (): Promise<BaseAPIResponse & { data?: ShowsAPIDat
  */
 
 type IdentifiedMovie = MovieDocument;
-const tmdb = new TMDB(process.env.TMDB_API_READ_ACCESS_TOKEN || '');
+const tmdb = new TMDB(config.tmdbToken);
 
-export const mediaScan = async (mediaFolder: string, logger: Logger): Promise<{ success: boolean }> => {
+export const mediaScan = async (mediaFolder: string, logger: Logger): Promise<void> => {
 	const identifiedMovies = await movieScan(mediaFolder, logger);
 
-	if (!(await ensureDbConnection())) {
-		logger.log('error', 'Database not connected during media scan');
-		return { success: false };
-	}
+	await requireDbConnection();
 
 	for (const movie of identifiedMovies) {
 		const { id, path, metadata } = movie;
@@ -106,7 +100,6 @@ export const mediaScan = async (mediaFolder: string, logger: Logger): Promise<{ 
 	}
 
 	logger.log('info', `Media scan completed at ${lastScanTime}`);
-	return { success: true };
 };
 
 export const movieScan = async (mediaFolder: string, logger: Logger): Promise<IdentifiedMovie[]> => {
@@ -205,71 +198,25 @@ const fetchShowMetadata = async ({
  * Utility functions to find media/videos
  */
 
-export const findMediaData = async (id: number): Promise<{ error?: string; type?: MediaType, data?: MovieAPIData }> => {
-	if (!(await ensureDbConnection())) {
-		return { error: 'Database not connected' };
-	}
-
-	const { error, media } = await findMedia(id);
-	if (error || !media) {
-		return { error: 'Media not found' };
-	}
-
-	const { type } = media;
-
-	if (type === 'movie') {
-		const movie = await MovieModel.findOne({ id }).lean();
-		const transcoding = await getTranscoding(id);
-		return movie
-			? { type, data: { metadata: { ...movie.metadata, transcodeStatus: transcoding?.status || 'not ready' } } }
-			: { error: 'Movie not found' };
-	}
-
-	if (type === 'show') {
-	}
-
-	return { error: 'Media not found' };
+export const findMedia = async (id: number): Promise<MediaDocument | null> => {
+	await requireDbConnection();
+	return MediaModel.findOne({ id }).lean();
 };
 
-export const findMedia = async (id: number): Promise<{ error?: string; media?: MediaDocument }> => {
-	if (!(await ensureDbConnection())) {
-		return { error: 'Database not connected' };
-	}
-
-	const media = await MediaModel.findOne({ id }).lean();
-	if (!media) {
-		return { error: 'Media not found' };
-	}
-
-	return { media };
+export const findMovies = async (): Promise<MovieDocument[]> => {
+	await requireDbConnection();
+	return MovieModel.find({}).lean();
 };
 
-export const findMovies = async (): Promise<{ movies?: MovieDocument[]; error?: string }> => {
-	if (!(await ensureDbConnection())) {
-		return { error: 'Database not connected' };
-	}
-	const movies = await MovieModel.find({}).lean();
-	return { movies };
-};
-
-export const findShows = async (): Promise<{ shows?: ShowDocument[]; error?: string }> => {
-	if (!(await ensureDbConnection())) {
-		return { error: 'Database not connected' };
-	}
-	const shows = await ShowModel.find({}).lean();
-	return { shows };
+export const findShows = async (): Promise<ShowDocument[]> => {
+	await requireDbConnection();
+	return ShowModel.find({}).lean();
 };
 
 export const findTranscodeMediaInfo = async (id: number): Promise<{ path?: string; title?: string } | null> => {
-	const { error, media } = await findMedia(id);
+	const media = await findMedia(id);
 
-	if (error || !media) {
-		return null;
-	}
-
-	const { type } = media;
-
-	if (type === 'movie') {
+	if (media?.type === 'movie') {
 		const movie = await MovieModel.findOne({ id }).lean();
 		return { path: movie?.path, title: movie?.metadata.details.title };
 	}

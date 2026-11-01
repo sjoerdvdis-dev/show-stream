@@ -1,10 +1,10 @@
 {
 	"extends": "@workspace/typescript-config/base.json",
 	"compilerOptions": {
-		"paths": {
-			"@workspace/contract/*": ["./src/*"]
-		}
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"declaration": false,
+		"declarationMap": false
 	},
-	"include": ["."],
-	"exclude": ["node_modules", "dist"]
+	"include": ["src"]
 }

@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { useDebounce } from 'use-debounce';
 import { useMemo } from 'react';
-import { TranscodeStatus } from '@workspace/contract/db-types';
+import type { TranscodeStatus } from '@workspace/contract/db-types';
 
 export interface DateRange {
 	start?: Date;

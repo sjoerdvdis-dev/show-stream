@@ -15,9 +15,11 @@
 			"dependsOn": ["^check-types"]
 		},
 		"test": {
+			"dependsOn": ["^build"],
 			"cache": false
 		},
 		"dev": {
+			"dependsOn": ["^build"],
 			"cache": false,
 			"persistent": true,
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.development", ".env.development.local"],

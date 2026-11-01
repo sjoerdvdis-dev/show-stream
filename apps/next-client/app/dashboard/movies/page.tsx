@@ -15,7 +15,13 @@ import {
 } from '@/hooks/use-movies-browser';
 import type { MoviesAPIData } from '@workspace/contract/api-types';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Request failed with ${response.status}`);
+	}
+	return response.json();
+};
 
 export default function MoviesPage() {
 	const { data, isLoading } = useSWR<MoviesAPIData>('/api/movies', fetcher, { refreshInterval: 1000 });

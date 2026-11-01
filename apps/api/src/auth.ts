@@ -1,7 +1,9 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { ensureDbConnection, UserModel } from './db';
-import { AuthenticateAPIData, BaseAPIResponse, LoginAPIData, RegisterAPIData, User } from '@workspace/contract/api-types';
+import { config } from './config';
+import { requireDbConnection, UserModel } from './db';
+import { ApiFailure } from './errors';
+import type { AuthenticateAPIData, LoginAPIData, RegisterAPIData, User } from '@workspace/contract/api-types';
 
 /**
  * Authentication API
@@ -12,73 +14,59 @@ import { AuthenticateAPIData, BaseAPIResponse, LoginAPIData, RegisterAPIData, Us
  */
 
 // POST /register (TEMP)
-export const register = async (params: {
-	username: string;
-	password: string;
-}): Promise<BaseAPIResponse & { data?: RegisterAPIData }> => {
+export const register = async (params: { username: string; password: string }): Promise<RegisterAPIData> => {
 	const { username, password } = params;
 
-	if (!ensureDbConnection()) {
-		return { status: 500, error: 'Registration failed' };
-	}
+	await requireDbConnection();
 
-	try {
-		const hashedPassword = await bcrypt.hash(password, 10);
-		const user = new UserModel({ username, password: hashedPassword });
-		await user.save();
-		return { status: 201, data: { success: true } };
-	} catch (error) {
-		return { status: 500, error: 'Registration failed' };
+	const hashedPassword = await bcrypt.hash(password, 10);
+	const user = new UserModel({ username, password: hashedPassword });
+	await user.save();
+	return { success: true };
+};
+
+// Creates the TEMP account on first start. It exists on every later start.
+export const ensureDefaultUser = async () => {
+	if (!(await UserModel.exists({ username: 'admin' }))) {
+		await register({ username: 'admin', password: 'admin' });
 	}
 };
 
+const loginFailed = () => new ApiFailure('unauthorized', 'Invalid username or password');
+
 // POST /login
-export const login = async (params: {
-	username: string;
-	password: string;
-}): Promise<BaseAPIResponse & { data?: LoginAPIData }> => {
+export const login = async (params: { username: string; password: string }): Promise<LoginAPIData> => {
 	const { username, password } = params;
 
-	if (!ensureDbConnection()) {
-		return { status: 500, error: 'Server could not login' };
+	await requireDbConnection();
+
+	const user = await UserModel.findOne({ username }).lean();
+	if (!user) {
+		throw loginFailed();
 	}
 
-	try {
-		const user = await UserModel.findOne({ username }).lean();
-		if (!user) {
-			return { status: 401, error: 'Login failed' };
-		}
+	const passwordMatch = await bcrypt.compare(password, user.password);
 
-		const passwordMatch = await bcrypt.compare(password, user.password);
-
-		if (!passwordMatch) {
-			return { status: 401, error: 'Login failed' };
-		}
-
-		const userData: User = { userId: String(user._id), username: user.username };
-
-		const token = jwt.sign(userData, process.env.JWT_SECRET as string, {
-			expiresIn: Number(process.env.JWT_EXPIRES_IN),
-		});
-
-		return { status: 200, data: { token } };
-	} catch (error) {
-		return { status: 401, error: 'Login failed' };
+	if (!passwordMatch) {
+		throw loginFailed();
 	}
+
+	const userData: User = { userId: String(user._id), username: user.username };
+
+	const token = jwt.sign(userData, config.jwt.secret, {
+		expiresIn: config.jwt.expiresInSeconds,
+	});
+
+	return { token };
 };
 
 // POST /authenticate
-export const authenticate = async (params: {
-	token: string;
-}): Promise<BaseAPIResponse & { data?: AuthenticateAPIData }> => {
+export const authenticate = async (params: { token: string }): Promise<AuthenticateAPIData> => {
 	const { token } = params;
 	try {
-		const user = jwt.verify(token, process.env.JWT_SECRET as string) as User | undefined;
-		if (!user) {
-			return { status: 401 };
-		}
-		return { status: 200, data: { user, valid: true } };
+		const user = jwt.verify(token, config.jwt.secret) as User;
+		return { user, valid: true };
 	} catch (error) {
-		return { status: 401 };
+		throw new ApiFailure('unauthorized', 'Invalid token');
 	}
 };

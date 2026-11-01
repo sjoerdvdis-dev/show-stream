@@ -17,7 +17,13 @@ import { Card, CardContent, CardFooter } from '@workspace/ui/components/card';
 import type { MovieAPIData } from '@workspace/contract/api-types';
 import type { TranscodeStatus } from '@workspace/contract/db-types';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Request failed with ${response.status}`);
+	}
+	return response.json();
+};
 
 export default function MoviePage() {
 	const { id } = useParams();

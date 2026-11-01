@@ -1,5 +1,6 @@
-import type { MovieDetails, TvShowDetails } from "tmdb-ts";
-import { MovieMetadata } from "./api-types";
+import type { MovieMetadata, TranscodeStatus } from './api-types.js';
+
+export type { TranscodeStatus };
 
 export interface MetadataDocument {
 	lastScanTime: Date;
@@ -28,7 +29,6 @@ export interface TranscodeDocument {
 	status: TranscodeStatus;
 	lastRequestDate?: Date;
 }
-export type TranscodeStatus = 'not ready' | 'in progress' | 'ready';
 
 export interface UserDocument {
 	username: string;

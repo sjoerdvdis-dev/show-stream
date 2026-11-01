@@ -2,11 +2,19 @@
 	"name": "@workspace/contract",
 	"version": "0.0.0",
 	"private": true,
+	"type": "module",
 	"scripts": {
+		"build": "tsc",
 		"check-types": "tsc --noEmit"
 	},
 	"exports": {
-		"./*": "./src/*.ts"
+		"./*": {
+			"types": "./src/*.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"dependencies": {
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
