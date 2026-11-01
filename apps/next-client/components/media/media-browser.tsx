@@ -38,7 +38,7 @@ import { RadioGroup, RadioGroupItem } from '@workspace/ui/components/radio-group
 import { Label } from '@workspace/ui/components/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from '@workspace/ui/components/select';
 import { useDebouncedCallback } from 'use-debounce';
-import type { TranscodeStatus } from '@workspace/types/db-types';
+import type { TranscodeStatus } from '@workspace/contract/db-types';
 
 export function Search({ searchQuery, setSearchQuery, media }: SearchState & { media?: string }) {
 	return (

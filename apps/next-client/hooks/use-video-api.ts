@@ -1,6 +1,6 @@
 'use client';
 
-import { TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/types/api-types';
+import { TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/contract/api-types';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 

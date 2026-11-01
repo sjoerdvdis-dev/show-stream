@@ -13,7 +13,7 @@ import {
 	useMoviesBrowserContext,
 	useSortMovies,
 } from '@/hooks/use-movies-browser';
-import type { MoviesAPIData } from '@workspace/types/api-types';
+import type { MoviesAPIData } from '@workspace/contract/api-types';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 

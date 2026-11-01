@@ -8,8 +8,8 @@ import { sendNotificationToClients } from './notification';
 import { ensureDbConnection, TranscodeModel } from './db';
 import type { Response, Request } from 'express';
 import type { Logger } from 'winston';
-import type { BaseAPIResponse, TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/types/api-types';
-import type { TranscodeDocument } from '@workspace/types/db-types';
+import type { BaseAPIResponse, TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/contract/api-types';
+import type { TranscodeDocument } from '@workspace/contract/db-types';
 
 /**
  * Video API

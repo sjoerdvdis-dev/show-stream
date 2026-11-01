@@ -1,16 +1,16 @@
 services:
-  api-server:
-    container_name: api-server
+  api:
+    container_name: api
     build:
       context: .
-      dockerfile: ./apps/api-server/Dockerfile
+      dockerfile: ./apps/api/Dockerfile
     restart: always
     expose:
       - "5000"
     volumes:
       - type: bind
         source: ./media
-        target: /app/apps/api-server/media
+        target: /app/apps/api/media
     networks:
       - show_stream_network
   next-client:

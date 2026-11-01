@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and the toolchain, CI and contributor setup are done. Next:
+The foundation decisions are made, and the toolchain, CI, contributor setup and repository restructure are done. Next:
 
-1. **Continue Phase 1 at item 3** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 1 at item 4** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -34,6 +34,7 @@ The foundation decisions are made, and the toolchain, CI and contributor setup a
 | Next.js 16.4.3, React 19.3.1 (latest) | Merged to `main` (`7efb290`) |
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
+| Repository layout | `apps/api` and `packages/contract` in place; later folders arrive with their steps |
 | Required CI check on `main` | Done |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Ports 5000 and 27017 closed to the host | Committed and tested |
@@ -41,7 +42,7 @@ The foundation decisions are made, and the toolchain, CI and contributor setup a
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Deferred until SQLite exists in Phase 1 |
-| `AGENTS.md` files | Root and `docs/` written; the rest arrive with their apps and packages |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `packages/` and `packages/contract` written; the rest arrive with their apps and packages |
 
 **Not yet safe for the internet.** The API has no authentication of its own, the default `admin`/`admin` account remains, secrets are baked into the image, and there is no HTTPS. All four are fixed in Phase 1.
 
@@ -235,7 +236,7 @@ show-stream/
 │   └── desktop/        Electron shell
 ├── packages/
 │   ├── ui/             Tokens, shadcn primitives, patterns
-│   ├── contract/       Zod schemas and inferred types (replaces packages/types)
+│   ├── contract/       Zod schemas and inferred types
 │   ├── api-client/     Typed client used by every app
 │   ├── db/             Drizzle schema, migrations, queries
 │   ├── eslint-config/
@@ -414,7 +415,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 
 1. Create `packages/db` with the schema, the first migration and connection setup (WAL, `busy_timeout`, foreign keys on).
 2. Move the 28 model calls behind repository functions in `auth`, `media` and `video`, with tests first where practical.
-3. Replace the hand-written types in `packages/types/src/db-types.ts`.
+3. Replace the hand-written types in `packages/contract/src/db-types.ts`.
 4. Move library sorting and filtering into SQL. FTS5 powers search.
 5. Run migrations at API startup.
 6. Add the read-only [DBHub](https://github.com/bytebase/dbhub) MCP for development ([section 10.3](#103-database-mcp-in-docker)), as soon as the SQLite volume exists.
@@ -655,7 +656,7 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`.
 
-**Status:** items 1 and 2 are done.
+**Status:** items 1, 2 and 3 are done.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It only receives the changes it needs: login through the API and removal of `proxy.ts`. No new work goes into it.
 

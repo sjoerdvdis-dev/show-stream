@@ -44,7 +44,7 @@
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
 		"@workspace/eslint-config": "workspace:^",
-		"@workspace/types": "workspace:*",
+		"@workspace/contract": "workspace:*",
 		"@workspace/typescript-config": "workspace:*",
 		"tailwindcss": "^4.3.3",
 		"typescript": "7.0.2",

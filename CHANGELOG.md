@@ -15,6 +15,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 
 - Upgraded to Next.js 16, React 19.3, Node 26, pnpm 12, TypeScript 7 and ESLint 10.
 - The MongoDB and API ports are no longer published to the host.
+- The API moved from `apps/api-server` to `apps/api`, and `packages/types` became `packages/contract`. In an existing clone, move your `.env` and any media from `apps/api-server` to `apps/api`. The Compose service and container are now `api`, so run `docker compose up -d --remove-orphans` to replace the old container.
 
 ### Fixed
 

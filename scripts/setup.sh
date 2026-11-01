@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-api_env=apps/api-server/.env
+api_env=apps/api/.env
 
 ok() { echo "✓ $1"; }
 
@@ -88,8 +88,8 @@ install_browser() {
 }
 
 create_folders() {
-  # Docker uses ./media and pnpm dev uses apps/api-server/media.
-  mkdir -p media/movies media/shows apps/api-server/media/movies apps/api-server/media/shows data
+  # Docker uses ./media and pnpm dev uses apps/api/media.
+  mkdir -p media/movies media/shows apps/api/media/movies apps/api/media/shows data
   docker network inspect show_stream_network >/dev/null 2>&1 || docker network create show_stream_network >/dev/null
   ok "Media and data folders, and Docker network"
   if [ "$(id -u)" -ne 1000 ]; then
@@ -105,7 +105,7 @@ create_env() {
     return
   fi
   secret=$(node -p 'require("crypto").randomBytes(32).toString("hex")')
-  sed "s/^JWT_SECRET=.*/JWT_SECRET=$secret/" apps/api-server/.env.example > "$api_env"
+  sed "s/^JWT_SECRET=.*/JWT_SECRET=$secret/" apps/api/.env.example > "$api_env"
   chmod 600 "$api_env"
   ok "$api_env created with a generated JWT_SECRET"
 }

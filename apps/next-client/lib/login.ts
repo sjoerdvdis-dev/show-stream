@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { loginSchema } from '@/lib/form';
-import type { LoginAPIData } from '@workspace/types/api-types';
+import type { LoginAPIData } from '@workspace/contract/api-types';
 
 // Try to login, if successful set authToken cookie for later use
 // https://leapcell.io/blog/implement-jwt-middleware-nextjs-auth

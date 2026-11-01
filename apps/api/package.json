@@ -1,5 +1,5 @@
 {
-	"name": "api-server",
+	"name": "api",
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
@@ -30,7 +30,7 @@
 		"@types/morgan": "^1.9.10",
 		"@types/node": "^26.6.6",
 		"@workspace/eslint-config": "workspace:*",
-		"@workspace/types": "workspace:*",
+		"@workspace/contract": "workspace:*",
 		"@workspace/typescript-config": "workspace:*",
 		"cross-env": "^10.1.0",
 		"tsx": "^4.23.15",

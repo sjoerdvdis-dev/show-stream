@@ -16,7 +16,7 @@ import {
 	useSearchStore,
 	useSortStore,
 } from './use-media-browser';
-import type { MoviesAPIData } from '@workspace/types/api-types';
+import type { MoviesAPIData } from '@workspace/contract/api-types';
 
 interface MoviesBrowserContextState {
 	searchState: SearchState;

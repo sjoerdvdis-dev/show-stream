@@ -14,8 +14,8 @@ import MoreOptionsPopover from '@/components/media/more-options-popover';
 import Backward from '@/components/dashboard/backward';
 import LoadingCircle from '@/components/icons/loading-circle';
 import { Card, CardContent, CardFooter } from '@workspace/ui/components/card';
-import type { MovieAPIData } from '@workspace/types/api-types';
-import type { TranscodeStatus } from '@workspace/types/db-types';
+import type { MovieAPIData } from '@workspace/contract/api-types';
+import type { TranscodeStatus } from '@workspace/contract/db-types';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
