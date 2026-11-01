@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Node.js 26 and pnpm (the version comes from `packageManager` in `package.json`)
+- Node.js 26 (see `.nvmrc`) and pnpm (the version comes from `packageManager` in `package.json`)
 - Docker with Compose
 - ffmpeg, for running the API outside Docker
 
@@ -33,20 +33,10 @@ pnpm dev
 Run these before finishing work:
 
 ```bash
-pnpm turbo lint
+pnpm turbo check-types lint build
 ```
 
-```bash
-pnpm turbo build
-```
-
-```bash
-pnpm --filter api-server exec tsc --noEmit
-```
-
-```bash
-pnpm --filter next-client exec tsc --noEmit
-```
+This is the same command the required CI check runs.
 
 ## Full stack in Docker
 

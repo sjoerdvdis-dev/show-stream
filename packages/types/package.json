@@ -2,11 +2,15 @@
 	"name": "@workspace/types",
 	"version": "0.0.0",
 	"private": true,
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
 	"exports": {
 		"./*": "./src/*.ts"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"tmdb-ts": "^2.3.0"
+		"tmdb-ts": "^2.3.0",
+		"typescript": "7.0.2"
 	}
 }

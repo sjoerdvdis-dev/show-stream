@@ -1,7 +1,6 @@
 {
 	"extends": "@workspace/typescript-config/nextjs.json",
 	"compilerOptions": {
-		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],
 			"@workspace/ui/*": ["../../packages/ui/src/*"]
@@ -17,8 +16,7 @@
 		"next.config.mjs",
 		"**/*.ts",
 		"**/*.tsx",
-		".next/types/**/*.ts",
-		"../../packages/ui/tailwind.config.ts"
+		".next/types/**/*.ts"
 	],
 	"exclude": ["node_modules"]
 }

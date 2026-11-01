@@ -5,8 +5,8 @@
 		"build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.production", ".env.production.local"],
-			"outputs": [".next/**", "!.next/cache/**"],
-			"env": ["NEXT_CLIENT_URL, API_SERVER_URL"]
+			"outputs": [".next/**", "!.next/cache/**", "dist/**"],
+			"env": ["NEXT_CLIENT_URL", "API_SERVER_URL"]
 		},
 		"lint": {
 			"dependsOn": ["^lint"]
@@ -18,7 +18,7 @@
 			"cache": false,
 			"persistent": true,
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.development", ".env.development.local"],
-			"env": ["NEXT_CLIENT_URL, API_SERVER_URL"]
+			"env": ["NEXT_CLIENT_URL", "API_SERVER_URL"]
 		}
 	}
 }

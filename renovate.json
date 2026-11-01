@@ -1,0 +1,43 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended"],
+	"schedule": ["before 6am on monday"],
+	"packageRules": [
+		{
+			"description": "Group everything except majors into one weekly pull request",
+			"matchUpdateTypes": ["minor", "patch", "digest"],
+			"groupName": "non-major dependencies"
+		},
+		{
+			"description": "Removed or replaced later, so they get no major updates; delete with each package",
+			"matchPackageNames": ["fluent-ffmpeg", "mongoose", "@hookform/resolvers", "lucide-react", "react-day-picker"],
+			"matchUpdateTypes": ["major"],
+			"enabled": false
+		},
+		{
+			"description": "typescript-eslint refuses TypeScript 7; drop this rule when it supports it",
+			"matchFileNames": ["packages/eslint-config/package.json"],
+			"matchPackageNames": ["typescript"],
+			"allowedVersions": "<7"
+		}
+	],
+	"customManagers": [
+		{
+			"customType": "regex",
+			"description": "Pinned MCP servers",
+			"managerFilePatterns": ["/^\\.mcp\\.json$/"],
+			"matchStrings": ["\"(?<depName>@?[a-z0-9@/._-]+)@(?<currentValue>\\d+\\.\\d+\\.\\d+)\""],
+			"datasourceTemplate": "npm"
+		},
+		{
+			"customType": "regex",
+			"description": "pnpm and turbo installed in the Dockerfiles",
+			"managerFilePatterns": ["/(^|/)Dockerfile$/"],
+			"matchStrings": [
+				"(?<depName>pnpm)@(?<currentValue>\\d+\\.\\d+\\.\\d+)",
+				"(?<depName>turbo)@(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+			],
+			"datasourceTemplate": "npm"
+		}
+	]
+}
