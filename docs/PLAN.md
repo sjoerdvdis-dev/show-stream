@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made and the upgrade is on `main`. Next:
+The foundation decisions are made, and the toolchain, CI and contributor setup are done. Next:
 
-1. **Start Phase 1** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 1 at item 3** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -33,6 +33,7 @@ The foundation decisions are made and the upgrade is on `main`. Next:
 |---|---|
 | Next.js 16.4.3, React 19.3.1 (latest) | Merged to `main` (`7efb290`) |
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
+| Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
 | Required CI check on `main` | Done |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Ports 5000 and 27017 closed to the host | Committed and tested |
@@ -346,7 +347,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 27 | `public/` copied to the wrong path | Goes away with static hosting | 2 |
 | 28 | `fluent-ffmpeg` deprecated | Replace with `child_process.spawn` | 1 |
 | 35 | No-op schema options | Removed with Mongoose | 1 |
-| 38 | README incomplete | Rewrite | 1 |
+| 38 | README incomplete | Rewritten, with `CONTRIBUTING.md` and a setup script | Done |
 | 40 | Stale `tailwind.config.ts` reference, empty `.npmrc` | Removed. The `packages/ui` config reference stays until finding 49 | Done |
 
 ### Found since the audit
@@ -653,6 +654,8 @@ Each phase ends with a working app.
 7. Authentication in the API ([section 5.6](#56-authentication)), first-run setup, authenticated sockets.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`.
+
+**Status:** items 1 and 2 are done.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It only receives the changes it needs: login through the API and removal of `proxy.ts`. No new work goes into it.
 

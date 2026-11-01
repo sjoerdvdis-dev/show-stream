@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# Vendored skills must keep the bytes recorded in skills-lock.json.
+.claude/skills/** -text
+
+*.ico binary
+*.mp4 binary
+*.png binary

@@ -1,37 +1,49 @@
 # ShowStream
 
-A self-deployable media server built using typescript.
+A self-hosted media server, built to replace Jellyfin. Early development.
 
-## Setup
+> [!WARNING]
+> **Do not expose ShowStream to the internet yet.** The API has no authentication of its own, a default `admin`/`admin` account exists, and there is no HTTPS. See [SECURITY.md](./SECURITY.md).
 
-Before being able to setup the project, some configurations are required.
+## What works today
 
-### Env Dotfiles
+- Browsing a movie library
+- Converting a video to HLS and playing it in the browser, with seeking
 
-For the API server (`apps/api-server`), the `.env.example` needs to be renamed to `.env`.  
-In this `.env`, the JWT, MongoDB and TMDB API values need to be set.
+Library scans and filters exist, but scans have not been tested against real TMDB responses. TV shows are not supported yet. Where this is going is in [the plan](./docs/PLAN.md).
 
-- For the server's authentication (JWT), a JWT_SECRET is required.  
-This should be a >128bit key, example generations can be found at <https://jwtsecrets.com/>.  
-- To access the local database, the server needs the MongoDB credentials. These are setup in `docker-compose.yml` under the `mongodb` image as:
-  - MONGODB_INITDB_ROOT_USERNAME - (MONGO_DB_USERNAME in `.env`)
-  - MONGODB_INITDB_ROOT_PASSWORD - (MONGO_DB_PASSWORD in `.env`)
+## Run it
 
-- Lastly, for the media data scans, the server needs access keys for the [TMDB API](https://developer.themoviedb.org/docs/getting-started).  
-You need to create a free account for this and after creating it you can access:
-  - A Read Access Token - (TMDB_API_READ_ACCESS_TOKEN in `.env`)
-  - And a API Key - (TMDB_API_KEY in `.env`)
+You need Node.js 26, Docker with Compose, and a free [TMDB read access token](https://developer.themoviedb.org/docs/getting-started) for scans.
 
-### Media and Data Folders
+1. Prepare the clone. This also installs the development tools.
 
-To be able to setup a persistent database with your own movies and shows, two folders need to be setup: `/media` and `/data`.  
-These are heavily reliant on your setup, but you should ensure that these are both persistent outside of the docker containers.  
-`/media` should contain two folders: `/media/movies` for storing movies and `/media/shows` for storing shows.
-Both of them have strict naming conventions for their actual content. For `/movies`, every movie should have its own folder that is named "Movie Name (Year)", e.g "The Dark Knight (2008)" and its actual video file should be put in that folder with the exact same name. (shows are currently not supported yet).  
-`/data` is the folder that the MongoDB Database will use. So in order to keep the database persistent it should be mounted to the `mongodb` image in `docker-compose.yml`.
+   ```bash
+   ./scripts/setup.sh
+   ```
 
-### Docker
+2. Set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api-server/.env`.
 
-Lastly, to actually run the project you need Docker.  
-The script `build-docker.sh` is provided, which automatically creates the entire docker setup.  
-To configure it you can use `docker-compose.yml`, which contains all the configs for the images used in the project.
+3. Put your movies in `media/movies`, one folder each, with the video named like its folder:
+
+   ```text
+   media/movies/The Dark Knight (2008)/The Dark Knight (2008).mp4
+   ```
+
+4. Build and start everything:
+
+   ```bash
+   bash build-docker.sh
+   ```
+
+Open <http://localhost:3000> and log in with `admin`/`admin`.
+
+Database files go in `./data`. Keep both `./media` and `./data` on persistent storage.
+
+## Develop
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and the [local development guide](./docs/guides/local-development.md).
+
+## Licence
+
+[Apache-2.0](./LICENSE). If you redistribute ShowStream or work based on it, the licence requires you to keep the [NOTICE](./NOTICE) file, which credits Sjoerd van Dis.

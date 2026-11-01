@@ -9,4 +9,4 @@
 | [audits/](./audits/2026-10-31-repository-audit.md) | Dated point-in-time reviews | Never; add a new dated file |
 | [agents/](./agents/domain.md) | Config for the engineering skills | The tracker, labels or doc layout change |
 
-Work in progress lives in [GitHub Issues](https://github.com/sjoerdvdis-dev/show-stream/issues). Domain language lives in `GLOSSARY.md` at the repo root, created by `/domain-modeling` as terms are resolved.
+Start with [CONTRIBUTING.md](../CONTRIBUTING.md) to work on the project. Work in progress lives in [GitHub Issues](https://github.com/sjoerdvdis-dev/show-stream/issues). Domain language lives in `GLOSSARY.md` at the repo root, created by `/domain-modeling` as terms are resolved.

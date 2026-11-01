@@ -1,0 +1,22 @@
+name: Bug report
+description: Something is broken
+labels: [needs-triage, bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we reproduce it?
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit, operating system, browser, and whether you run Docker or `pnpm dev`. Remove any secrets from logs.
