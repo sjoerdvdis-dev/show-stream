@@ -28,8 +28,6 @@ RUN chown -R node:node /app/apps/api
 FROM base AS runner
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg
-
 # A new named volume takes this folder's owner, so the database is writable on first start.
 RUN mkdir /data && chown node:node /data
 

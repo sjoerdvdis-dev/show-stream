@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ownerCredentials, startApi, type TestApi } from './support/api';
-import { createDatabaseWithDefaultAccount } from './support/seed';
+import { createDatabaseWithDefaultAccount, createDatabaseWithOldJobs } from './support/seed';
 
 describe('upgrading a database that has the default account', () => {
 	let api: TestApi;
@@ -38,5 +38,34 @@ describe('upgrading a database that has the default account', () => {
 
 		expect(response.status).toBe(201);
 		expect(await (await api.get('/auth/setup')).json()).toEqual({ needed: false });
+	});
+});
+
+describe('upgrading a database from before the worker', () => {
+	let api: TestApi;
+
+	beforeAll(async () => {
+		api = await startApi({
+			prepareDatabase: (databasePath) =>
+				createDatabaseWithOldJobs(databasePath, [
+					{ title: 'Old Ready', status: 'ready' },
+					{ title: 'Old In Progress', status: 'in progress' },
+				]),
+		});
+	});
+
+	afterAll(async () => {
+		await api?.stop();
+	});
+
+	it('keeps finished transcodes, and clears those no process is running any more', async () => {
+		const owner = await api.createOwner();
+
+		const { movies } = await (await owner.get('/movies')).json();
+
+		expect(movies.map(({ details, transcodeStatus }: { details: { title: string }; transcodeStatus: string }) => [details.title, transcodeStatus])).toEqual([
+			['Old Ready', 'ready'],
+			['Old In Progress', 'not ready'],
+		]);
 	});
 });

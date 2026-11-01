@@ -3,7 +3,7 @@ import fs from 'fs';
 import { config } from './config';
 import { db } from './db';
 import { notFound } from './errors';
-import { findMovie, listMovies, listShows, saveMovie, setSetting } from '@workspace/db';
+import { findMovie, listMovies, listShows, saveMovie, setSetting, type Movie } from '@workspace/db';
 import { TMDB } from 'tmdb-ts';
 import type { MovieDetails, TvShowDetails } from 'tmdb-ts';
 import type { Logger } from 'winston';
@@ -21,10 +21,16 @@ const includedCrewJobs = ['Director'];
  * - requests for media information
  */
 
+const toMovieMetadata = ({ metadata, transcodeStatus, transcodeError }: Movie): MovieMetadata => ({
+	...metadata,
+	transcodeStatus,
+	...(transcodeError ? { transcodeError } : {}),
+});
+
 // /movies
 // -> metadata of all movies
 export const getMovies = async (): Promise<MoviesAPIData> => {
-	const movies = listMovies(db).map(({ metadata, transcodeStatus }) => ({ ...metadata, transcodeStatus }));
+	const movies = listMovies(db).map((movie) => toMovieMetadata(movie));
 	return { movies };
 };
 
@@ -35,7 +41,7 @@ export const getMovie = async (params: { id: number }): Promise<MovieAPIData> =>
 	if (!movie) {
 		throw notFound('Movie');
 	}
-	return { metadata: { ...movie.metadata, transcodeStatus: movie.transcodeStatus } };
+	return { metadata: toMovieMetadata(movie) };
 };
 
 // /shows

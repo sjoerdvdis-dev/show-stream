@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { MediaType, MovieMetadata, TranscodeStatus } from '@workspace/contract/api-types';
+import type { MediaType, MovieMetadata } from '@workspace/contract/api-types';
 
 export type ShowMetadata = Record<string, unknown>;
 
@@ -71,13 +71,17 @@ export const media = sqliteTable(
 export type JobPayload = {
 	/** ISO 8601. When a client last asked for this title's playlist. */
 	lastRequestDate?: string;
-	/** The users to tell when the running transcode is ready. */
+	/** The users to tell when this job finishes. */
 	requestedBy?: number[];
+	/** The video to transcode, relative to the media folder. */
+	video?: string;
+	/** The folder that holds the result, relative to the media folder. */
+	output?: string;
 };
 
 /**
- * Transcode state lives here so that item 8 can build its queue on this table. A title has
- * one job of each type, and a job with no title, such as a scan, has a NULL `media_id`.
+ * The queue between the API and the worker. A title has one job of each type, and a job with
+ * no title, such as a scan, has a NULL `media_id`.
  */
 export const jobs = sqliteTable(
 	'jobs',
@@ -85,12 +89,19 @@ export const jobs = sqliteTable(
 		id: integer().primaryKey({ autoIncrement: true }),
 		type: text({ enum: ['transcode'] }).notNull(),
 		mediaId: integer('media_id').references(() => media.id, { onDelete: 'cascade' }),
-		status: text().$type<TranscodeStatus>().notNull(),
+		status: text({ enum: ['queued', 'running', 'done', 'failed'] }).notNull(),
 		payload: text({ mode: 'json' }).$type<JobPayload>().notNull().default({}),
+		/** How many runs have started. A clean shutdown gives its run back. */
 		attempts: integer().notNull().default(0),
+		/** Why the job failed. */
 		error: text(),
+		/** Whether the API has told the users who asked that this job finished. */
+		announced: integer({ mode: 'boolean' }).notNull().default(false),
 	},
-	(table) => [uniqueIndex('jobs_type_media_id_unique').on(table.type, table.mediaId)],
+	(table) => [
+		uniqueIndex('jobs_type_media_id_unique').on(table.type, table.mediaId),
+		index('jobs_status_announced_idx').on(table.status, table.announced),
+	],
 );
 
 export const settings = sqliteTable('settings', {
@@ -104,3 +115,4 @@ export type Session = typeof sessions.$inferSelect;
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 export type Job = typeof jobs.$inferSelect;
+export type JobStatus = Job['status'];

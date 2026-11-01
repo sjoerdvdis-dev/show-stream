@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
 import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -6,6 +7,9 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const apiFolder = path.resolve(import.meta.dirname, '../..');
+const workerFolder = path.resolve(apiFolder, '../worker');
+/** Put first on the worker's PATH, so that a test can hold a job at a known point. See `support/ffmpeg.ts`. */
+const ffmpegShimFolder = path.join(import.meta.dirname, 'ffmpeg-shim');
 
 // Fake values only. The API starts in a folder with no .env, so it reads nothing else.
 const offlineEnvironment = {
@@ -24,6 +28,14 @@ const prepareFolder = async () => {
 	return root;
 };
 
+/** Runs from a folder with no `.env` beside it, so that the worker reads only what it is given. */
+const prepareWorkerFolder = async (root: string) => {
+	const folder = path.join(root, 'worker');
+	await cp(path.join(workerFolder, 'src'), path.join(folder, 'src'), { recursive: true });
+	await symlink(path.join(workerFolder, 'node_modules'), path.join(folder, 'node_modules'));
+	return folder;
+};
+
 const launchArguments = ['--import', 'tsx', 'src/index.ts'];
 
 export type ApiOptions = {
@@ -37,6 +49,8 @@ export type ApiOptions = {
 	fakeTmdb?: boolean;
 	/** Builds the SQLite file before the API first opens it, as an older version left it. */
 	prepareDatabase?: (databasePath: string) => Promise<void>;
+	/** Sets JOB_CONCURRENCY for the worker. */
+	jobConcurrency?: number;
 };
 
 type Headers = Record<string, string>;
@@ -75,11 +89,19 @@ export type TestApi = Requests & {
 	waitFor: <T>(check: () => Promise<T>, timeoutMs?: number) => Promise<T>;
 	/** Kills the API with no warning and starts it again on the same database and media. */
 	restart: () => Promise<void>;
+	/** Everything the workers have printed. */
+	workerOutput: () => string;
+	/** Starts one more worker, and resolves once it is taking jobs. */
+	startWorker: () => Promise<void>;
+	/** Kills every worker with no warning, as a crash or a power cut would. */
+	killWorkers: () => Promise<void>;
+	/** Asks every worker to shut down, and resolves with their exit codes once they have. */
+	stopWorkers: () => Promise<(number | null)[]>;
 	stop: () => Promise<void>;
 };
 
 /**
- * Starts the real API as a child process, with its own database and folders.
+ * Starts the real API and a real worker as child processes, with their own database and folders.
  *
  * The API finds its media and log folders relative to its own source, so it runs from a
  * temporary copy of `src`. Started in place, it would write to the developer's `media`.
@@ -99,9 +121,12 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 	await options.prepareDatabase?.(databasePath);
 	const port = await findFreePort();
 	const url = `http://127.0.0.1:${port}`;
+	const workerRoot = await prepareWorkerFolder(root);
 
 	let child: ChildProcess;
 	let output = '';
+	let workerOutput = '';
+	const workers: ChildProcess[] = [];
 
 	const launch = () => {
 		output = '';
@@ -210,8 +235,51 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 		}
 	};
 
+	const startWorker = async () => {
+		const worker = spawn(process.execPath, launchArguments, {
+			cwd: workerRoot,
+			stdio: ['ignore', 'pipe', 'pipe'],
+			env: {
+				PATH: `${ffmpegShimFolder}${path.delimiter}${process.env.PATH}`,
+				NODE_ENV: 'test',
+				DATABASE_PATH: databasePath,
+				MEDIA_FOLDER: mediaFolder,
+				...(options.jobConcurrency ? { JOB_CONCURRENCY: String(options.jobConcurrency) } : {}),
+			},
+		});
+		let thisWorkerOutput = '';
+		const collect = (data: Buffer) => {
+			thisWorkerOutput += data;
+			workerOutput += data;
+		};
+		worker.stdout.on('data', collect);
+		worker.stderr.on('data', collect);
+		workers.push(worker);
+
+		const deadline = Date.now() + 20_000;
+		while (!thisWorkerOutput.includes('Worker is running')) {
+			if (worker.exitCode !== null || Date.now() > deadline) {
+				throw new Error(`The worker did not start. Last output:\n${thisWorkerOutput.slice(-2000)}`);
+			}
+			await sleep(50);
+		}
+	};
+
+	const endWorkers = async (signal: NodeJS.Signals) => {
+		const ending = workers.splice(0);
+		return Promise.all(
+			ending.map(async (worker) => {
+				const exited = worker.exitCode === null && worker.signalCode === null ? once(worker, 'exit') : undefined;
+				worker.kill(signal);
+				await exited;
+				return worker.exitCode;
+			}),
+		);
+	};
+
 	launch();
 	await waitUntilReady();
+	await startWorker();
 
 	return {
 		mediaFolder,
@@ -227,7 +295,14 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 			launch();
 			await waitUntilReady();
 		},
+		workerOutput: () => workerOutput,
+		startWorker,
+		killWorkers: async () => {
+			await endWorkers('SIGKILL');
+		},
+		stopWorkers: () => endWorkers('SIGTERM'),
 		stop: async () => {
+			await endWorkers('SIGKILL');
 			await kill();
 			await rm(root, { recursive: true, force: true, maxRetries: 5 });
 		},

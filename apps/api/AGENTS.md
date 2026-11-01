@@ -9,11 +9,12 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - Every error uses the one error shape in the contract. Throw `ApiFailure` for what the client should see, and anything else for the central handler to log and hide.
 - Only `src/config.ts` reads the environment.
 - The database is reached only through `@workspace/db`, with the `db` from `src/db.ts`. Never import Drizzle or `better-sqlite3`.
-- ffmpeg belongs in the worker. Code here that calls it today moves there in Phase 1 item 8.
+- ffmpeg belongs in the worker, and this image has none. The API queues transcodes and reads their state in `@workspace/db`, and SQLite is the only link between the two.
 
 ## Tests
 
-- Tests start the real API through `test/support/api.ts` and use only HTTP. They do not import from `src`.
+- Tests start the real API and a real worker through `test/support/api.ts`, and use only HTTP. They do not import from `src`.
+- To catch a job partway, use `holdFfmpeg` in `test/support/ffmpeg.ts`. The worker's `ffmpeg` in tests is `test/support/ffmpeg-shim/ffmpeg`, which runs the real one unless a title is held.
 - `api.createOwner()` runs setup and returns a client with a session. Everything on `api` itself has no session.
 - Each request from the harness looks like a new address, so that failures do not reach the rate limit. A test of the limit passes its own `x-forwarded-for`.
 - Direct database access lives in `test/support/seed.ts` and nowhere else.

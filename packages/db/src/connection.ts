@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import Sqlite from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
@@ -28,6 +28,25 @@ export type Database = ReturnType<typeof openDatabase>;
  */
 export const migrateDatabase = (db: Database, folder = migrationsFolder) => {
 	migrate(db, { migrationsFolder: folder });
+};
+
+/**
+ * Whether every migration this version ships has been applied. Only the API migrates, so
+ * anything else that opens the file waits for this. A database ahead of this version also passes.
+ */
+export const isDatabaseMigrated = (db: Database) => {
+	const journal = JSON.parse(readFileSync(path.join(migrationsFolder, 'meta', '_journal.json'), 'utf8'));
+	const latest: number = journal.entries.at(-1).when;
+	const hasTable = db.$client
+		.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'`)
+		.get();
+	if (!hasTable) {
+		return false;
+	}
+	const applied = db.$client
+		.prepare<[], { createdAt: number | null }>('SELECT max(created_at) AS createdAt FROM __drizzle_migrations')
+		.get();
+	return (applied?.createdAt ?? 0) >= latest;
 };
 
 export const closeDatabase = (db: Database) => {

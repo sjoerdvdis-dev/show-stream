@@ -1,4 +1,5 @@
 import { execFile, spawnSync } from 'node:child_process';
+import { access, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import type { TestApi } from './api';
@@ -30,3 +31,29 @@ export const addValidVideo = async (api: TestApi, movie: SeededMovie) => {
 		path.join(api.mediaFolder, movie.folder, 'clip.mp4'),
 	]);
 };
+
+const holdMarker = (api: TestApi, movie: SeededMovie) => path.join(api.mediaFolder, movie.folder, 'hold-ffmpeg');
+
+/**
+ * Makes runs of this title stop partway, with partial output written, until `releaseFfmpeg`.
+ * The worker's `ffmpeg` is the script in `ffmpeg-shim`, which otherwise runs the real one.
+ */
+export const holdFfmpeg = async (api: TestApi, movie: SeededMovie) => {
+	await writeFile(holdMarker(api, movie), '');
+};
+
+/** Resolves once a held run has written its partial output. Do this before releasing or killing it. */
+export const waitForHeldRun = (api: TestApi, movie: SeededMovie, attempt = 1) =>
+	api.waitFor(() => access(path.join(api.mediaFolder, 'cache', `${movie.id}.partial-${attempt}`, 'playlist.m3u8')));
+
+/** Lets a held run finish, as a success. */
+export const releaseFfmpeg = async (api: TestApi, movie: SeededMovie) => {
+	await rm(holdMarker(api, movie));
+};
+
+/** Whether a held run of this title has been asked to stop, rather than being killed. */
+export const ffmpegWasStopped = (api: TestApi, movie: SeededMovie) =>
+	access(path.join(api.mediaFolder, movie.folder, 'ffmpeg-stopped')).then(
+		() => true,
+		() => false,
+	);

@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+// Stands in for ffmpeg on the worker's PATH in the API tests. It runs the real ffmpeg, unless
+// the video's folder holds a `hold-ffmpeg` file (see `holdFfmpeg`). Then it writes what an
+// interrupted run leaves behind and waits, so that a test can catch a job partway.
+import { spawnSync } from 'node:child_process';
+import { existsSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+const args = process.argv.slice(2);
+const input = args[args.indexOf('-i') + 1];
+const playlist = args.at(-1);
+const held = path.join(path.dirname(input), 'hold-ffmpeg');
+
+if (!existsSync(held)) {
+	const ownFolder = import.meta.dirname;
+	const otherFolders = process.env.PATH.split(path.delimiter).filter((folder) => folder !== ownFolder);
+	const { status, error } = spawnSync('ffmpeg', args, {
+		stdio: 'inherit',
+		env: { ...process.env, PATH: otherFolders.join(path.delimiter) },
+	});
+	if (error) {
+		console.error(error.message);
+	}
+	process.exit(status ?? 1);
+}
+
+// Deliberately a whole playlist, so that only the folder it is in keeps it from being served.
+const output = '#EXTM3U\n#EXTINF:6,\nsegment000.ts\n#EXT-X-ENDLIST\n';
+writeFileSync(path.join(path.dirname(playlist), 'segment000.ts'), 'partial');
+writeFileSync(playlist, output);
+
+process.once('SIGTERM', () => {
+	writeFileSync(path.join(path.dirname(input), 'ffmpeg-stopped'), '');
+	process.exit(255);
+});
+
+// In a container the real ffmpeg dies with the worker. Here it would be left running.
+const parent = process.ppid;
+
+setInterval(() => {
+	if (process.ppid !== parent) {
+		process.exit(1);
+	}
+	if (!existsSync(held)) {
+		process.exit(0);
+	}
+}, 50);
