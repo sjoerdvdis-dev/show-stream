@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 const movieId = 550001;
 const movieTitle = 'Demo Movie';
+const unplayableMovieId = 550002;
+const unplayableMovieTitle = 'Missing Video';
 
 const logIn = async (page: Page, password = 'admin') => {
 	await page.goto('/login');
@@ -50,6 +52,26 @@ test('the detail page shows the movie', async ({ page }) => {
 	await page.goto(`/dashboard/movies/${movieId}`);
 
 	await expect(page.getByRole('heading', { name: movieTitle })).toBeVisible();
+});
+
+test('an unknown movie does not crash the detail page', async ({ page }) => {
+	await logInAsAdmin(page);
+
+	const response = page.waitForResponse((candidate) => candidate.url().endsWith('/api/movie/999999'));
+	await page.goto('/dashboard/movies/999999');
+
+	expect((await response).status()).toBe(404);
+	await page.waitForTimeout(2_000);
+	await expect(page.getByText(/application error/i)).toHaveCount(0);
+});
+
+test('a movie that cannot be prepared says so', async ({ page }) => {
+	await logInAsAdmin(page);
+	await page.goto(`/dashboard/movies/${unplayableMovieId}`);
+
+	await page.getByRole('button', { name: 'Play' }).click();
+
+	await expect(page.getByText(`Playback preparation for ${unplayableMovieTitle} failed.`)).toBeVisible();
 });
 
 test('the notification socket upgrades to a WebSocket', async ({ page }) => {

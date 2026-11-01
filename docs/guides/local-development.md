@@ -37,6 +37,8 @@ pnpm dev
 
 Log in at <http://localhost:3000> with `admin`/`admin`.
 
+`pnpm dev` builds `packages/contract` and `packages/api-client` first, and the API runs that build. After changing either package, restart `pnpm dev`.
+
 `pnpm dev` reads media from `apps/api/media`, and Docker reads it from `./media`.
 
 ## Checks
@@ -92,6 +94,10 @@ There is no scan button yet. Call `GET /api/scan` while logged in.
 | `.env.development`, `.env.production` | Yes | Defaults with no secrets |
 | `apps/api/.env` | No | Your secrets. Wins over the tracked files |
 
+Variables already set in the environment win over all of these. An empty value counts as unset.
+
+`apps/api/src/config.ts` validates them once at startup. If anything is wrong, the API prints every bad variable, without its value, and exits with code 1.
+
 Never commit real values.
 
 ## Known problems
@@ -107,3 +113,5 @@ Never commit real values.
 - **There is no local `mongod` for development.** `pnpm dev` uses MongoDB in Docker. Only the API tests download their own.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **Port 3000 is published on all interfaces** until Caddy arrives in Phase 1.
+- **`vitest` alone needs the packages built.** `pnpm test` builds them first. If you run `vitest` directly in `apps/api`, run `pnpm turbo build --filter=api^...` once.
+- **ffmpeg cannot write to a `MEDIA_FOLDER` containing `%d` or a form like `%03d`.** It reads that as part of the segment pattern, and `%%` does not escape it. Rename the folder.

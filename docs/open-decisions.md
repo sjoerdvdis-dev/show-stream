@@ -7,7 +7,6 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | # | Decision | Recommendation | Why |
 |---|---|---|---|
 | C1 | Keep Express? | Keep Express 5 | No need to change the framework during the database move |
-| C2 | Shared API contract | Zod schemas in `packages/contract`, with a typed client package | One contract for every client; schemas also validate input (audit finding 9) |
 | C3 | Metadata storage | Typed columns for what we filter on, JSON for the raw TMDB payload | Client-side filtering can move to SQL. FTS5 can power search |
 | C4 | Internal IDs | Own primary key, unique `(type, tmdb_id)` | Also allows files with no TMDB match |
 | C5 | Job handling | Jobs table in SQLite, with ffmpeg in a separate worker process | No Redis needed; `pg-boss` no longer applies. Survives restarts (audit findings 6, 7, 16) |
@@ -37,7 +36,6 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | # | Decision | Recommendation |
 |---|---|---|
 | F1 | Test stack | Vitest for logic and API, Playwright for browser flows |
-| F5 | Config validation | Validate environment variables at startup and fail fast |
 | F6 | Logging | Structured logs to stdout, with health endpoints for Compose |
 | F7 | Release flow | Versioned images in a registry, changelog, upgrade notes |
 | F10 | Image handling | API endpoint that caches TMDB images on disk |
