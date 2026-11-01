@@ -32,7 +32,7 @@ WORKDIR /app
 RUN apk add --no-cache ffmpeg
 
 # New named volumes take these folders' owner, so that UID 1000 can write them on first start.
-RUN mkdir /data /media && chown node:node /data /media
+RUN mkdir -p /data /media && chown node:node /data /media
 
 # node is UID 1000, which must be able to write the bind-mounted ./media
 USER node
