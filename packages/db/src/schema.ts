@@ -1,16 +1,35 @@
+import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import type { MediaType, MovieMetadata, TranscodeStatus } from '@workspace/contract/api-types';
 
 export type ShowMetadata = Record<string, unknown>;
 
-export const users = sqliteTable('users', {
-	id: integer().primaryKey({ autoIncrement: true }),
-	username: text().notNull().unique(),
-	passwordHash: text('password_hash').notNull(),
-	role: text({ enum: ['owner', 'admin', 'user'] })
-		.notNull()
-		.default('user'),
-});
+export const users = sqliteTable(
+	'users',
+	{
+		id: integer().primaryKey({ autoIncrement: true }),
+		username: text().notNull().unique(),
+		passwordHash: text('password_hash').notNull(),
+		role: text({ enum: ['owner', 'admin', 'user'] })
+			.notNull()
+			.default('user'),
+	},
+	// Allows one owner, so that two simultaneous setups cannot both succeed.
+	(table) => [uniqueIndex('users_single_owner').on(table.role).where(sql`role = 'owner'`)],
+);
+
+export const sessions = sqliteTable(
+	'sessions',
+	{
+		/** The SHA-256 of the session's token. The token itself is never stored. */
+		id: text().primaryKey(),
+		userId: integer('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+	},
+	(table) => [index('sessions_user_id_idx').on(table.userId)],
+);
 
 /**
  * One row per title. Routes, cache folders and streams still use the TMDB ID of a movie,
@@ -52,6 +71,8 @@ export const media = sqliteTable(
 export type JobPayload = {
 	/** ISO 8601. When a client last asked for this title's playlist. */
 	lastRequestDate?: string;
+	/** The users to tell when the running transcode is ready. */
+	requestedBy?: number[];
 };
 
 /**
@@ -79,6 +100,7 @@ export const settings = sqliteTable('settings', {
 
 export type User = typeof users.$inferSelect;
 export type UserRole = User['role'];
+export type Session = typeof sessions.$inferSelect;
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 export type Job = typeof jobs.$inferSelect;

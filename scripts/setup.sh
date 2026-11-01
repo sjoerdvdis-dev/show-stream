@@ -109,15 +109,13 @@ create_folders() {
 
 # Never overwrites an existing .env, and never prints its values.
 create_env() {
-  local secret
   if [ -f "$api_env" ]; then
     ok "$api_env already exists, left unchanged"
     return
   fi
-  secret=$(node -p 'require("crypto").randomBytes(32).toString("hex")')
-  sed "s/^JWT_SECRET=.*/JWT_SECRET=$secret/" apps/api/.env.example > "$api_env"
+  cp apps/api/.env.example "$api_env"
   chmod 600 "$api_env"
-  ok "$api_env created with a generated JWT_SECRET"
+  ok "$api_env created"
 }
 
 check_tmdb_token() {

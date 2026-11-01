@@ -1,7 +1,15 @@
 import { z } from 'zod';
 
 /** Stable and machine-readable. Clients switch on these, never on `message`. */
-export const apiErrorCodeSchema = z.enum(['invalid_request', 'unauthorized', 'not_found', 'internal_error']);
+export const apiErrorCodeSchema = z.enum([
+	'invalid_request',
+	'unauthorized',
+	'forbidden',
+	'not_found',
+	'conflict',
+	'rate_limited',
+	'internal_error',
+]);
 export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>;
 
 export const apiErrorDetailSchema = z.object({ path: z.string(), message: z.string() });

@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from 'express';
+import type { Express, Request, RequestHandler, Response } from 'express';
 import { z } from 'zod';
 import {
 	endpoints,
@@ -10,11 +10,16 @@ import {
 	type Endpoints,
 } from '@workspace/contract/endpoints';
 import type { ApiErrorDetail } from '@workspace/contract/errors';
+import { findSessionOfRequest, isAdmin, passwordAttemptLimit, type Session } from './auth';
 import { ApiFailure } from './errors';
 
 type Handler<E extends Endpoint> = (
-	input: { params: EndpointParams<E>; body: EndpointBody<E> },
-	/** Only for endpoints with the `file` format, whose handler sends the response itself. */
+	input: {
+		params: EndpointParams<E>;
+		body: EndpointBody<E>;
+		session: E extends { access: 'public' } ? undefined : Session;
+	},
+	/** For endpoints that set a cookie, and those with the `file` format, which send the response themselves. */
 	res: Response,
 ) => Promise<E extends { format: 'file' } ? void : EndpointResponse<E>>;
 
@@ -35,9 +40,28 @@ const parse = (schema: z.ZodType | undefined, value: unknown) => {
 	return result.data;
 };
 
+/**
+ * The only auth check, so that no handler can skip it or get it wrong. It runs before
+ * validation, so that a request with no session learns nothing about a route's input.
+ */
+const authorize = (endpoint: Endpoint, req: Request, res: Response) => {
+	if (endpoint.access === 'public') {
+		return undefined;
+	}
+	const session = findSessionOfRequest(req, res);
+	if (!session) {
+		throw new ApiFailure('unauthorized', 'You are not logged in');
+	}
+	if (endpoint.access === 'admin' && !isAdmin(session)) {
+		throw new ApiFailure('forbidden', 'Only an admin can do this');
+	}
+	return session;
+};
+
 const bindRoute = (app: Express, endpoint: Endpoint, handler: (input: unknown, res: Response) => Promise<unknown>) => {
 	const route = async (req: Request, res: Response) => {
-		const input = { params: parse(endpoint.params, req.params), body: parse(endpoint.body, req.body ?? {}) };
+		const session = authorize(endpoint, req, res);
+		const input = { params: parse(endpoint.params, req.params), body: parse(endpoint.body, req.body ?? {}), session };
 		const result = await handler(input, res);
 
 		if (endpoint.format === 'file') {
@@ -51,14 +75,16 @@ const bindRoute = (app: Express, endpoint: Endpoint, handler: (input: unknown, r
 		}
 	};
 
+	const limits: RequestHandler[] = endpoint.rateLimited ? [passwordAttemptLimit] : [];
+
 	if (endpoint.method === 'GET') {
-		app.get(endpoint.path, route);
+		app.get(endpoint.path, ...limits, route);
 	} else {
-		app.post(endpoint.path, route);
+		app.post(endpoint.path, ...limits, route);
 	}
 };
 
-/** Serves every endpoint in the contract. Requests are validated before their handler runs. */
+/** Serves every endpoint in the contract. Requests are authorized and validated before their handler runs. */
 export const bindRoutes = (app: Express, handlers: Handlers) => {
 	for (const name of Object.keys(endpoints) as EndpointName[]) {
 		bindRoute(app, endpoints[name], handlers[name] as (input: unknown, res: Response) => Promise<unknown>);

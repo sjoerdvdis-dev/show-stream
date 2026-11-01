@@ -1,23 +1,25 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { startApi, type TestApi } from '../support/api';
+import { startApi, type TestApi, type TestClient } from '../support/api';
 import { addValidVideo, hasFfmpeg } from '../support/ffmpeg';
 import { seedMovie, type SeededMovie } from '../support/seed';
 
 describe.skipIf(!hasFfmpeg)('audit finding 7', () => {
 	let api: TestApi;
+	let owner: TestClient;
 	let movie: SeededMovie;
 
 	const transcodeStatus = async () => {
-		const { metadata } = await (await api.get(`/movie/${movie.id}`)).json();
+		const { metadata } = await (await owner.get(`/movie/${movie.id}`)).json();
 		return metadata.transcodeStatus;
 	};
 
 	// Interrupting the job is setup, so that a problem here fails the suite.
 	beforeAll(async () => {
 		api = await startApi();
+		owner = await api.createOwner();
 		movie = await seedMovie(api, 3007, 'Interrupted');
 		await addValidVideo(api, movie);
-		await api.get(`/transcode/request/${movie.id}`);
+		await owner.get(`/transcode/request/${movie.id}`);
 		await api.waitFor(async () => expect(await transcodeStatus()).toBe('in progress'));
 		await api.restart();
 	});

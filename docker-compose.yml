@@ -7,6 +7,9 @@ services:
     restart: always
     expose:
       - "5000"
+    environment:
+      # Browsers drop a Secure cookie over plain HTTP. Phase 1 item 9 adds HTTPS and removes this.
+      SESSION_COOKIE_SECURE: "false"
     volumes:
       - type: bind
         source: ./media

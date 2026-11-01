@@ -6,9 +6,15 @@ import ffmpeg, { ffprobe } from 'fluent-ffmpeg';
 import { config } from './config';
 import { notFound } from './errors';
 import { findMediaVideoPath } from './media';
-import { sendNotificationToClients } from './notification';
+import { notifyUsers } from './notification';
 import { db } from './db';
-import { findMovie, recordPlaylistRequest, setTranscodeStatus } from '@workspace/db';
+import {
+	addTranscodeRequester,
+	findMovie,
+	recordPlaylistRequest,
+	setTranscodeStatus,
+	takeTranscodeRequesters,
+} from '@workspace/db';
 import type { Response } from 'express';
 import type { Logger } from 'winston';
 import type { TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/contract/api-types';
@@ -24,9 +30,10 @@ import type { TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspa
  */
 export const transcodeRequest = async (params: {
 	id: number;
+	userId: number;
 	logger: Logger;
 }): Promise<TranscodeRequestAPIData> => {
-	const { id, logger } = params;
+	const { id, userId, logger } = params;
 
 	const movie = findMovie(db, id);
 
@@ -35,6 +42,10 @@ export const transcodeRequest = async (params: {
 	}
 
 	const { transcodeStatus: status } = movie;
+
+	if (status === 'in progress') {
+		addTranscodeRequester(db, movie.id, userId);
+	}
 
 	if (['ready', 'in progress'].includes(status)) {
 		return { status };
@@ -87,13 +98,17 @@ export const transcodeRequest = async (params: {
 			.outputOptions('-hls_segment_filename', segmentPath)
 			.on('start', () => {
 				setTranscodeStatus(db, movie.id, 'in progress');
+				addTranscodeRequester(db, movie.id, userId);
 				resolve({ status: 'in progress' });
 			})
 			.on('end', () => {
 				// TEMP delay
 				setTimeout(() => {
 					setTranscodeStatus(db, movie.id, 'ready');
-					sendNotificationToClients({ type: 'transcode:ready', data: { title: movie.title } });
+					notifyUsers(takeTranscodeRequesters(db, movie.id), {
+						type: 'transcode:ready',
+						data: { title: movie.title },
+					});
 				}, 10000);
 			})
 			.run();

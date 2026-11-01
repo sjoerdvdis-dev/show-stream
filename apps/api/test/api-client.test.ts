@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ApiError, createApiClient, type ApiClient } from '@workspace/api-client';
-import { startApi, type TestApi } from './support/api';
+import { ownerCredentials, startApi, type TestApi, type TestClient } from './support/api';
 import { addValidVideo, hasFfmpeg } from './support/ffmpeg';
 import { seedMovie, type SeededMovie } from './support/seed';
 
@@ -16,12 +16,18 @@ const failureOf = async (call: Promise<unknown>) => {
 // The client parses every success against its schema, so a call that resolves proves the body.
 describe('the typed client against the real API', () => {
 	let api: TestApi;
+	let owner: TestClient;
 	let client: ApiClient;
+	let anonymous: ApiClient;
 	let movie: SeededMovie;
+
+	const clientOf = ({ cookie }: TestClient) => createApiClient(api.url, { headers: { cookie } });
 
 	beforeAll(async () => {
 		api = await startApi();
-		client = createApiClient(api.url);
+		owner = await api.createOwner();
+		client = clientOf(owner);
+		anonymous = createApiClient(api.url);
 		movie = await seedMovie(api, 4001, 'Client Movie');
 	});
 
@@ -48,15 +54,31 @@ describe('the typed client against the real API', () => {
 		expect(metadata.credits).toEqual({ cast: [], crew: [] });
 	});
 
-	it('registers, logs in and authenticates', async () => {
-		const credentials = { username: 'client-user', password: 'correct horse' };
+	it('reports that setup is done', async () => {
+		expect(await anonymous.setupStatus()).toEqual({ needed: false });
+	});
 
-		expect(await client.register({ body: credentials })).toEqual({ success: true });
-		const { token } = await client.login({ body: credentials });
-		const { user, valid } = await client.authenticate({ body: { token } });
+	it('refuses a second setup', async () => {
+		const error = await failureOf(anonymous.setup({ body: ownerCredentials }));
 
-		expect(valid).toBe(true);
-		expect(user.username).toBe('client-user');
+		expect(error).toMatchObject({ status: 409, code: 'conflict' });
+	});
+
+	it('logs in, reads the user and logs out', async () => {
+		const { user } = await anonymous.login({ body: ownerCredentials });
+		expect(user).toMatchObject({ username: 'owner', role: 'owner' });
+
+		const session = clientOf(await api.logIn(ownerCredentials.username, ownerCredentials.password));
+		expect((await session.me()).user.username).toBe('owner');
+		expect(await session.logout()).toEqual({ success: true });
+
+		expect(await failureOf(session.me())).toMatchObject({ status: 401, code: 'unauthorized' });
+	});
+
+	it('reports a missing session as its typed error', async () => {
+		const error = await failureOf(anonymous.movies());
+
+		expect(error).toMatchObject({ status: 401, code: 'unauthorized', message: 'You are not logged in' });
 	});
 
 	it('scans', async () => {
@@ -95,14 +117,14 @@ describe('the typed client against the real API', () => {
 	});
 
 	it('carries field details', async () => {
-		const error = await failureOf(client.login({ body: { username: '', password: 'x' } }));
+		const error = await failureOf(anonymous.login({ body: { username: '', password: 'x' } }));
 
 		expect(error).toMatchObject({ status: 400, code: 'invalid_request' });
 		expect(error.details).toEqual([{ path: 'username', message: 'Username must be non-empty text' }]);
 	});
 
 	it('reports a wrong password', async () => {
-		const error = await failureOf(client.login({ body: { username: 'admin', password: 'wrong' } }));
+		const error = await failureOf(anonymous.login({ body: { username: 'owner', password: 'wrong' } }));
 
 		expect(error).toMatchObject({ status: 401, code: 'unauthorized' });
 	});
