@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on monday"],
+  "ignoreDeps": ["fluent-ffmpeg", "mongoose", "@hookform/resolvers", "lucide-react", "react-day-picker"],
+  "packageRules": [
+    {
+      "description": "Group everything except majors into one weekly pull request",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "non-major dependencies"
+    },
+    {
+      "description": "typescript-eslint refuses TypeScript 7; drop this rule when it supports it",
+      "matchFileNames": ["packages/eslint-config/package.json"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Pinned MCP servers",
+      "managerFilePatterns": ["/^\\.mcp\\.json$/"],
+      "matchStrings": ["\"(?<depName>@?[a-z0-9@/._-]+)@(?<currentValue>\\d+\\.\\d+\\.\\d+)\""],
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "description": "pnpm installed in the Dockerfiles",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["npm install -g (?<depName>pnpm)@(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "npm"
+    }
+  ]
+}
