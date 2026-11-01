@@ -2,7 +2,22 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@playwright/mcp@0.0.84", "--headless", "--isolated", "--browser", "chromium"]
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.84",
+        "--headless",
+        "--isolated",
+        "--browser",
+        "chromium"
+      ]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "shadcn@4.23.0",
+        "mcp"
+      ]
     }
   }
 }
