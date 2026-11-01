@@ -37,13 +37,9 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | # | Decision | Recommendation |
 |---|---|---|
 | F1 | Test stack | Vitest for logic and API, Playwright for browser flows |
-| F2 | CI | GitHub Actions: typecheck, lint, test, build, audit, image build |
-| F3 | Toolchain targets | Node 26 and pnpm 12, moving from `corepack` because Node 26 has none. TypeScript 7 only if the stack supports it |
-| F4 | Dependency updates | Renovate or Dependabot; a CVSS 10 in a stale lockfile started this work |
 | F5 | Config validation | Validate environment variables at startup and fail fast |
 | F6 | Logging | Structured logs to stdout, with health endpoints for Compose |
 | F7 | Release flow | Versioned images in a registry, changelog, upgrade notes |
-| F8 | Project licence | Choose one before any public release; the repo has no licence file |
+| F8 | Project licence | Must require attribution to the author. The repo is public and has no licence file |
 | F9 | Package names | Rename to `apps/web`, `apps/api`, `apps/desktop` during the restructure |
 | F10 | Image handling | API endpoint that caches TMDB images on disk |
-| F11 | Repo hygiene | Branch and commit conventions, `.editorconfig` |

@@ -36,7 +36,7 @@ The foundation decisions are made and the upgrade is on `main`. Next:
 | Ports 5000 and 27017 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
-| Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed on `chore/ai-tooling` |
+| Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Deferred until SQLite exists in Phase 1 |
 | `AGENTS.md` files | Root and `docs/` written; the rest arrive with their apps and packages |
 
@@ -361,6 +361,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens | 2 |
 | 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | [Section 9.6](#96-updating-shadcn) | 2 |
 | 50 | No project licence | Choose one before release | 1 |
+| 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Add `.next/**` to the ignores | 1 |
 
 ## 7. Version upgrades
 
@@ -369,9 +370,11 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | Package | Now | Target | When | Notes |
 |---|---|---|---|---|
 | Node image | 22.15 | 26 LTS | 1 | Node 26 has no corepack; Dockerfiles install pnpm directly |
-| pnpm | 10.13.1 | 12.16.1 | 1 | Check workspace overrides and build allowlists |
-| TypeScript | 5.7.3 and 5.9.3 | 7.0.2 if the stack supports it | 1 | Not tried. Otherwise newest supported. Replace `ts-node` with `tsx` |
-| ESLint | 9.39.5 | 10.14.0 | 1 | Check plugin support first |
+| pnpm | 10.13.1 | 12.16.1 | 1 | Tested 2026-11-01: install passes once `allowBuilds` in `pnpm-workspace.yaml` covers `esbuild` and `sharp` |
+| TypeScript | 5.7.3 and 5.9.3 | 7.0.2, with 6.0.3 private to `packages/eslint-config` | 1 | Tested 2026-11-01: `tsc` and `next build` pass on 7.0.2 once `baseUrl` is removed from the Next tsconfig. `typescript-eslint` 8.72.1 refuses 7.0, so lint parses with 6.0.3 until it supports 7. Docker images not tested |
+| `ts-node`, `nodemon` | 10.9.2, 3.1.14 | Removed | 1 | `tsx` replaces both. Tested 2026-11-01: `tsx` boots the API with no database connected |
+| ESLint | 9.39.5 | 10.14.0 | 1 | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. That gives 39 warnings against 12 today. Turn off rules that duplicate `react-hooks`, and the rules behind the 10 `packages/ui` warnings, because Phase 2 replaces those primitives |
+| Everything else in `pnpm outdated` | Various | Latest | 1 | Except the Phase 2 rows below, which only matter to the frontend rebuild |
 | dotenv | 16.6.1 | 18 or removed | 1 | Node can load env files itself |
 | lucide-react | 0.477.0 | 1.66.0 | 2 | Major jump; check icon renames |
 | @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | With the form rebuild |
@@ -409,8 +412,9 @@ Each row group gets its own commit, with typecheck, build, lint and the Chromium
 3. Replace the hand-written types in `packages/types/src/db-types.ts`.
 4. Move library sorting and filtering into SQL. FTS5 powers search.
 5. Run migrations at API startup.
-6. Remove Mongoose, the `mongodb` service, `MONGO_DB_*` variables and `data/` Mongo docs.
-7. Add scheduled `VACUUM INTO` backups.
+6. Add the read-only [DBHub](https://github.com/bytebase/dbhub) MCP for development ([section 10.3](#103-database-mcp-in-docker)), as soon as the SQLite volume exists.
+7. Remove Mongoose, the `mongodb` service, `MONGO_DB_*` variables and `data/` Mongo docs.
+8. Add scheduled `VACUUM INTO` backups.
 
 No data migration is needed if no other deployment holds data: `data/` in this repo is empty. A library can be rebuilt by rescanning, except for users.
 
@@ -438,6 +442,7 @@ Screens      thin route files in apps/web
 
 - Screens contain layout and data wiring, not styling decisions.
 - Components use semantic tokens, never raw colors like `text-red-500`.
+- Icons come only from [Lucide](https://lucide.dev/), through `lucide-react`.
 - Primitives stay close to upstream shadcn so they can be updated.
 - Every pattern handles loading, empty and error states.
 - Everything works by keyboard, which also prepares for TV remotes.
@@ -499,7 +504,7 @@ A dev-only `/dev/components` route shows every pattern in both themes.
 The current setup is `new-york` style on Radix with Tailwind v4. **We are moving to Base UI**, shadcn's current default. This happens in Phase 2, in `packages/ui`, before patterns are built on it.
 
 1. Run `pnpm dlx shadcn@latest info` from `apps/web` and `packages/ui`.
-2. Align both `components.json` files. They must share `style`, `iconLibrary` and `baseColor`. Use a Base UI style such as `base-nova`, leave `tailwind.config` empty for Tailwind v4, and set `rsc: false`.
+2. Align both `components.json` files. They must share `style`, `iconLibrary` and `baseColor`. Use a Base UI style such as `base-nova`, set `iconLibrary` to `lucide`, leave `tailwind.config` empty for Tailwind v4, and set `rsc: false`.
 3. Replace `tailwindcss-animate` with `tw-animate-css`.
 4. Run `pnpm dlx shadcn@latest migrate cn`.
 5. Install the shadcn skill and migrate primitives one at a time. Migrations produce a report and a commit per component; `asChild` becomes `render`.
@@ -635,14 +640,15 @@ Each phase ends with a working app.
 
 ### Phase 1: Stable foundation
 
-1. Toolchain upgrades, then CI with typecheck, lint, build and audit.
-2. Repository restructure from [section 5.4](#54-repository-layout).
-3. Vitest and Playwright around today's behavior, including every crash from the audit.
-4. Shared contract, typed client, config validation, one error shape.
-5. SQLite and Drizzle.
-6. Authentication in the API ([section 5.6](#56-authentication)), first-run setup, authenticated sockets.
-7. Worker with the job table and ffmpeg wrapper.
-8. Caddy, HTTPS, health checks, secrets through `env_file`.
+1. Toolchain upgrades, then minimal CI: one required check on PRs to `main` with typecheck, lint and build. Audit only reports. Tests join the check as they arrive. Browser tests stay outside it until they have proven reliable, so that they cannot block work.
+2. Contributor-ready repository: everything mandatory for development, including Claude tooling and skills, can be installed or reproduced from a clone through one setup script. Every `.env` file has a `.env.example`. Adds `CONTRIBUTING.md`, the other standard repository files and a rewritten `README.md`.
+3. Repository restructure from [section 5.4](#54-repository-layout).
+4. Vitest and Playwright around today's behavior, including every crash from the audit.
+5. Shared contract, typed client, config validation, one error shape.
+6. SQLite and Drizzle, then the read-only DBHub MCP for development ([section 10.3](#103-database-mcp-in-docker)).
+7. Authentication in the API ([section 5.6](#56-authentication)), first-run setup, authenticated sockets.
+8. Worker with the job table and ffmpeg wrapper.
+9. Caddy, HTTPS, health checks, secrets through `env_file`.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It only receives the changes it needs: login through the API and removal of `proxy.ts`. No new work goes into it.
 
@@ -735,7 +741,7 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 |---|---|
 | Test stack and CI | Phase 1 |
 | Backups for SQLite | Section 8 |
-| Automated dependency updates | Phase 1, with CI |
+| Automated dependency updates | Phase 1, with CI, through Renovate |
 | Config validation and structured logs | Phase 1 |
 | Trusted HTTPS for LAN-only installs | Section 5.2 |
 | Shared API contract and typed client | Section 5.4 |
