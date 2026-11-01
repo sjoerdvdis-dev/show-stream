@@ -6,12 +6,11 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made and the upgrade is committed on `chore/dependency-upgrade`. Next:
+The foundation decisions are made and the upgrade is on `main`. Next:
 
-1. **Merge the branch to `main`** once you have reviewed it.
-2. **Install the remaining AI tooling** ([section 10](#10-ai-tooling)).
-3. **Write the `AGENTS.md` files** ([section 11](#11-agentsmd-files)).
-4. **Start Phase 1** ([section 12](#12-roadmap)).
+1. **Install the remaining AI tooling** ([section 10](#10-ai-tooling)).
+2. **Write the `AGENTS.md` files** ([section 11](#11-agentsmd-files)).
+3. **Start Phase 1** ([section 12](#12-roadmap)).
 
 | Your question | Answer |
 |---|---|
@@ -34,7 +33,7 @@ The foundation decisions are made and the upgrade is committed on `chore/depende
 
 | Item | State |
 |---|---|
-| Next.js 16.4.3, React 19.3.1 (latest) | Committed as `7efb290` on `chore/dependency-upgrade`, not merged |
+| Next.js 16.4.3, React 19.3.1 (latest) | Merged to `main` (`7efb290`) |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Ports 5000 and 27017 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
@@ -622,7 +621,7 @@ Each phase ends with a working app.
 - [x] Foundation decisions
 - [x] Upgrade committed
 - [x] Playwright MCP
-- [ ] Merge to `main`
+- [x] Merge to `main`
 - [ ] Install Impeccable, Matt Pocock skills and the shadcn skill, then review what they add
 - [ ] Add the shadcn MCP
 - [ ] Write `AGENTS.md` files

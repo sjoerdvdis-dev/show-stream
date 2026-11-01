@@ -16,7 +16,7 @@ Last updated: 2026-11-01. Companion to [AUDIT.md](./AUDIT.md) and [PLAN.md](./PL
 | A8 | React SPA built with Vite replaces Next.js | Client was almost entirely client-rendered; one static build for every client |
 | A9 | TanStack Router | Typed, validated URL state suits library views. Spike rejected an invalid param at compile time |
 | A10 | Authentication moves entirely into the API | Design is in PLAN.md section 5.6 |
-| A11 | Upgrade committed | `7efb290` on `chore/dependency-upgrade`, not merged |
+| A11 | Upgrade committed | `7efb290`, merged to `main` |
 | A12 | Playwright MCP | Configured in `.mcp.json` and tested |
 
 ### Drizzle + SQLite spike (2026-11-01)
