@@ -44,7 +44,7 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Deferred until SQLite exists in Phase 1 |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `packages/` and `packages/contract` written; the rest arrive with their apps and packages |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/e2e`, `packages/`, `packages/contract` and `packages/api-client` written; the rest arrive with their apps and packages |
 
 **Not yet safe for the internet.** The API has no authentication of its own, the default `admin`/`admin` account remains, secrets are baked into the image, and there is no HTTPS. All four are fixed in Phase 1.
 
@@ -627,6 +627,7 @@ Claude Code reads `AGENTS.md` natively as long as no `CLAUDE.md` exists, and nes
 | `packages/ui/AGENTS.md` | The layers and rules from [section 9.2](#92-layers), how to add shadcn components |
 | `packages/db/AGENTS.md` | Schema changes through migrations only, never edit an applied migration |
 | `packages/contract/AGENTS.md` | Schemas are the source of truth; breaking changes need a version note |
+| `packages/api-client/AGENTS.md` | Calls come from the contract, with no per-endpoint code; every failure throws `ApiError` |
 | `docs/AGENTS.md` | What each document is for, keep `PLAN.md` current, record decisions as ADRs |
 
 **Definition of done** for the root file: typecheck, lint, tests and build pass; UI changes verified in a browser; no secrets committed; docs updated.

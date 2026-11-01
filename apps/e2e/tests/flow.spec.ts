@@ -61,8 +61,10 @@ test('an unknown movie does not crash the detail page', async ({ page }) => {
 	await page.goto('/dashboard/movies/999999');
 
 	expect((await response).status()).toBe(404);
+
+	// The page keeps its spinner. If it read the error body as a movie, Next's crash page would replace it.
 	await page.waitForTimeout(2_000);
-	await expect(page.getByText(/application error/i)).toHaveCount(0);
+	await expect(page.locator('.animate-spin')).toBeVisible();
 });
 
 test('a movie that cannot be prepared says so', async ({ page }) => {
