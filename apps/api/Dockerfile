@@ -30,10 +30,14 @@ WORKDIR /app
 
 RUN apk add --no-cache ffmpeg
 
+# A new named volume takes this folder's owner, so the database is writable on first start.
+RUN mkdir /data && chown node:node /data
+
 # node is UID 1000, which must be able to write the bind-mounted ./media
 USER node
 COPY --from=installer /app .
 
 ENV NODE_ENV=production
+ENV DATABASE_PATH=/data/app.db
 WORKDIR /app/apps/api
 CMD ["node", "dist/index.js"]

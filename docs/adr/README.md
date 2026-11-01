@@ -11,5 +11,6 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | [0005](./0005-sqlite-replaces-mongodb.md) | SQLite replaces MongoDB |
 | [0006](./0006-drizzle-with-better-sqlite3.md) | Drizzle ORM with better-sqlite3 |
 | [0007](./0007-shadcn-on-base-ui.md) | shadcn on Base UI |
+| [0008](./0008-schema-in-packages-db-migrated-at-startup.md) | The schema lives in `packages/db` and migrates at API startup |
 
 ADRs are not rewritten once accepted. To change one, add a new ADR that supersedes it.

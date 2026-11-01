@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests and shared contract are done. Next:
+The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract and SQLite move are done. Next:
 
-1. **Continue Phase 1 at item 6** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 1 at item 7** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -34,17 +34,18 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | Next.js 16.4.3, React 19.3.1 (latest) | Merged to `main` (`7efb290`) |
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
-| Repository layout | `apps/api`, `packages/contract` and `packages/api-client` in place; later folders arrive with their steps |
+| Repository layout | `apps/api`, `packages/contract`, `packages/api-client` and `packages/db` in place; later folders arrive with their steps |
 | Required CI check on `main` | Done, and includes the API tests |
 | API and browser tests | Done. Three audit crashes are known failures until item 8 fixes them. The browser job only reports |
 | Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API |
+| SQLite and Drizzle | Done. `packages/db` owns the schema and queries, and migrations run at API startup. `pnpm dev` and `pnpm test` need no Docker |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
-| Ports 5000 and 27017 closed to the host | Committed and tested |
+| Port 5000 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
-| Database MCP | Deferred until SQLite exists in Phase 1 |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/e2e`, `packages/`, `packages/contract` and `packages/api-client` written; the rest arrive with their apps and packages |
+| Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client` and `packages/db` written; the rest arrive with their apps and packages |
 
 **Not yet safe for the internet.** The API has no authentication of its own, the default `admin`/`admin` account remains, secrets are baked into the image, and there is no HTTPS. All four are fixed in Phase 1.
 
@@ -302,9 +303,9 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 1 | Next.js/React RCE | Upgraded | Done |
 | 2 | API has no authentication | Port closed. Auth required by default ([section 5.6](#56-authentication)) | Partly done; 1 |
 | 3 | Default `admin`/`admin` | First-run setup screen creates the owner | 1 |
-| 4 | MongoDB `root`/`root` | Port closed; disappears with SQLite | Partly done; 1 |
+| 4 | MongoDB `root`/`root` | Gone with SQLite, which has no password or server | Done |
 | 5 | Secrets in the API image | Exclude `.env`; pass with `env_file` | 1 |
-| 9 | Operator injection at login | Zod validation in the contract; Drizzle parameters follow in item 6 | Done |
+| 9 | Operator injection at login | Zod validation in the contract, and Drizzle parameters | Done |
 | 10 | Sessions expire mid-film | Sliding 30-day sessions | 1 |
 | 39 | Cookie not `Secure` | Enable behind HTTPS | 1 |
 
@@ -316,10 +317,10 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 7 | Stuck `in progress` jobs | `failed` state; recover jobs at worker startup | 1 |
 | 8 | Malformed URL crashes the API | Validate params; `await` handlers; central error handler | Done |
 | 11 | API errors are discarded | One error shape in the contract | Done |
-| 12 | Unawaited DB checks | Removed with Mongoose | 1 |
+| 12 | Unawaited DB checks | Removed with Mongoose | Done |
 | 13 | `MEDIA_FOLDER` half-implemented | One validated config module | Done |
 | 14 | Scan reports false success | Scan is a job with counts and errors | 1 |
-| 15 | `lastScanTime` adds rows | Settings table | 1 |
+| 15 | `lastScanTime` adds rows | Settings table | Done |
 | 16 | No limit on ffmpeg jobs | Queue with a concurrency limit | 1 |
 | 36 | Startup relies on crash loops | Health checks and `depends_on` | 1 |
 | 37 | Logs unrotated, not on a volume | Structured logs to stdout | 1 |
@@ -351,7 +352,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 26 | `--host-name` does nothing | Removed with the Next `start` script | Done |
 | 27 | `public/` copied to the wrong path | Goes away with static hosting | 2 |
 | 28 | `fluent-ffmpeg` deprecated | Replace with `child_process.spawn` | 1 |
-| 35 | No-op schema options | Removed with Mongoose | 1 |
+| 35 | No-op schema options | Removed with Mongoose | Done |
 | 38 | README incomplete | Rewritten, with `CONTRIBUTING.md` and a setup script | Done |
 | 40 | Stale `tailwind.config.ts` reference, empty `.npmrc` | Removed. The `packages/ui` config reference stays until finding 49 | Done |
 
@@ -361,9 +362,9 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 |---|---|---|---|
 | 41 | Client container crashed at startup; the old image needs internet at boot | Containers start with `node` | Done |
 | 42 | API could not write `media/` | API runs as UID 1000 | Done |
-| 43 | MongoDB could not start on a fresh `./data` | Runs as UID 1000; disappears with SQLite | Done |
+| 43 | MongoDB could not start on a fresh `./data` | Gone with the MongoDB container. The image gives `/data` to UID 1000 | Done |
 | 44 | UID 1000 is hardcoded | Make `PUID`/`PGID` configurable and document it | 1 |
-| 45 | Compose used to publish ports 5000 and 27017 | Closed; dev file for local Mongo | Done |
+| 45 | Compose used to publish ports 5000 and 27017 | Closed; dev-only ports live in the dev file | Done |
 | 46 | `--font-sans` points at an undefined `--font-geist-sans`, and Zain loads but no class uses it | One font setup ([section 9.4](#94-typography)). Check the rendered font first | 2 |
 | 47 | `PlayButton` is duplicated in two files | One shared pattern | 2 |
 | 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens | 2 |
@@ -387,7 +388,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | lucide-react | 0.477.0 | 1.66.0 | 2 | Major jump; check icon renames |
 | @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | With the form rebuild |
 | react-day-picker | 9.14.0 | 10.0.2 | 2 | With the shadcn update |
-| mongoose | 8.24.7 | Removed | 1 | |
+| mongoose | 8.24.7 | Removed | Done | With `mongodb-memory-server` |
 | fluent-ffmpeg | 2.1.3 | Removed | 1 | |
 | next, swr, next-themes | Current | Removed | 2 | Replaced by the [frontend stack](#4-frontend-stack) |
 | jsonwebtoken | 9.0.2 | Removed | 1 | Replaced by API sessions |
@@ -400,33 +401,35 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 
 **Stack:** `drizzle-orm`, `drizzle-kit`, and `better-sqlite3` on the SQLite WAL journal. Drizzle has no `node:sqlite` driver.
 
-**Tested on 2026-11-01:** Drizzle with `better-sqlite3` on Node 26 and `node:26-alpine`; a movie and a show sharing a TMDB ID; JSON columns; a second container reading a live WAL database. Not yet tested: `drizzle-kit` migrations and a bind-mounted `./data`. Drizzle is pre-1.0 (0.45.4), so versions are pinned.
+**Status:** steps 1, 2, 3, 5 and 7 are done. Step 4 is Phase 2 item 5, and step 8 moves to item 8, because the worker runs scheduled work.
+
+**Tested on 2026-11-01:** Drizzle 0.45.4 and `better-sqlite3` 13.0.3 on Node 26 and `node:26.13-alpine`; `drizzle-kit` migrations from empty, as UID 1000 on a new named volume; data surviving a container restart and a recreated container; the browser tests with no MongoDB service. `better-sqlite3` 13 ships prebuilt binaries for glibc and musl, so the image needs no compiler. Drizzle is pre-1.0, so versions are pinned.
 
 ### Schema
 
 | Table | Key columns | Replaces or fixes |
 |---|---|---|
 | `users` | `id`, `username` unique, `password_hash`, `role` | `users` |
-| `sessions` | `id`, `user_id`, `expires_at` | Audit finding 10 |
-| `media` | `id`, `type`, `tmdb_id`, `title`, `year`, `path`, indexed filter columns, `metadata` JSON | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision |
-| `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 4 playback |
-| `seasons`, `episodes` | Link to `media` | Phase 6 |
-| `jobs` | `id`, `type`, `status`, `payload`, `attempts`, `error` | `transcodes`, in-memory state, findings 6, 7, 16 |
-| `watch_progress` | `user_id`, `media_file_id`, `position` | Phase 5 |
+| `sessions` | `id`, `user_id`, `expires_at` | Audit finding 10. Arrives in item 7 |
+| `media` | `id`, `type`, `tmdb_id` (nullable), `title`, `year`, `path`, `release_date`, `runtime`, `vote_average`, `vote_count`, `popularity`, `metadata` JSON | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision |
+| `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 4 playback. Not yet created |
+| `seasons`, `episodes` | Link to `media` | Phase 6. Not yet created |
+| `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error` | `transcodes`, in-memory state. Findings 6, 7 and 16 stay for item 8 |
+| `watch_progress` | `user_id`, `media_file_id`, `position` | Phase 5. Not yet created |
 | `settings` | `key`, `value` | `metadatas` |
 
 ### Steps
 
 1. Create `packages/db` with the schema, the first migration and connection setup (WAL, `busy_timeout`, foreign keys on).
 2. Move the 28 model calls behind repository functions in `auth`, `media` and `video`, with tests first where practical.
-3. Replace the hand-written types in `packages/contract/src/db-types.ts`.
+3. Replace the hand-written database types.
 4. Move library sorting and filtering into SQL. FTS5 powers search.
 5. Run migrations at API startup.
 6. Add the read-only [DBHub](https://github.com/bytebase/dbhub) MCP for development ([section 10.3](#103-database-mcp-in-docker)), as soon as the SQLite volume exists.
-7. Remove Mongoose, `mongodb-memory-server`, the `mongodb` service, `MONGO_DB_*` variables and `data/` Mongo docs.
+7. Remove Mongoose, `mongodb-memory-server`, the `mongodb` service and the `MONGO_DB_*` variables.
 8. Add scheduled `VACUUM INTO` backups.
 
-No data migration is needed if no other deployment holds data: `data/` in this repo is empty. A library can be rebuilt by rescanning, except for users.
+No data migration: `data/` in this repo was empty, and no deployment held data. A library comes back with a rescan. Users do not, and the changelog says so.
 
 **SQLite limits accepted:** one writer at a time, which is fine for these short writes. Single host only. Database on local disk only.
 
@@ -547,11 +550,11 @@ Next.js skills and `next-devtools-mcp` are not installed, because Phase 2 remove
 |---|---|
 | `playwright` | Configured and tested with headless Chromium. Output goes to `.playwright-mcp/`, ignored by git |
 | `shadcn` | Configured and tested at MCP level |
-| `database` | Added with the first SQLite work, using the setup below |
+| `database` | Configured and tested, using the setup below. It answers once the `db-mcp` service is up |
 
 ### 10.3 Database MCP in Docker
 
-Deferred until the SQLite volume exists. It uses DBHub in a dev-only Compose profile, in `docker-compose.dev.yml`:
+DBHub runs in a dev-only Compose profile, in `docker-compose.dev.yml`, and `.mcp.json` points at it. Renovate updates the image tag through its Compose manager:
 
 ```yaml
 services:
@@ -562,7 +565,7 @@ services:
     ports:
       - "127.0.0.1:8099:8080"
     volumes:
-      - sqlite-data:/data:ro
+      - ${DBHUB_DATA:-sqlite-data}:/data:ro
       - ./infra/dbhub.toml:/cfg/dbhub.toml:ro
 ```
 
@@ -578,7 +581,9 @@ readonly = true
 max_rows = 100
 ```
 
-**Tested against a live WAL database in a named volume:** DBHub read data; `INSERT`, `UPDATE`, `DROP`, a CTE insert and `PRAGMA writable_schema` were all rejected, with the volume mounted read-only and read-write.
+**Tested on 2026-11-01 with DBHub 1.5.0 against a live WAL database in the `sqlite-data` volume:** DBHub read data and saw a new write, and `INSERT`, `UPDATE`, `DROP`, a CTE insert and `PRAGMA writable_schema` were all rejected. The port is bound to `127.0.0.1`, and the service is absent from `docker-compose.yml`.
+
+**Under `pnpm dev`:** set `DBHUB_DATA=./data` to read the host's database. On Docker Desktop on WSL2, with the repo in the Linux filesystem, 420 writes from the host API were each visible to the next read, across WAL checkpoints, and reads still worked with the API stopped. macOS, a Windows path and native Linux Docker are not tested. A read-only mount cannot create the `-shm` file, so a database with no `-wal` or `-shm` beside it failed with `unable to open database file`.
 
 **Rules:** never in the production Compose file, always on `127.0.0.1`, always read-only, dev data only. Schema changes go through Drizzle migrations.
 
@@ -661,7 +666,7 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`.
 
-**Status:** items 1, 2, 3, 4 and 5 are done. Findings 6, 7 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
+**Status:** items 1, 2, 3, 4, 5 and 6 are done. Findings 6, 7 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It only receives the changes it needs: login through the API and removal of `proxy.ts`. No new work goes into it.
 

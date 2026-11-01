@@ -1,0 +1,32 @@
+{
+	"name": "@workspace/db",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"check-types": "tsc --noEmit && tsc -p test",
+		"generate": "drizzle-kit generate",
+		"test": "vitest run"
+	},
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"dependencies": {
+		"better-sqlite3": "13.0.3",
+		"drizzle-orm": "0.45.4"
+	},
+	"devDependencies": {
+		"@types/better-sqlite3": "9.6.0",
+		"@types/node": "^26.6.6",
+		"@workspace/contract": "workspace:*",
+		"@workspace/typescript-config": "workspace:*",
+		"drizzle-kit": "0.31.11",
+		"tmdb-ts": "^2.3.0",
+		"typescript": "7.0.2",
+		"vitest": "^5.0.5"
+	}
+}

@@ -4,17 +4,10 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const apiFolder = path.resolve(import.meta.dirname, '../..');
 
-/** The version the `mongodb` service runs in `docker-compose.yml`. */
-export const mongoVersion = '7.0.22';
-
 // Fake values only. The API starts in a folder with no .env, so it reads nothing else.
-const databaseUser = 'root';
-const databasePassword = 'root';
-
 const offlineEnvironment = {
 	PATH: process.env.PATH,
 	NODE_ENV: 'test',
@@ -51,8 +44,8 @@ export type TestApi = {
 	url: string;
 	/** Everything the API has printed since it last started. */
 	output: () => string;
-	/** Connection string of this server's own MongoDB. */
-	databaseUrl: string;
+	/** This server's own SQLite file. */
+	databasePath: string;
 	get: (route: string) => Promise<Response>;
 	post: (route: string, body: unknown) => Promise<Response>;
 	/** Retries `check` until it passes. Fails at once if the API process has gone. */
@@ -79,11 +72,7 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 		await writeFile(path.join(root, '.env.development'), options.developmentEnvFile);
 	}
 
-	const database = await MongoMemoryServer.create({
-		binary: { version: mongoVersion },
-		auth: { enable: true, customRootName: databaseUser, customRootPwd: databasePassword },
-	});
-	const databaseUrl = new URL(database.getUri());
+	const databasePath = path.join(root, 'app.db');
 	const port = await findFreePort();
 	const url = `http://127.0.0.1:${port}`;
 
@@ -99,13 +88,10 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 			env: {
 				...offlineEnvironment,
 				PORT: String(port),
-				MONGO_DB_URL: databaseUrl.hostname,
-				MONGO_DB_PORT: databaseUrl.port,
+				DATABASE_PATH: databasePath,
 				...(options.envFile
 					? {}
 					: {
-							MONGO_DB_USERNAME: databaseUser,
-							MONGO_DB_PASSWORD: databasePassword,
 							JWT_SECRET: 'fake-secret-for-api-tests',
 							JWT_EXPIRES_IN: '3600',
 							NEXT_CLIENT_URL: 'http://localhost:3000',
@@ -176,7 +162,7 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 		mediaFolder,
 		url,
 		output: () => output,
-		databaseUrl: `mongodb://${databaseUser}:${databasePassword}@${databaseUrl.host}/test?authSource=admin`,
+		databasePath,
 		get,
 		post,
 		waitFor,
@@ -187,7 +173,6 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 		},
 		stop: async () => {
 			await kill();
-			await database.stop();
 			await rm(root, { recursive: true, force: true, maxRetries: 5 });
 		},
 	};

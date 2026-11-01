@@ -1,6 +1,8 @@
-// Runs once when the throwaway MongoDB starts. Adds the movie in fixtures/clip.mp4, and a
-// movie with no video, which cannot be prepared.
-const database = db.getSiblingDB('test');
+// Runs once, after the API has migrated the throwaway database. Adds the movie in
+// fixtures/clip.mp4, and a movie with no video, which cannot be prepared.
+import { closeDatabase, openDatabase, saveMovie } from '@workspace/db';
+
+const db = openDatabase(process.env.DATABASE_PATH);
 
 const addMovie = (id, title) => {
 	const details = {
@@ -26,9 +28,10 @@ const addMovie = (id, title) => {
 		images: { posters: [{ file_path: '/none.jpg' }], logos: [{ file_path: '/none.png' }], backdrops: [] },
 	};
 
-	database.media.insertOne({ id, type: 'movie' });
-	database.movies.insertOne({ id, path: `movies/${title} (2024)`, metadata });
+	saveMovie(db, { tmdbId: id, path: `movies/${title} (2024)`, metadata });
 };
 
 addMovie(550001, 'Demo Movie');
 addMovie(550002, 'Missing Video');
+
+closeDatabase(db);

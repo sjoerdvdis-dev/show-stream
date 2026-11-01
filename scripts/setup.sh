@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 api_env=apps/api/.env
+has_docker=false
 
 ok() { echo "✓ $1"; }
 
@@ -33,10 +34,16 @@ check_node() {
   ok "Node.js $found"
 }
 
+# Only the full stack and the browser tests need Docker, so a missing one is not fatal.
 check_docker() {
-  command -v docker >/dev/null || fail "Docker is not installed." "Install Docker Desktop or Docker Engine with Compose."
-  docker info >/dev/null 2>&1 || fail "Docker is not running." "Start Docker. On WSL, start Docker Desktop on Windows."
-  ok "Docker"
+  if ! command -v docker >/dev/null; then
+    echo "! Docker is not installed. pnpm dev and pnpm test work without it, but the full stack and pnpm test:browser need Docker with Compose."
+  elif ! docker info >/dev/null 2>&1; then
+    echo "! Docker is not running. Start it for the full stack and pnpm test:browser. On WSL, start Docker Desktop on Windows."
+  else
+    has_docker=true
+    ok "Docker"
+  fi
 }
 
 install_pnpm() {
@@ -88,12 +95,15 @@ install_browser() {
 }
 
 create_folders() {
-  # Docker uses ./media and pnpm dev uses apps/api/media.
+  # Docker uses ./media and pnpm dev uses apps/api/media. ./data holds the pnpm dev database.
   mkdir -p media/movies media/shows apps/api/media/movies apps/api/media/shows data
-  docker network inspect show_stream_network >/dev/null 2>&1 || docker network create show_stream_network >/dev/null
-  ok "Media and data folders, and Docker network"
-  if [ "$(id -u)" -ne 1000 ]; then
-    echo "! Containers run as UID 1000, so ./media and ./data must be writable by that user."
+  ok "Media and data folders"
+  if [ "$has_docker" = true ]; then
+    docker network inspect show_stream_network >/dev/null 2>&1 || docker network create show_stream_network >/dev/null
+    ok "Docker network"
+    if [ "$(id -u)" -ne 1000 ]; then
+      echo "! Containers run as UID 1000, so ./media must be writable by that user."
+    fi
   fi
 }
 
@@ -130,4 +140,4 @@ create_env
 check_tmdb_token
 
 echo
-echo "Done. Start MongoDB and the apps with the steps in docs/guides/local-development.md."
+echo "Done. Start the apps with pnpm dev. See docs/guides/local-development.md."

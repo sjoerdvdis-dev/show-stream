@@ -14,7 +14,7 @@ Library scans and filters exist, but scans have not been tested against real TMD
 
 ## Run it
 
-You need Node.js 26, Docker with Compose, and a free [TMDB read access token](https://developer.themoviedb.org/docs/getting-started) for scans.
+You need Node.js 26, Docker with Compose for the full stack, and a free [TMDB read access token](https://developer.themoviedb.org/docs/getting-started) for scans.
 
 1. Prepare the clone. This also installs the development tools.
 
@@ -40,7 +40,7 @@ You need Node.js 26, Docker with Compose, and a free [TMDB read access token](ht
 
 Open <http://localhost:3000> and log in with `admin`/`admin`.
 
-Database files go in `./data`. Keep both `./media` and `./data` on persistent storage.
+The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS.
 
 ## Develop
 
