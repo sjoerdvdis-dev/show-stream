@@ -26,9 +26,12 @@
     },
     {
       "customType": "regex",
-      "description": "pnpm installed in the Dockerfiles",
+      "description": "pnpm and turbo installed in the Dockerfiles",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],
-      "matchStrings": ["npm install -g (?<depName>pnpm)@(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "matchStrings": [
+        "(?<depName>pnpm)@(?<currentValue>\\d+\\.\\d+\\.\\d+)",
+        "(?<depName>turbo)@(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
       "datasourceTemplate": "npm"
     }
   ]
