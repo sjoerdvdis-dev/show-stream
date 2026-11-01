@@ -19,6 +19,8 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `apps/worker`, a separate process and image that runs ffmpeg from a job queue in SQLite. It publishes no ports, and `pnpm dev` and Compose start it.
 - A failed transcode shows its reason, and has a Retry button on the movie's page.
 - `JOB_CONCURRENCY` limits how many jobs run at once, and defaults to 1.
+- A Library section in Settings, where an owner or admin starts a scan and reads its result.
+- A daily database backup, written by the worker to `./backups` with `VACUUM INTO`, keeping the last 7. `BACKUP_FOLDER` moves it under `pnpm dev`. The guide explains how to restore one.
 
 ### Changed
 
@@ -36,6 +38,8 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `JWT_SECRET` and `JWT_EXPIRES_IN` are gone, and are ignored if they remain in `.env`. The new `SESSION_COOKIE_SECURE` defaults to true. `.env.development` and `docker-compose.yml` set it to false until HTTPS arrives.
 - **Breaking, contract:** `transcodeStatus` gains `failed`, and a movie gains `transcodeError`. `GET /transcode/request/:id` answers a failed title with its status and `error`, and does not start it again. New: `POST /transcode/retry/:id`, which answers 409 unless the title has failed, and the `transcode:failed` notification.
 - **Upgrading to the worker:** Compose now has a `worker` service, so rebuild with `bash build-docker.sh`. A migration keeps finished transcodes and clears the ones that were in progress, which you start again by pressing Play. The API image no longer has ffmpeg. The API serves transcodes as soon as they finish, without the old 10-second delay.
+- **Breaking, contract:** `POST /scan` queues a scan in the worker and answers 202 with `{ scan }`, or 409 while one is queued or running, where it answered 200 with text once the scan had finished. It no longer answers 500 for a missing `movies` folder: the scan fails and says so. New: an admin-only `GET /scan`, which answers `{ scan }` with the latest status, time, counts, reason and up to 20 errors, or `{ scan: null }`.
+- **Upgrading to scans in the worker:** rebuild with `bash build-docker.sh`. Under Compose the worker now reads `TMDB_API_READ_ACCESS_TOKEN` from `apps/api/.env`, and the API no longer does. Run `scripts/setup.sh`, or create `./backups` yourself, before starting, because Docker would otherwise create it as root and backups would fail.
 - The API moved from `apps/api-server` to `apps/api`, and `packages/types` became `packages/contract`. In an existing clone, move your `.env` and any media from `apps/api-server` to `apps/api`. The Compose service and container are now `api`, so run `docker compose up -d --remove-orphans` to replace the old container.
 
 ### Fixed
@@ -44,12 +48,14 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - A malformed stream URL no longer takes the API down, and login no longer accepts a database operator.
 - `MEDIA_FOLDER` now applies to transcoding, streaming and the cache as well as scans, including a path with a space or a dot folder.
 - Container startup failures, and file permissions on `./media` and `./data`.
-- A movie and a show can share a TMDB ID, and a scan keeps one last-scan setting instead of adding a row.
+- A movie and a show can share a TMDB ID, and a scan no longer adds a row for its time.
 - A corrupt video fails on its own instead of taking the API down.
 - A title no longer stays `in progress` for ever after a restart. An interrupted job recovers when the worker starts, and fails after 3 attempts.
 - An interrupted transcode can no longer be served as ready, because output reaches the cache only on success.
 - Any number of simultaneous requests no longer starts as many ffmpeg processes.
+- A scan no longer reports success when it identified nothing. With no TMDB token, or with no folder identified, it fails with a reason. A partial scan finishes and lists its failures.
 
 ### Removed
 
 - `fluent-ffmpeg`, which is deprecated. A small `spawn` wrapper replaces it, with the same arguments.
+- `tmdb-ts` from the API, which no longer calls TMDB, and the unused `lastScanTime` setting.

@@ -206,3 +206,30 @@ test('a stream that refuses the session returns to login', async ({ page }) => {
 
 	await expect(page).toHaveURL(/\/login$/);
 });
+
+test('an admin scans the library and reads the result in Settings', async ({ page }) => {
+	await logInAsAdmin(page);
+	await page.goto('/dashboard/settings');
+	const section = page.getByRole('region', { name: 'Library scan' });
+	await expect(section.getByText('No scan has run yet.')).toBeVisible();
+
+	await section.getByRole('button', { name: 'Scan library' }).click();
+
+	await expect(section.getByText(/^Last scan finished/)).toBeVisible({ timeout: 45_000 });
+	await expect(section.getByRole('button', { name: 'Scan library' })).toBeEnabled();
+	const count = (label: string) => section.locator('div', { has: page.getByText(label, { exact: true }) }).last();
+	await expect(count('Found')).toContainText('4');
+	await expect(count('Added')).toContainText('1');
+	await expect(count('Updated')).toContainText('2');
+	await expect(count('Unmatched')).toContainText('1');
+	await expect(section.getByRole('list', { name: 'Scan problems' })).toContainText(
+		'Unknown Film (2024): TMDB has no match',
+	);
+
+	// The result outlives the page.
+	await page.reload();
+	await expect(section.getByText(/^Last scan finished/)).toBeVisible();
+
+	await page.goto('/dashboard/movies');
+	await expect(page.getByText('Scanned Movie').first()).toBeVisible();
+});

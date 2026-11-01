@@ -7,7 +7,6 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | # | Decision | Recommendation | Why |
 |---|---|---|---|
 | C1 | Keep Express? | Keep Express 5 | No need to change the framework during the database move |
-| C9 | Backups | Scheduled `VACUUM INTO` to a backup folder | A plain file copy of a live WAL database is unsafe |
 
 ## AI tooling
 

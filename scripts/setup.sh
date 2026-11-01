@@ -96,14 +96,15 @@ install_browser() {
 }
 
 create_folders() {
-  # Docker uses ./media and pnpm dev uses apps/api/media. ./data holds the pnpm dev database.
-  mkdir -p media/movies media/shows apps/api/media/movies apps/api/media/shows data
-  ok "Media and data folders"
+  # Docker uses ./media and pnpm dev uses apps/api/media. ./data holds the pnpm dev database,
+  # and both use ./backups, which Docker would otherwise create as root.
+  mkdir -p media/movies media/shows apps/api/media/movies apps/api/media/shows data backups
+  ok "Media, data and backup folders"
   if [ "$has_docker" = true ]; then
     docker network inspect show_stream_network >/dev/null 2>&1 || docker network create show_stream_network >/dev/null
     ok "Docker network"
     if [ "$(id -u)" -ne 1000 ]; then
-      echo "! Containers run as UID 1000, so ./media must be writable by that user."
+      echo "! Containers run as UID 1000, so ./media and ./backups must be writable by that user."
     fi
   fi
 }
