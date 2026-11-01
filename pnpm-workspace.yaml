@@ -9,6 +9,3 @@ overrides:
 allowBuilds:
   esbuild: false
   sharp: true
-
-minimumReleaseAgeExclude:
-  - globals@17.14.0

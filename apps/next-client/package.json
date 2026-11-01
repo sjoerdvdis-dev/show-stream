@@ -6,7 +6,6 @@
 	"scripts": {
 		"dev": "next dev --turbopack",
 		"build": "next build",
-		"start": "node .next/standalone/apps/next-client/server.js",
 		"lint": "eslint .",
 		"check-types": "tsc --noEmit"
 	},

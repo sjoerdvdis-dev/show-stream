@@ -1,12 +1,13 @@
 FROM node:26.13-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm@12.16.1 turbo@2.11.10
+RUN npm install -g pnpm@12.16.1
 
 FROM base AS builder
 RUN apk update
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
+RUN npm install -g turbo@2.11.10
 COPY . .
 RUN turbo prune api-server --docker
 
