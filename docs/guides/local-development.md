@@ -33,20 +33,10 @@ pnpm dev
 Run these before finishing work:
 
 ```bash
-pnpm turbo lint
+pnpm turbo check-types lint build
 ```
 
-```bash
-pnpm turbo build
-```
-
-```bash
-pnpm --filter api-server exec tsc --noEmit
-```
-
-```bash
-pnpm --filter next-client exec tsc --noEmit
-```
+This is the same command the required CI check runs.
 
 ## Full stack in Docker
 
