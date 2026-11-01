@@ -24,6 +24,7 @@ clean_up() {
   rm -rf "$E2E_CONTEXT"
 }
 trap clean_up EXIT
+trap 'exit 130' INT TERM
 
 rm -rf test-results
 mkdir test-results
