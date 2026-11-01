@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -97,6 +98,20 @@ describe('database', () => {
 			db = openDatabase(file);
 
 			expect(findMovie(db, 1)?.title).toBe('One');
+		});
+
+		// An insert that stops at its RETURNING row commits without running the WAL hook.
+		it('checkpoints as it writes, so that the WAL stops growing', () => {
+			const passwordHash = 'x'.repeat(2_000);
+			const wal = `${file}-wal`;
+
+			for (let index = 0; index < 3_000; index++) {
+				createUser(db, { username: `user-${index}`, passwordHash });
+			}
+			saveMovie(db, { tmdbId: 1, path: 'movies/One', metadata: movieMetadata(1, 'One') });
+
+			expect(statSync(wal).size).toBeLessThan(5_000_000);
+			expect(statSync(file).size).toBeGreaterThan(1_000_000);
 		});
 
 		describe('media', () => {

@@ -16,7 +16,7 @@ export const saveMedia = (db: Database, title: NewMedia): Media =>
 		.values(title)
 		.onConflictDoUpdate({ target: [media.type, media.tmdbId], set: title })
 		.returning()
-		.get();
+		.all()[0]!;
 
 /** Saves a movie that TMDB identified, with its typed columns read from the payload. */
 export const saveMovie = (db: Database, movie: { tmdbId: number; path: string; metadata: MovieMetadata }): Media => {

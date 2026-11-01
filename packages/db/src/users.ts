@@ -5,7 +5,7 @@ import { users, type User, type UserRole } from './schema.js';
 type NewUser = { username: string; passwordHash: string; role?: UserRole };
 
 /** Throws if the username is taken. */
-export const createUser = (db: Database, user: NewUser): User => db.insert(users).values(user).returning().get();
+export const createUser = (db: Database, user: NewUser): User => db.insert(users).values(user).returning().all()[0]!;
 
 /** Leaves an existing account as it is. */
 export const createUserIfMissing = (db: Database, user: NewUser): void => {
