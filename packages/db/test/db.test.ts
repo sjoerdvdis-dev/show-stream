@@ -5,12 +5,19 @@ import path from 'node:path';
 import type { MovieMetadata } from '@workspace/contract/api-types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+	addTranscodeRequester,
 	closeDatabase,
+	createOwner,
+	createSession,
 	createUser,
-	createUserIfMissing,
+	deleteExpiredSessions,
+	deleteSession,
+	extendSession,
 	findMovie,
+	findSession,
 	findUserByUsername,
 	getSetting,
+	hasOwner,
 	listMovies,
 	listShows,
 	migrateDatabase,
@@ -20,6 +27,7 @@ import {
 	saveMovie,
 	setSetting,
 	setTranscodeStatus,
+	takeTranscodeRequesters,
 	type Database,
 } from '../src/index';
 
@@ -61,7 +69,7 @@ describe('database', () => {
 
 			migrateDatabase(db);
 
-			expect(tableNames(db)).toEqual(expect.arrayContaining(['jobs', 'media', 'settings', 'users']));
+			expect(tableNames(db)).toEqual(expect.arrayContaining(['jobs', 'media', 'sessions', 'settings', 'users']));
 		});
 
 		it('changes nothing when run again', () => {
@@ -205,6 +213,36 @@ describe('database', () => {
 			it('refuses a job for a title that does not exist', () => {
 				expect(() => setTranscodeStatus(db, 999, 'ready')).toThrow(/FOREIGN KEY/);
 			});
+
+			it('hands over the users who asked once each, and only once', () => {
+				const movie = addMovie();
+				setTranscodeStatus(db, movie.id, 'in progress');
+
+				addTranscodeRequester(db, movie.id, 1);
+				addTranscodeRequester(db, movie.id, 2);
+				addTranscodeRequester(db, movie.id, 1);
+
+				expect(takeTranscodeRequesters(db, movie.id)).toEqual([1, 2]);
+				expect(takeTranscodeRequesters(db, movie.id)).toEqual([]);
+			});
+
+			it('keeps the users who asked when a playlist is requested', () => {
+				const movie = addMovie();
+				setTranscodeStatus(db, movie.id, 'in progress');
+				addTranscodeRequester(db, movie.id, 1);
+
+				recordPlaylistRequest(db, movie.id, new Date('2024-01-01T00:00:00Z'));
+
+				expect(takeTranscodeRequesters(db, movie.id)).toEqual([1]);
+			});
+
+			it('has no users for a title with no job', () => {
+				const movie = addMovie();
+
+				addTranscodeRequester(db, movie.id, 1);
+
+				expect(takeTranscodeRequesters(db, movie.id)).toEqual([]);
+			});
 		});
 
 		describe('settings', () => {
@@ -234,16 +272,109 @@ describe('database', () => {
 				expect(() => createUser(db, user)).toThrow(/UNIQUE/);
 			});
 
-			it('leaves an existing account alone', () => {
-				createUser(db, user);
-
-				createUserIfMissing(db, { ...user, passwordHash: 'other' });
-
-				expect(findUserByUsername(db, 'sam')?.passwordHash).toBe('hash');
-			});
-
 			it('finds no unknown user', () => {
 				expect(findUserByUsername(db, 'nobody')).toBeUndefined();
+			});
+
+			it('creates an owner', () => {
+				expect(hasOwner(db)).toBe(false);
+
+				expect(createOwner(db, user)?.role).toBe('owner');
+
+				expect(hasOwner(db)).toBe(true);
+			});
+
+			it('creates no second owner, and leaves the first alone', () => {
+				createOwner(db, user);
+
+				expect(createOwner(db, { username: 'second', passwordHash: 'hash' })).toBeUndefined();
+
+				expect(rowCount(db, 'users')).toBe(1);
+			});
+
+			it('refuses a second owner at the database, whatever the code does', () => {
+				createOwner(db, user);
+
+				expect(() => createUser(db, { username: 'second', passwordHash: 'hash', role: 'owner' })).toThrow(/UNIQUE/);
+			});
+
+			it('creates no owner with a taken username', () => {
+				createUser(db, user);
+
+				expect(createOwner(db, user)).toBeUndefined();
+				expect(hasOwner(db)).toBe(false);
+			});
+
+			it('allows any number of admins and users', () => {
+				createUser(db, { username: 'one', passwordHash: 'hash', role: 'admin' });
+				createUser(db, { username: 'two', passwordHash: 'hash', role: 'admin' });
+				createOwner(db, user);
+
+				expect(rowCount(db, 'users')).toBe(3);
+			});
+		});
+
+		describe('sessions', () => {
+			const expiresAt = new Date('2030-01-01T00:00:00Z');
+
+			const addSession = (id = 'hash') => {
+				const user = createUser(db, { username: `user-of-${id}`, passwordHash: 'secret hash', role: 'admin' });
+				createSession(db, { id, userId: user.id, expiresAt });
+				return user;
+			};
+
+			it('finds a session with its user, and no password hash', () => {
+				const user = addSession();
+
+				expect(findSession(db, 'hash')).toEqual({
+					id: 'hash',
+					userId: user.id,
+					expiresAt,
+					user: { id: user.id, username: user.username, role: 'admin' },
+				});
+			});
+
+			it('finds no unknown session', () => {
+				expect(findSession(db, 'unknown')).toBeUndefined();
+			});
+
+			it('moves the expiry of one session', () => {
+				addSession('one');
+				addSession('two');
+				const later = new Date('2031-01-01T00:00:00Z');
+
+				extendSession(db, 'one', later);
+
+				expect(findSession(db, 'one')?.expiresAt).toEqual(later);
+				expect(findSession(db, 'two')?.expiresAt).toEqual(expiresAt);
+			});
+
+			it('deletes one session', () => {
+				addSession('one');
+				addSession('two');
+
+				deleteSession(db, 'one');
+
+				expect(findSession(db, 'one')).toBeUndefined();
+				expect(findSession(db, 'two')).toBeDefined();
+			});
+
+			it('deletes only expired sessions', () => {
+				addSession();
+
+				deleteExpiredSessions(db, new Date(expiresAt.getTime() - 1));
+				expect(rowCount(db, 'sessions')).toBe(1);
+
+				deleteExpiredSessions(db, expiresAt);
+				expect(rowCount(db, 'sessions')).toBe(0);
+			});
+
+			it('goes with its user', () => {
+				const user = addSession();
+
+				db.$client.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+
+				expect(rowCount(db, 'sessions')).toBe(0);
 			});
 		});
 	});

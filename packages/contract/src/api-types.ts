@@ -58,14 +58,18 @@ export type APINotification = z.infer<typeof apiNotificationSchema>;
 /**
  * Auth
  */
-export const userSchema = z.object({ userId: z.string(), username: z.string() });
+export const userRoleSchema = z.enum(['owner', 'admin', 'user']);
+export type UserRole = z.infer<typeof userRoleSchema>;
+
+export const userSchema = z.object({ userId: z.string(), username: z.string(), role: userRoleSchema });
 export type User = z.infer<typeof userSchema>;
 
-export const loginResponseSchema = z.object({ token: z.string() });
-export type LoginAPIData = z.infer<typeof loginResponseSchema>;
+export const setupStatusResponseSchema = z.object({ needed: z.boolean() });
+export type SetupStatusAPIData = z.infer<typeof setupStatusResponseSchema>;
 
-export const registerResponseSchema = z.object({ success: z.boolean() });
-export type RegisterAPIData = z.infer<typeof registerResponseSchema>;
+/** Setup, login and `GET /auth/me` all answer with the user. Login also sets the cookie. */
+export const sessionResponseSchema = z.object({ user: userSchema });
+export type SessionAPIData = z.infer<typeof sessionResponseSchema>;
 
-export const authenticateResponseSchema = z.object({ user: userSchema, valid: z.boolean() });
-export type AuthenticateAPIData = z.infer<typeof authenticateResponseSchema>;
+export const logoutResponseSchema = z.object({ success: z.boolean() });
+export type LogoutAPIData = z.infer<typeof logoutResponseSchema>;

@@ -5,7 +5,10 @@ import type { ApiErrorBody, ApiErrorCode, ApiErrorDetail } from '@workspace/cont
 const statusOfCode: Record<ApiErrorCode, number> = {
 	invalid_request: 400,
 	unauthorized: 401,
+	forbidden: 403,
 	not_found: 404,
+	conflict: 409,
+	rate_limited: 429,
 	internal_error: 500,
 };
 
@@ -51,6 +54,9 @@ export const createErrorHandler =
 		if (error instanceof ApiFailure) {
 			if (error.code === 'invalid_request') {
 				logger.log('security', 'Rejected a malformed request', failure);
+			}
+			if (error.code === 'forbidden' || error.code === 'rate_limited') {
+				logger.log('security', `Refused a request: ${error.message}`, failure);
 			}
 			send(statusOfCode[error.code], { code: error.code, message: error.message, details: error.details });
 			return;

@@ -21,9 +21,13 @@ export const openDatabase = (file: string) => {
 
 export type Database = ReturnType<typeof openDatabase>;
 
-/** Applies every migration this install has not run yet. Throws if one fails. */
-export const migrateDatabase = (db: Database) => {
-	migrate(db, { migrationsFolder });
+/**
+ * Applies every migration this install has not run yet. Throws if one fails.
+ *
+ * @param folder Only tests pass this, to build a database as an older version left it.
+ */
+export const migrateDatabase = (db: Database, folder = migrationsFolder) => {
+	migrate(db, { migrationsFolder: folder });
 };
 
 export const closeDatabase = (db: Database) => {

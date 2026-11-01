@@ -14,8 +14,10 @@ export const useNotificationToaster = () => {
 		};
 
 		socket.on('notification', notificationHandler);
+		socket.connect();
 		return () => {
 			socket.off('notification', notificationHandler);
+			socket.disconnect();
 		};
 	}, []);
 };

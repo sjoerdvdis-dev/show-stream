@@ -19,6 +19,8 @@
 		"@radix-ui/react-slider": "^1.6.1",
 		"@radix-ui/react-slot": "^1.5.0",
 		"@radix-ui/react-tooltip": "^1.4.1",
+		"@workspace/api-client": "workspace:*",
+		"@workspace/contract": "workspace:*",
 		"@workspace/ui": "workspace:*",
 		"cmdk": "^1.1.1",
 		"date-fns": "^4.4.0",
@@ -44,10 +46,9 @@
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
 		"@workspace/eslint-config": "workspace:^",
-		"@workspace/contract": "workspace:*",
 		"@workspace/typescript-config": "workspace:*",
+		"eslint": "^10.14.0",
 		"tailwindcss": "^4.3.3",
-		"typescript": "7.0.2",
-		"eslint": "^10.14.0"
+		"typescript": "7.0.2"
 	}
 }

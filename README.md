@@ -3,7 +3,7 @@
 A self-hosted media server, built to replace Jellyfin. Early development.
 
 > [!WARNING]
-> **Do not expose ShowStream to the internet yet.** The API has no authentication of its own, a default `admin`/`admin` account exists, and there is no HTTPS. See [SECURITY.md](./SECURITY.md).
+> **Do not expose ShowStream to the internet yet.** There is no HTTPS, so passwords and session cookies travel in plain text. See [SECURITY.md](./SECURITY.md).
 
 ## What works today
 
@@ -38,7 +38,7 @@ You need Node.js 26, Docker with Compose for the full stack, and a free [TMDB re
    bash build-docker.sh
    ```
 
-Open <http://localhost:3000> and log in with `admin`/`admin`.
+Open <http://localhost:3000>. The first start takes you to a setup page, where you create the owner account.
 
 The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS.
 

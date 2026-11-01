@@ -13,8 +13,7 @@ services:
   api:
     build: *api-build
     environment:
-      JWT_SECRET: fake-secret-for-browser-tests
-      JWT_EXPIRES_IN: "3600"
+      SESSION_COOKIE_SECURE: "false"
       TMDB_API_READ_ACCESS_TOKEN: fake-token-for-browser-tests
     volumes:
       - sqlite-data:/data
@@ -24,7 +23,7 @@ services:
         target: /app/apps/api/media/movies/Demo Movie (2024)/clip.mp4
         read_only: true
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5000/movies"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5000/auth/setup"]
       interval: 2s
       timeout: 5s
       retries: 30

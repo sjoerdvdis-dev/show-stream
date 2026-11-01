@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import {
-	authenticateResponseSchema,
-	loginResponseSchema,
+	logoutResponseSchema,
 	movieResponseSchema,
 	moviesResponseSchema,
-	registerResponseSchema,
+	sessionResponseSchema,
+	setupStatusResponseSchema,
 	showsResponseSchema,
 	transcodePlaylistResponseSchema,
 	transcodeRequestResponseSchema,
@@ -14,6 +14,10 @@ export type Endpoint = {
 	method: 'GET' | 'POST';
 	/** Express-style path. `:name` segments are filled from `params`. */
 	path: string;
+	/** Who may call it. Leave this out to require a session: nothing is public by omission. */
+	access?: 'public' | 'admin';
+	/** Limits failed attempts per address. For endpoints that check a password. */
+	rateLimited?: boolean;
 	/** Parses the path segments, which always arrive as strings. */
 	params?: z.ZodType;
 	body?: z.ZodType;
@@ -43,23 +47,38 @@ const streamParams = z.object({
 
 const credentials = z.object({ username: nonEmptyText('Username'), password: nonEmptyText('Password') });
 
+export const minimumPasswordLength = 8;
+
+const newAccount = z.object({
+	username: nonEmptyText('Username'),
+	password: z
+		.string({ error: 'Password must be text' })
+		.min(minimumPasswordLength, `Password must have at least ${minimumPasswordLength} characters`),
+});
+
 /** Every route of the API. The API serves exactly these, and the typed client calls them. */
 export const endpoints = {
-	register: {
+	setupStatus: { method: 'GET', path: '/auth/setup', access: 'public', response: setupStatusResponseSchema },
+	setup: {
 		method: 'POST',
-		path: '/register',
-		body: credentials,
+		path: '/auth/setup',
+		access: 'public',
+		rateLimited: true,
+		body: newAccount,
 		status: 201,
-		response: registerResponseSchema,
+		response: sessionResponseSchema,
 	},
-	login: { method: 'POST', path: '/login', body: credentials, response: loginResponseSchema },
-	authenticate: {
+	login: {
 		method: 'POST',
-		path: '/authenticate',
-		body: z.object({ token: nonEmptyText('Token') }),
-		response: authenticateResponseSchema,
+		path: '/auth/login',
+		access: 'public',
+		rateLimited: true,
+		body: credentials,
+		response: sessionResponseSchema,
 	},
-	scan: { method: 'GET', path: '/scan', format: 'text', response: z.string() },
+	logout: { method: 'POST', path: '/auth/logout', response: logoutResponseSchema },
+	me: { method: 'GET', path: '/auth/me', response: sessionResponseSchema },
+	scan: { method: 'POST', path: '/scan', access: 'admin', format: 'text', response: z.string() },
 	transcodeRequest: {
 		method: 'GET',
 		path: '/transcode/request/:id',

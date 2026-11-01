@@ -4,10 +4,9 @@
 
 ShowStream is in early development. Do not expose it to the internet until Phase 1 of [the plan](./docs/PLAN.md) is finished. These problems are known and planned:
 
-- The API has no authentication of its own.
-- A default `admin`/`admin` account is created at startup.
 - Secrets are built into the API image.
-- There is no HTTPS.
+- There is no HTTPS, so passwords and the session cookie travel in plain text. The cookie is `Secure` by default, and `docker-compose.yml` turns that off until HTTPS arrives.
+- Next.js passes a client's own `X-Forwarded-For` to the API, so a client can dodge the login rate limit until Caddy replaces it as the proxy.
 
 ## Supported versions
 

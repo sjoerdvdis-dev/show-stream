@@ -9,7 +9,7 @@ Today it is an Express API and a Next.js client on SQLite. It is moving to the a
 - The API is the only authority for auth and data. Client-side guards are only for user experience.
 - Only the public proxy is published. Dev ports bind to `127.0.0.1` in `docker-compose.dev.yml`.
 - ffmpeg runs only in the worker, once it exists.
-- Do not add features to `apps/next-client`; it is being replaced.
+- `apps/next-client` is being replaced. Change it only when a step needs it, and list anything added in Phase 2 of `docs/PLAN.md`, so that `apps/web` replaces it fully.
 - Never read, print or commit real `.env` values.
 
 ## Commands

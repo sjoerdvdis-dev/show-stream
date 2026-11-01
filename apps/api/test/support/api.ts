@@ -35,9 +35,30 @@ export type ApiOptions = {
 	developmentEnvFile?: string;
 	/** Answers TMDB calls with a fake movie, so that a scan can identify a title. */
 	fakeTmdb?: boolean;
+	/** Builds the SQLite file before the API first opens it, as an older version left it. */
+	prepareDatabase?: (databasePath: string) => Promise<void>;
 };
 
-export type TestApi = {
+type Headers = Record<string, string>;
+
+export type Requests = {
+	get: (route: string, headers?: Headers) => Promise<Response>;
+	post: (route: string, body?: unknown, headers?: Headers) => Promise<Response>;
+};
+
+/** Makes requests with a session. Everything on `TestApi` itself has none. */
+export type TestClient = Requests & {
+	/** The value of the `session` cookie. */
+	token: string;
+	/** The `cookie` header that carries the session. */
+	cookie: string;
+	/** Asks for `/auth/logout`, which ends this session. */
+	logOut: () => Promise<Response>;
+};
+
+export const ownerCredentials = { username: 'owner', password: 'correct horse' };
+
+export type TestApi = Requests & {
 	/** The API's media folder. By default it is inside this server's temporary folder. */
 	mediaFolder: string;
 	/** The API's base URL. */
@@ -46,8 +67,10 @@ export type TestApi = {
 	output: () => string;
 	/** This server's own SQLite file. */
 	databasePath: string;
-	get: (route: string) => Promise<Response>;
-	post: (route: string, body: unknown) => Promise<Response>;
+	/** Runs first-run setup, and returns a client with the owner's session. */
+	createOwner: () => Promise<TestClient>;
+	/** Logs in, and returns a client with the new session. */
+	logIn: (username: string, password: string) => Promise<TestClient>;
 	/** Retries `check` until it passes. Fails at once if the API process has gone. */
 	waitFor: <T>(check: () => Promise<T>, timeoutMs?: number) => Promise<T>;
 	/** Kills the API with no warning and starts it again on the same database and media. */
@@ -73,6 +96,7 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 	}
 
 	const databasePath = path.join(root, 'app.db');
+	await options.prepareDatabase?.(databasePath);
 	const port = await findFreePort();
 	const url = `http://127.0.0.1:${port}`;
 
@@ -92,8 +116,6 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 				...(options.envFile
 					? {}
 					: {
-							JWT_SECRET: 'fake-secret-for-api-tests',
-							JWT_EXPIRES_IN: '3600',
 							NEXT_CLIENT_URL: 'http://localhost:3000',
 							TMDB_API_READ_ACCESS_TOKEN: 'fake-token-for-api-tests',
 						}),
@@ -109,17 +131,51 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 	const describeExit = () =>
 		`API process exited (code ${child.exitCode}, signal ${child.signalCode}). Last output:\n${output.slice(-2000)}`;
 
-	const request = (route: string, init?: RequestInit) =>
-		fetch(`${url}${route}`, { ...init, signal: AbortSignal.timeout(10_000) });
+	let requestCount = 0;
 
-	const get = (route: string) => request(route);
+	/**
+	 * Each request looks like a new address behind the proxy, so that a run of failed logins
+	 * does not reach the rate limit. A test of that limit passes its own `x-forwarded-for`.
+	 */
+	const nextAddress = () => {
+		requestCount += 1;
+		return `198.18.${requestCount >> 8}.${requestCount & 255}`;
+	};
 
-	const post = (route: string, body: unknown) =>
-		request(route, {
-			method: 'POST',
-			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify(body),
+	const request = (route: string, init: RequestInit) =>
+		fetch(`${url}${route}`, {
+			...init,
+			headers: { 'x-forwarded-for': nextAddress(), ...init.headers },
+			signal: AbortSignal.timeout(10_000),
 		});
+
+	const requestsWith = (headers: Headers = {}): Requests => ({
+		get: (route, extraHeaders) => request(route, { headers: { ...headers, ...extraHeaders } }),
+		post: (route, body = {}, extraHeaders) =>
+			request(route, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', ...headers, ...extraHeaders },
+				body: JSON.stringify(body),
+			}),
+	});
+
+	const requests = requestsWith();
+
+	const clientOf = async (response: Response): Promise<TestClient> => {
+		if (!response.ok) {
+			throw new Error(`Could not start a session: ${response.status} ${await response.text()}`);
+		}
+		const token = response.headers
+			.getSetCookie()
+			.find((cookie) => cookie.startsWith('session='))
+			?.match(/^session=([^;]+)/)?.[1];
+		if (!token) {
+			throw new Error('The API set no session cookie');
+		}
+		const cookie = `session=${token}`;
+		const client = requestsWith({ cookie });
+		return { ...client, token, cookie, logOut: () => client.post('/auth/logout') };
+	};
 
 	const waitFor = async <T>(check: () => Promise<T>, timeoutMs = 20_000): Promise<T> => {
 		const deadline = Date.now() + timeoutMs;
@@ -138,12 +194,11 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 		}
 	};
 
-	/** Ready means the API serves requests and has created the default account. */
 	const waitUntilReady = () =>
 		waitFor(async () => {
-			const response = await post('/login', { username: 'admin', password: 'admin' });
+			const response = await requests.get('/auth/setup');
 			if (!response.ok) {
-				throw new Error(`Login answered ${response.status} during startup`);
+				throw new Error(`Setup status answered ${response.status} during startup`);
 			}
 		});
 
@@ -163,8 +218,9 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 		url,
 		output: () => output,
 		databasePath,
-		get,
-		post,
+		...requests,
+		createOwner: async () => clientOf(await requests.post('/auth/setup', ownerCredentials)),
+		logIn: async (username, password) => clientOf(await requests.post('/auth/login', { username, password })),
 		waitFor,
 		restart: async () => {
 			await kill();

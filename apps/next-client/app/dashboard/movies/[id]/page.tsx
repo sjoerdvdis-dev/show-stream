@@ -14,16 +14,9 @@ import MoreOptionsPopover from '@/components/media/more-options-popover';
 import Backward from '@/components/dashboard/backward';
 import LoadingCircle from '@/components/icons/loading-circle';
 import { Card, CardContent, CardFooter } from '@workspace/ui/components/card';
+import { fetcher } from '@/lib/api';
 import type { MovieAPIData } from '@workspace/contract/api-types';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
-
-const fetcher = async (url: string) => {
-	const response = await fetch(url);
-	if (!response.ok) {
-		throw new Error(`Request failed with ${response.status}`);
-	}
-	return response.json();
-};
 
 export default function MoviePage() {
 	const { id } = useParams();

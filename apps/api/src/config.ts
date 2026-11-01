@@ -23,8 +23,6 @@ const loadEnvFile = (file: string) => {
 loadEnvFile('.env');
 loadEnvFile(process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development');
 
-const required = z.string({ error: 'is required' }).min(1, 'is required');
-
 /** An empty value, such as `PORT=` in a `.env`, means the variable is not set. */
 const optional = <T extends z.ZodType>(schema: T) =>
 	z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
@@ -39,11 +37,7 @@ const environmentSchema = z.object({
 	PORT: optional(port),
 	NEXT_CLIENT_URL: optional(z.string()),
 	DATABASE_PATH: optional(z.string()),
-	JWT_SECRET: required,
-	JWT_EXPIRES_IN: z
-		.string({ error: 'is required' })
-		.pipe(wholeNumber)
-		.refine((value) => value > 0, 'must be above zero'),
+	SESSION_COOKIE_SECURE: optional(z.enum(['true', 'false'], { error: 'must be true or false' })),
 	TMDB_API_READ_ACCESS_TOKEN: optional(z.string()),
 	MEDIA_FOLDER: optional(z.string().refine(isFolder, 'must be an existing folder')),
 });
@@ -65,10 +59,8 @@ export const config = {
 	nextClientUrl: environment.NEXT_CLIENT_URL ?? '',
 	/** The SQLite file. By default it is in the repository's `data` folder, wherever the API runs from. */
 	databasePath: path.resolve(environment.DATABASE_PATH ?? path.join(__dirname, '../../../data/app.db')),
-	jwt: {
-		secret: environment.JWT_SECRET,
-		expiresInSeconds: environment.JWT_EXPIRES_IN,
-	},
+	/** Browsers drop a `Secure` cookie over plain HTTP, so only a setup with no HTTPS turns this off. */
+	sessionCookieSecure: environment.SESSION_COOKIE_SECURE !== 'false',
 	tmdbToken: environment.TMDB_API_READ_ACCESS_TOKEN ?? '',
 	/** The library: scans read it, and transcodes cache under it. Always absolute. */
 	mediaFolder: path.resolve(environment.MEDIA_FOLDER ?? path.join(__dirname, '../media')),

@@ -2,4 +2,5 @@
 
 import { io, Socket } from 'socket.io-client';
 
-export const socket: Socket = io({ path: '/socket-api' });
+/** Connected by `useNotificationToaster`, because the API refuses a socket with no session. */
+export const socket: Socket = io({ path: '/socket-api', autoConnect: false });

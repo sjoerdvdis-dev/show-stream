@@ -8,6 +8,20 @@
       "when": 1793555291322,
       "tag": "0000_initial",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793556913355,
+      "tag": "0001_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793556913753,
+      "tag": "0002_remove_default_account",
+      "breakpoints": true
     }
   ]
 }

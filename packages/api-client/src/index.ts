@@ -57,12 +57,17 @@ const toApiError = async (response: Response) => {
 	return new ApiError(response.status, code, message, details);
 };
 
+export type ApiClientOptions = {
+	/** Sent with every call. A browser sends its cookie by itself, and anything else passes it here. */
+	headers?: Record<string, string>;
+};
+
 /**
  * A typed client with one call per endpoint in the contract.
  *
  * @param baseUrl Prefix of every path, such as `https://media.example` or `/api`.
  */
-export const createApiClient = (baseUrl: string): ApiClient => {
+export const createApiClient = (baseUrl: string, { headers }: ApiClientOptions = {}): ApiClient => {
 	const root = baseUrl.replace(/\/$/, '');
 
 	const call = async (endpoint: Endpoint, input: LooseInput = {}) => {
@@ -73,7 +78,7 @@ export const createApiClient = (baseUrl: string): ApiClient => {
 			response = await fetch(`${root}${fillPath(endpoint.path, input.params)}`, {
 				method: endpoint.method,
 				credentials: 'include',
-				headers: hasBody ? { 'content-type': 'application/json' } : undefined,
+				headers: { ...headers, ...(hasBody ? { 'content-type': 'application/json' } : {}) },
 				body: hasBody ? JSON.stringify(input.body) : undefined,
 			});
 		} catch (cause) {
