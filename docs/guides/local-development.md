@@ -47,6 +47,30 @@ pnpm --filter @workspace/db generate
 
 See `packages/db/AGENTS.md`.
 
+## Query the database
+
+Agents get read-only SQL through DBHub, the `database` server in `.mcp.json`. It is a dev tool, so it runs only in the `dev-tools` profile of `docker-compose.dev.yml`, on `127.0.0.1:8099`. Use development data only.
+
+Start it from the project that runs your stack, to read that stack's `sqlite-data` volume:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev-tools up -d db-mcp
+```
+
+To read the `pnpm dev` database instead, start `pnpm dev` first, then:
+
+```bash
+DBHUB_DATA=./data docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev-tools up -d db-mcp
+```
+
+| Setup | DBHub sees |
+|---|---|
+| Compose stack | Its live data. Tested |
+| `pnpm dev`, Docker Desktop on WSL2, repo in the Linux filesystem | Its live data, including through WAL checkpoints. Tested |
+| `pnpm dev`, anywhere else | Not tested. A host process and a container may not share WAL memory across a bind mount, so reads can be stale or fail. Use the Compose stack there |
+
+A read-only mount cannot create SQLite's `-shm` file, so start the API before DBHub. `unable to open database file` means `app.db` has no `-wal` or `-shm` beside it. Claude Code reports the `database` server as failed until the service is up.
+
 ## Checks
 
 Run this before finishing work. It is the same command the required CI check runs:

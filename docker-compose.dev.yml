@@ -1,6 +1,18 @@
-# Local development only: lets `pnpm dev` reach MongoDB on the host.
-# docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mongodb
+# Development tools only. Nothing here belongs in docker-compose.yml, and every port stays
+# on loopback.
+#
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev-tools up -d db-mcp
+#
+# That reads the Compose stack's database. To read the one pnpm dev uses, put DBHUB_DATA=./data
+# in front of the command. See docs/guides/local-development.md for where that is safe.
 services:
-  mongodb:
+  # Read-only SQL for agents. It is the `database` server in .mcp.json.
+  db-mcp:
+    profiles: [dev-tools]
+    image: bytebase/dbhub:1.5.0
+    command: ["--config=/cfg/dbhub.toml", "--transport=http", "--port=8080"]
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:8099:8080"
+    volumes:
+      - ${DBHUB_DATA:-sqlite-data}:/data:ro
+      - ./infra/dbhub.toml:/cfg/dbhub.toml:ro

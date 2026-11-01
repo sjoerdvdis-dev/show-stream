@@ -1,0 +1,10 @@
+# Read-only SQL for agents, on development data only. See docs/PLAN.md section 10.3.
+[[sources]]
+id = "dev"
+dsn = "sqlite:///data/app.db"
+
+[[tools]]
+name = "execute_sql"
+source = "dev"
+readonly = true
+max_rows = 100

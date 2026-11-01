@@ -13,6 +13,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - API tests with `pnpm test`, and browser tests with `pnpm test:browser`.
 - `packages/api-client`, a typed client built from the endpoint definitions in `packages/contract`.
 - `packages/db`, which owns the schema, migrations, connection setup and queries.
+- A read-only database MCP for development, with DBHub in the `dev-tools` Compose profile.
 
 ### Changed
 

@@ -44,7 +44,7 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
-| Database MCP | Deferred until SQLite exists in Phase 1 |
+| Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client` and `packages/db` written; the rest arrive with their apps and packages |
 
 **Not yet safe for the internet.** The API has no authentication of its own, the default `admin`/`admin` account remains, secrets are baked into the image, and there is no HTTPS. All four are fixed in Phase 1.
@@ -550,11 +550,11 @@ Next.js skills and `next-devtools-mcp` are not installed, because Phase 2 remove
 |---|---|
 | `playwright` | Configured and tested with headless Chromium. Output goes to `.playwright-mcp/`, ignored by git |
 | `shadcn` | Configured and tested at MCP level |
-| `database` | Added with the first SQLite work, using the setup below |
+| `database` | Configured and tested, using the setup below. It answers once the `db-mcp` service is up |
 
 ### 10.3 Database MCP in Docker
 
-Deferred until the SQLite volume exists. It uses DBHub in a dev-only Compose profile, in `docker-compose.dev.yml`:
+DBHub runs in a dev-only Compose profile, in `docker-compose.dev.yml`, and `.mcp.json` points at it. Renovate updates the image tag through its Compose manager:
 
 ```yaml
 services:
@@ -565,7 +565,7 @@ services:
     ports:
       - "127.0.0.1:8099:8080"
     volumes:
-      - sqlite-data:/data:ro
+      - ${DBHUB_DATA:-sqlite-data}:/data:ro
       - ./infra/dbhub.toml:/cfg/dbhub.toml:ro
 ```
 
@@ -581,7 +581,9 @@ readonly = true
 max_rows = 100
 ```
 
-**Tested against a live WAL database in a named volume:** DBHub read data; `INSERT`, `UPDATE`, `DROP`, a CTE insert and `PRAGMA writable_schema` were all rejected, with the volume mounted read-only and read-write.
+**Tested on 2026-11-01 with DBHub 1.5.0 against a live WAL database in the `sqlite-data` volume:** DBHub read data and saw a new write, and `INSERT`, `UPDATE`, `DROP`, a CTE insert and `PRAGMA writable_schema` were all rejected. The port is bound to `127.0.0.1`, and the service is absent from `docker-compose.yml`.
+
+**Under `pnpm dev`:** set `DBHUB_DATA=./data` to read the host's database. On Docker Desktop on WSL2, with the repo in the Linux filesystem, 420 writes from the host API were each visible to the next read, across WAL checkpoints, and reads still worked with the API stopped. macOS, a Windows path and native Linux Docker are not tested. A read-only mount cannot create the `-shm` file, so a database with no `-wal` or `-shm` beside it failed with `unable to open database file`.
 
 **Rules:** never in the production Compose file, always on `127.0.0.1`, always read-only, dev data only. Schema changes go through Drizzle migrations.
 
