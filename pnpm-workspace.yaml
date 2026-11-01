@@ -8,4 +8,6 @@ overrides:
 
 allowBuilds:
   esbuild: false
+  # Its postinstall only downloads mongod, which it also does on first use.
+  mongodb-memory-server: false
   sharp: true

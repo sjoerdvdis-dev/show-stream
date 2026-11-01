@@ -6,7 +6,8 @@
 		"start": "cross-env NODE_ENV=production node dist/index.js",
 		"build": "tsc",
 		"dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
-		"check-types": "tsc --noEmit"
+		"check-types": "tsc --noEmit && tsc -p test",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"bcryptjs": "^3.0.3",
@@ -29,11 +30,13 @@
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/morgan": "^1.9.10",
 		"@types/node": "^26.6.6",
-		"@workspace/eslint-config": "workspace:*",
 		"@workspace/contract": "workspace:*",
+		"@workspace/eslint-config": "workspace:*",
 		"@workspace/typescript-config": "workspace:*",
 		"cross-env": "^10.1.0",
+		"mongodb-memory-server": "^11.3.0",
 		"tsx": "^4.23.15",
-		"typescript": "7.0.2"
+		"typescript": "7.0.2",
+		"vitest": "^5.0.5"
 	}
 }

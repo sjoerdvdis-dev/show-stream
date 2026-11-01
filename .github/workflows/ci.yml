@@ -25,7 +25,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo check-types lint build --ui=stream
+      # The API tests run real ffmpeg jobs, and fail rather than skip without it in CI.
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pnpm turbo check-types lint build test --ui=stream
 
   # Reports advisories. Not a required check, so it cannot block a merge.
   audit:
@@ -37,3 +39,21 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm audit
+
+  # Reports the Chromium flow. Not a required check, so it cannot block a merge.
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:browser
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: browser-test-results
+          path: apps/e2e/test-results

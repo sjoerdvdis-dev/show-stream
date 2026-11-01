@@ -97,7 +97,8 @@ export const UserModel = mongoose.model('User', userSchema);
  */
 
 const getDbUrl = () => {
-	return `mongodb://${process.env.MONGO_DB_USERNAME}:${process.env.MONGO_DB_PASSWORD}@${process.env.MONGO_DB_URL}:27017`;
+	const port = process.env.MONGO_DB_PORT || 27017;
+	return `mongodb://${process.env.MONGO_DB_USERNAME}:${process.env.MONGO_DB_PASSWORD}@${process.env.MONGO_DB_URL}:${port}`;
 };
 
 export const setupDb = async () => {

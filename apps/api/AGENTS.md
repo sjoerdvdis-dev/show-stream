@@ -6,3 +6,9 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - Every route requires auth through the shared middleware. Public routes are an explicit allowlist.
 - Every error uses the one error shape in the contract.
 - ffmpeg belongs in the worker. Code here that calls it today moves there in Phase 1 item 8.
+
+## Tests
+
+- Tests start the real API through `test/support/api.ts` and use only HTTP. They do not import from `src`.
+- Direct database writes live in `test/support/seed.ts` and nowhere else.
+- `test/known-failures/` holds audit crashes as `it.fails`. When a fix makes one fail the run, delete its marker and keep the test.
