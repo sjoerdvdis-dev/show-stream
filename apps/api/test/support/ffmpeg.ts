@@ -1,5 +1,5 @@
 import { execFile, spawnSync } from 'node:child_process';
-import { access, rm, writeFile } from 'node:fs/promises';
+import { access, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import type { TestApi } from './api';
@@ -42,9 +42,14 @@ export const holdFfmpeg = async (api: TestApi, movie: SeededMovie) => {
 	await writeFile(holdMarker(api, movie), '');
 };
 
-/** Resolves once a held run has written its partial output. Do this before releasing or killing it. */
-export const waitForHeldRun = (api: TestApi, movie: SeededMovie, attempt = 1) =>
-	api.waitFor(() => access(path.join(api.mediaFolder, 'cache', `${movie.id}.partial-${attempt}`, 'playlist.m3u8')));
+/** Resolves once this title's nth held run has written its partial output. Do this before releasing or killing it. */
+export const waitForHeldRun = (api: TestApi, movie: SeededMovie, run = 1) =>
+	api.waitFor(async () => {
+		const runs = await readFile(path.join(api.mediaFolder, movie.folder, 'ffmpeg-held-runs'), 'utf8');
+		if (runs.length < run) {
+			throw new Error(`Held run ${run} has not started`);
+		}
+	});
 
 /** Lets a held run finish, as a success. */
 export const releaseFfmpeg = async (api: TestApi, movie: SeededMovie) => {

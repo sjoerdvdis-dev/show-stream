@@ -16,6 +16,9 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - A read-only database MCP for development, with DBHub in the `dev-tools` Compose profile.
 - First-run setup: a new install opens on a `/setup` page that creates the owner account.
 - Logging out, from the settings page.
+- `apps/worker`, a separate process and image that runs ffmpeg from a job queue in SQLite. It publishes no ports, and `pnpm dev` and Compose start it.
+- A failed transcode shows its reason, and has a Retry button on the movie's page.
+- `JOB_CONCURRENCY` limits how many jobs run at once, and defaults to 1.
 
 ### Changed
 
@@ -31,6 +34,8 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - **Breaking:** socket connections need a session, and `transcode:ready` reaches only the users who asked for that transcode. Logging out disconnects that session's sockets.
 - Login and setup allow 10 failed attempts per address in 15 minutes, and a non-GET request or socket handshake with an `Origin` from another site is refused.
 - `JWT_SECRET` and `JWT_EXPIRES_IN` are gone, and are ignored if they remain in `.env`. The new `SESSION_COOKIE_SECURE` defaults to true. `.env.development` and `docker-compose.yml` set it to false until HTTPS arrives.
+- **Breaking, contract:** `transcodeStatus` gains `failed`, and a movie gains `transcodeError`. `GET /transcode/request/:id` answers a failed title with its status and `error`, and does not start it again. New: `POST /transcode/retry/:id`, which answers 409 unless the title has failed, and the `transcode:failed` notification.
+- **Upgrading to the worker:** Compose now has a `worker` service, so rebuild with `bash build-docker.sh`. A migration keeps finished transcodes and clears the ones that were in progress, which you start again by pressing Play. The API image no longer has ffmpeg. The API serves transcodes as soon as they finish, without the old 10-second delay.
 - The API moved from `apps/api-server` to `apps/api`, and `packages/types` became `packages/contract`. In an existing clone, move your `.env` and any media from `apps/api-server` to `apps/api`. The Compose service and container are now `api`, so run `docker compose up -d --remove-orphans` to replace the old container.
 
 ### Fixed
@@ -40,3 +45,11 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `MEDIA_FOLDER` now applies to transcoding, streaming and the cache as well as scans, including a path with a space or a dot folder.
 - Container startup failures, and file permissions on `./media` and `./data`.
 - A movie and a show can share a TMDB ID, and a scan keeps one last-scan setting instead of adding a row.
+- A corrupt video fails on its own instead of taking the API down.
+- A title no longer stays `in progress` for ever after a restart. An interrupted job recovers when the worker starts, and fails after 3 attempts.
+- An interrupted transcode can no longer be served as ready, because output reaches the cache only on success.
+- Any number of simultaneous requests no longer starts as many ffmpeg processes.
+
+### Removed
+
+- `fluent-ffmpeg`, which is deprecated. A small `spawn` wrapper replaces it, with the same arguments.

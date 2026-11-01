@@ -7,8 +7,6 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | # | Decision | Recommendation | Why |
 |---|---|---|---|
 | C1 | Keep Express? | Keep Express 5 | No need to change the framework during the database move |
-| C5 | Job handling | Jobs table in SQLite, with ffmpeg in a separate worker process | No Redis needed; `pg-boss` no longer applies. Survives restarts (audit findings 6, 7, 16) |
-| C8 | Replace `fluent-ffmpeg`? | Yes, with `child_process.spawn` | Deprecated; needed for Phase 4 playback anyway |
 | C9 | Backups | Scheduled `VACUUM INTO` to a backup folder | A plain file copy of a live WAL database is unsafe |
 
 ## AI tooling

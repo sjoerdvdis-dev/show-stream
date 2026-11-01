@@ -183,7 +183,8 @@ describe('a worker that dies mid-job', () => {
 
 		await api.killWorkers();
 
-		// The run wrote a whole playlist, so asking again must not find it.
+		// The run wrote a whole playlist, so nothing may find it in the cache.
+		expect(await cacheEntries(api)).not.toContain(String(movie.id));
 		expect(await (await owner.get(`/transcode/request/${movie.id}`)).json()).toEqual({ status: 'in progress' });
 		expect((await owner.get(`/transcode/playlist/${movie.id}`)).status).toBe(404);
 		expect((await owner.get(`/streams/${movie.id}/playlist.m3u8`)).status).toBe(404);
@@ -242,7 +243,7 @@ describe('a clean shutdown', () => {
 		expect(await cacheEntries(api)).toEqual([]);
 
 		await api.startWorker();
-		await waitForHeldRun(api, movie);
+		await waitForHeldRun(api, movie, 2);
 		await releaseFfmpeg(api, movie);
 		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('ready'));
 	});

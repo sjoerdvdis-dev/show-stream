@@ -15,7 +15,7 @@ Fork or clone the repo, then run:
 ./scripts/setup.sh
 ```
 
-It needs Node.js 26. Everything else it installs itself. `pnpm dev` and `pnpm test` need no Docker. The full stack and the browser tests do, and setup says so if it is missing. To run the apps, see the [local development guide](./docs/guides/local-development.md).
+It needs Node.js 26. Everything else it installs itself. `pnpm dev` runs the API, the worker and the client, and it and `pnpm test` need no Docker. The full stack and the browser tests do, and setup says so if it is missing. To run the apps, see the [local development guide](./docs/guides/local-development.md).
 
 ## Make a change
 

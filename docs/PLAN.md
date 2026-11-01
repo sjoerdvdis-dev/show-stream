@@ -6,15 +6,16 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move and API authentication are done. Next:
+The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication and the worker's transcoding are done. Next:
 
-1. **Continue Phase 1 at item 8** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Finish Phase 1 item 8 with scans and backups** ([section 12](#12-roadmap), issue #30) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
 | Decisions to make | [Section 3](#3-decisions) and [open decisions](./open-decisions.md) |
 | Frontend stack, router and libraries | [Section 4](#4-frontend-stack) |
 | Authentication in the API | [Section 5.6](#56-authentication) |
+| The worker and its jobs | [Section 5.7](#57-worker-and-jobs) |
 | Problems with the architecture, and the new one | [Section 5](#5-architecture) |
 | Problems with the code, and how to fix them | [Section 6](#6-problems-and-fixes) |
 | Upgrading to current versions | [Section 7](#7-version-upgrades) |
@@ -34,19 +35,20 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | Next.js 16.4.3, React 19.3.1 (latest) | Merged to `main` (`7efb290`) |
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
-| Repository layout | `apps/api`, `packages/contract`, `packages/api-client` and `packages/db` in place; later folders arrive with their steps |
+| Repository layout | `apps/api`, `apps/worker`, `packages/contract`, `packages/api-client` and `packages/db` in place; later folders arrive with their steps |
 | Required CI check on `main` | Done, and includes the API tests |
-| API and browser tests | Done. Three audit crashes are known failures until item 8 fixes them. The browser job only reports |
+| API and browser tests | Done. One audit finding, 14, is a known failure until issue #30 fixes it. The browser job only reports |
 | Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API |
 | SQLite and Drizzle | Done. `packages/db` owns the schema and queries, and migrations run at API startup. `pnpm dev` and `pnpm test` need no Docker |
 | Authentication | Done. The API owns sessions and first-run setup, every route needs a session unless the contract marks it public, and sockets are authenticated with per-user rooms |
+| Worker | Transcoding done: `apps/worker` runs ffmpeg from a job queue in SQLite, with recovery, retry and failure reasons. Scans and backups follow in issue #30 |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Port 5000 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client` and `packages/db` written; the rest arrive with their apps and packages |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client` and `packages/db` written; the rest arrive with their apps and packages |
 
 **Not yet safe for the internet.** Secrets are baked into the image, there is no HTTPS, the session cookie is not `Secure` under Compose, and Next forwards a client's own `X-Forwarded-For`, so the login rate limit can be dodged. Item 9 fixes all four.
 
@@ -170,7 +172,7 @@ Keeping one public entry point and hiding the API is correct. These problems rem
 | 2 | No HTTPS on the public port | PWA service workers will not register; cookies travel in plain text | Caddy terminates TLS |
 | 3 | All video flows through Next | Each segment takes an extra hop and an auth call | Caddy routes streams straight to the API |
 | 4 | Two backends | Logic and auth are spread across Next and Express | The API is the only backend |
-| 5 | ffmpeg runs inside the API process | One bad file takes the API down | Separate worker with a job table |
+| 5 | ffmpeg ran inside the API process | One bad file took the API down | Done: a separate worker with a job table ([section 5.7](#57-worker-and-jobs)) |
 | 6 | Whole-file conversion before playback | Long waits and doubled storage | On-demand HLS in Phase 4 |
 | 7 | Login uses Next server actions | Only web pages can call it | Plain API endpoints |
 | 8 | Socket.IO broadcasts to everyone | Events are not scoped to a user | Authenticated sockets and per-user rooms |
@@ -295,6 +297,26 @@ The API serves these at `/auth/*`, and clients reach them as `/api/auth/*` throu
 
 `POST /register` and the startup `admin`/`admin` account are deleted, and `GET /scan` becomes an admin-only `POST`.
 
+### 5.7 Worker and jobs
+
+`apps/worker` is a separate process and image that takes jobs from the `jobs` table. It publishes no ports, does not run migrations, and waits at startup until the API has applied them. SQLite is the only link between the two ([ADR 0009](./adr/0009-job-queue-in-sqlite-with-a-separate-worker.md)).
+
+| Topic | Design |
+|---|---|
+| Job states | `queued`, `running`, `done`, `failed`. `error` keeps the reason and `attempts` counts runs |
+| API status | Derived: no job is `not ready`, queued or running is `in progress`, done is `ready`, failed is `failed` |
+| Claiming | One `UPDATE` statement, so that no job runs twice |
+| Concurrency | `JOB_CONCURRENCY`, default 1 |
+| ffmpeg | `runFfmpeg`: `spawn` with an argument array and no shell. It keeps the tail of stderr, and the worker removes media paths from the reason |
+| Partial output | A run writes to `cache/<id>.partial-<attempt>` and renames it to `cache/<id>` only on success. The API also ignores a cached playlist with no `#EXT-X-ENDLIST`, which an older version may have left |
+| Failure | A failed run is `failed` and is not retried automatically, because a corrupt file fails the same way every time |
+| Recovery | At startup, `running` jobs are from a dead process. They requeue, and fail after 3 attempts. A clean shutdown stops ffmpeg, requeues the job and does not count the run |
+| Retry | `POST /transcode/retry/:id` requeues a failed job and looks for its video again. `GET /transcode/request/:id` never requeues one, so that loading a page does not repeat a failure |
+| Requesting users | The job's payload keeps everyone who asked, including anyone who asks while it runs |
+| Notifications | The API polls every 500 ms for finished jobs not yet announced, sends `transcode:ready` or `transcode:failed` to those users' rooms, and marks them announced |
+
+There is one worker per database. Claims are safe with two, but a worker starting up treats every `running` job as dead, so a second worker requeues what the first is running.
+
 ## 6. Problems and fixes
 
 Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-findings). 41 onward were found since. "Done" means done on the upgrade branch.
@@ -316,15 +338,15 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 
 | # | Problem | Fix | Phase |
 |---|---|---|---|
-| 6 | Bad video crashes the API | ffmpeg moves to the worker, with error handling | 1 |
-| 7 | Stuck `in progress` jobs | `failed` state; recover jobs at worker startup | 1 |
+| 6 | Bad video crashes the API | ffmpeg moved to the worker, and the job fails with a reason | Done |
+| 7 | Stuck `in progress` jobs | `failed` state; jobs recover at worker startup | Done |
 | 8 | Malformed URL crashes the API | Validate params; `await` handlers; central error handler | Done |
 | 11 | API errors are discarded | One error shape in the contract | Done |
 | 12 | Unawaited DB checks | Removed with Mongoose | Done |
 | 13 | `MEDIA_FOLDER` half-implemented | One validated config module | Done |
 | 14 | Scan reports false success | Scan is a job with counts and errors | 1 |
 | 15 | `lastScanTime` adds rows | Settings table | Done |
-| 16 | No limit on ffmpeg jobs | Queue with a concurrency limit | 1 |
+| 16 | No limit on ffmpeg jobs | Queue with a concurrency limit | Done |
 | 36 | Startup relies on crash loops | Health checks and `depends_on` | 1 |
 | 37 | Logs unrotated, not on a volume | Structured logs to stdout | 1 |
 
@@ -354,7 +376,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 25 | API `dist/` not cached by Turbo | Added `dist/**` to `outputs` | Done |
 | 26 | `--host-name` does nothing | Removed with the Next `start` script | Done |
 | 27 | `public/` copied to the wrong path | Goes away with static hosting | 2 |
-| 28 | `fluent-ffmpeg` deprecated | Replace with `child_process.spawn` | 1 |
+| 28 | `fluent-ffmpeg` deprecated | Replaced with `child_process.spawn` | Done |
 | 35 | No-op schema options | Removed with Mongoose | Done |
 | 38 | README incomplete | Rewritten, with `CONTRIBUTING.md` and a setup script | Done |
 | 40 | Stale `tailwind.config.ts` reference, empty `.npmrc` | Removed. The `packages/ui` config reference stays until finding 49 | Done |
@@ -393,7 +415,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | With the form rebuild |
 | react-day-picker | 9.14.0 | 10.0.2 | 2 | With the shadcn update |
 | mongoose | 8.24.7 | Removed | Done | With `mongodb-memory-server` |
-| fluent-ffmpeg | 2.1.3 | Removed | 1 | |
+| fluent-ffmpeg | 2.1.3 | Removed | Done | Replaced by a `spawn` wrapper in `apps/worker` |
 | next, swr, next-themes | Current | Removed | 2 | Replaced by the [frontend stack](#4-frontend-stack) |
 | jsonwebtoken | 9.0.2 | Removed | Done | Replaced by API sessions |
 
@@ -405,7 +427,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 
 **Stack:** `drizzle-orm`, `drizzle-kit`, and `better-sqlite3` on the SQLite WAL journal. Drizzle has no `node:sqlite` driver.
 
-**Status:** steps 1, 2, 3, 5 and 7 are done. Step 4 is Phase 2 item 5, and step 8 moves to item 8, because the worker runs scheduled work.
+**Status:** steps 1, 2, 3, 5 and 7 are done. Step 4 is Phase 2 item 5, and step 8 moves to issue #30, because the worker runs scheduled work.
 
 **Tested on 2026-11-01:** Drizzle 0.45.4 and `better-sqlite3` 13.0.3 on Node 26 and `node:26.13-alpine`; `drizzle-kit` migrations from empty, as UID 1000 on a new named volume; data surviving a container restart and a recreated container; the browser tests with no MongoDB service. `better-sqlite3` 13 ships prebuilt binaries for glibc and musl, so the image needs no compiler. Drizzle is pre-1.0, so versions are pinned.
 
@@ -418,7 +440,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 | `media` | `id`, `type`, `tmdb_id` (nullable), `title`, `year`, `path`, `release_date`, `runtime`, `vote_average`, `vote_count`, `popularity`, `metadata` JSON | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision |
 | `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 4 playback. Not yet created |
 | `seasons`, `episodes` | Link to `media` | Phase 6. Not yet created |
-| `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error` | `transcodes`, in-memory state. `payload` records the users who asked for a transcode, and item 8 carries that across the worker. Findings 6, 7 and 16 stay for item 8 |
+| `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error`, `announced` | `transcodes`, in-memory state. `payload` holds the video, the output folder and the users who asked. See [section 5.7](#57-worker-and-jobs) |
 | `watch_progress` | `user_id`, `media_file_id`, `position` | Phase 5. Not yet created |
 | `settings` | `key`, `value` | `metadatas` |
 
@@ -670,7 +692,7 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`. Remove `SESSION_COOKIE_SECURE` from `docker-compose.yml`, and test finding 52.
 
-**Status:** items 1, 2, 3, 4, 5, 6 and 7 are done. Findings 6, 7 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
+**Status:** items 1, 2, 3, 4, 5, 6 and 7 are done, and item 8 has its worker, transcoding, recovery and retry. Its scans and backups are issue #30. Finding 14 is an `it.fails` test in `apps/api/test/known-failures`, and the step that fixes it removes its marker. No marker may remain when the phase ends.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
 
@@ -688,7 +710,11 @@ The Next client stays running behind Caddy until Phase 2 replaces it. It may cha
 3. Update shadcn and migrate primitives to Base UI.
 4. Build the patterns and `/dev/components`.
 5. Add the API image cache and server-side library queries.
-6. Rebuild Movies, Movie detail, Player and Settings on the patterns.
+6. Rebuild Movies, Movie detail, Player and Settings on the patterns, including everything item 8 added to the Next client:
+   - The `failed` status, with its icon, tooltip and an option in the status filter.
+   - The reason for a failure on the movie's detail page, with a Retry button in place of Play.
+   - A failure toast with the reason and a Retry action when a failed title is played from a card.
+   - The `transcode:failed` notification as a toast.
 7. Switch Caddy to serve `apps/web`.
 8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules.
 

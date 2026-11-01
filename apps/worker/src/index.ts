@@ -65,7 +65,7 @@ const main = async () => {
 
 	const loop = createJobLoop(db, handlers, config.jobConcurrency);
 	loop.start();
-	console.log(`Worker is running, with up to ${config.jobConcurrency} jobs at once`);
+	console.log(`Worker is running, with a concurrency limit of ${config.jobConcurrency}`);
 
 	await stopRequested;
 	await loop.stop();
