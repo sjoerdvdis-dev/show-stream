@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -15,9 +15,42 @@ export const mongoVersion = '7.0.22';
 const databaseUser = 'root';
 const databasePassword = 'root';
 
+const offlineEnvironment = {
+	PATH: process.env.PATH,
+	NODE_ENV: 'test',
+	// Sends TMDB calls to a closed port, so that they fail at once and offline.
+	NODE_USE_ENV_PROXY: '1',
+	HTTPS_PROXY: 'http://127.0.0.1:9',
+};
+
+/** Runs from the temporary copy, so the API looks for its `.env` files there. */
+const prepareFolder = async () => {
+	const root = await mkdtemp(path.join(tmpdir(), 'show-stream-api-test-'));
+	await cp(path.join(apiFolder, 'src'), path.join(root, 'src'), { recursive: true });
+	await symlink(path.join(apiFolder, 'node_modules'), path.join(root, 'node_modules'));
+	return root;
+};
+
+const launchArguments = ['--import', 'tsx', 'src/index.ts'];
+
+export type ApiOptions = {
+	/** Sets MEDIA_FOLDER. The folder must exist. By default the API uses its own media folder. */
+	mediaFolder?: string;
+	/** Written to `.env`. The API then gets its secrets from this file, not the environment. */
+	envFile?: string;
+	/** Written to `.env.development`, which the API reads after `.env`. */
+	developmentEnvFile?: string;
+	/** Answers TMDB calls with a fake movie, so that a scan can identify a title. */
+	fakeTmdb?: boolean;
+};
+
 export type TestApi = {
-	/** The API's media folder, inside this server's temporary folder. */
+	/** The API's media folder. By default it is inside this server's temporary folder. */
 	mediaFolder: string;
+	/** The API's base URL. */
+	url: string;
+	/** Everything the API has printed since it last started. */
+	output: () => string;
 	/** Connection string of this server's own MongoDB. */
 	databaseUrl: string;
 	get: (route: string) => Promise<Response>;
@@ -35,12 +68,16 @@ export type TestApi = {
  * The API finds its media and log folders relative to its own source, so it runs from a
  * temporary copy of `src`. Started in place, it would write to the developer's `media`.
  */
-export const startApi = async (): Promise<TestApi> => {
-	const root = await mkdtemp(path.join(tmpdir(), 'show-stream-api-test-'));
-	await cp(path.join(apiFolder, 'src'), path.join(root, 'src'), { recursive: true });
-	await symlink(path.join(apiFolder, 'node_modules'), path.join(root, 'node_modules'));
-	const mediaFolder = path.join(root, 'media');
+export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
+	const root = await prepareFolder();
+	const mediaFolder = options.mediaFolder ?? path.join(root, 'media');
 	await mkdir(path.join(mediaFolder, 'movies'), { recursive: true });
+	if (options.envFile) {
+		await writeFile(path.join(root, '.env'), options.envFile);
+	}
+	if (options.developmentEnvFile) {
+		await writeFile(path.join(root, '.env.development'), options.developmentEnvFile);
+	}
 
 	const database = await MongoMemoryServer.create({
 		binary: { version: mongoVersion },
@@ -55,24 +92,26 @@ export const startApi = async (): Promise<TestApi> => {
 
 	const launch = () => {
 		output = '';
-		child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
+		const preload = options.fakeTmdb ? ['--import', path.join(import.meta.dirname, 'fake-tmdb.mjs')] : [];
+		child = spawn(process.execPath, [...preload, ...launchArguments], {
 			cwd: root,
 			stdio: ['ignore', 'pipe', 'pipe'],
 			env: {
-				PATH: process.env.PATH,
-				NODE_ENV: 'test',
+				...offlineEnvironment,
 				PORT: String(port),
 				MONGO_DB_URL: databaseUrl.hostname,
 				MONGO_DB_PORT: databaseUrl.port,
-				MONGO_DB_USERNAME: databaseUser,
-				MONGO_DB_PASSWORD: databasePassword,
-				JWT_SECRET: 'fake-secret-for-api-tests',
-				JWT_EXPIRES_IN: '3600',
-				NEXT_CLIENT_URL: 'http://localhost:3000',
-				TMDB_API_READ_ACCESS_TOKEN: 'fake-token-for-api-tests',
-				// Sends TMDB calls to a closed port, so that they fail at once and offline.
-				NODE_USE_ENV_PROXY: '1',
-				HTTPS_PROXY: 'http://127.0.0.1:9',
+				...(options.envFile
+					? {}
+					: {
+							MONGO_DB_USERNAME: databaseUser,
+							MONGO_DB_PASSWORD: databasePassword,
+							JWT_SECRET: 'fake-secret-for-api-tests',
+							JWT_EXPIRES_IN: '3600',
+							NEXT_CLIENT_URL: 'http://localhost:3000',
+							TMDB_API_READ_ACCESS_TOKEN: 'fake-token-for-api-tests',
+						}),
+				...(options.mediaFolder ? { MEDIA_FOLDER: options.mediaFolder } : {}),
 			},
 		});
 		child.stdout?.on('data', (data) => (output += data));
@@ -135,6 +174,8 @@ export const startApi = async (): Promise<TestApi> => {
 
 	return {
 		mediaFolder,
+		url,
+		output: () => output,
 		databaseUrl: `mongodb://${databaseUser}:${databasePassword}@${databaseUrl.host}/test?authSource=admin`,
 		get,
 		post,
@@ -150,6 +191,30 @@ export const startApi = async (): Promise<TestApi> => {
 			await rm(root, { recursive: true, force: true, maxRetries: 5 });
 		},
 	};
+};
+
+/**
+ * Starts the API with only the given environment, for a start that should fail. It has no
+ * database, so it must stop on its own. Resolves with its exit code and everything it printed.
+ */
+export const runApiUntilExit = async (environment: Record<string, string>) => {
+	const root = await prepareFolder();
+	try {
+		const child = spawn(process.execPath, launchArguments, {
+			cwd: root,
+			stdio: ['ignore', 'pipe', 'pipe'],
+			env: { ...offlineEnvironment, ...environment },
+		});
+		let output = '';
+		child.stdout.on('data', (data) => (output += data));
+		child.stderr.on('data', (data) => (output += data));
+		const timeout = setTimeout(() => child.kill('SIGKILL'), 20_000);
+		const code = await new Promise<number | null>((resolve) => child.once('close', resolve));
+		clearTimeout(timeout);
+		return { code, output };
+	} finally {
+		await rm(root, { recursive: true, force: true, maxRetries: 5 });
+	}
 };
 
 const findFreePort = () =>

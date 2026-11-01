@@ -2,9 +2,10 @@
 
 These rules are the target. Phase 1 brings the existing routes in line, so apply them to every route you add or change.
 
-- Every route validates its input with `@workspace/contract`.
+- Every route is an endpoint in `@workspace/contract` with a handler in `src/index.ts`. `createServer` keeps the Express app private, so there is no other way to add one, and `bindRoutes` validates before the handler runs.
 - Every route requires auth through the shared middleware. Public routes are an explicit allowlist.
-- Every error uses the one error shape in the contract.
+- Every error uses the one error shape in the contract. Throw `ApiFailure` for what the client should see, and anything else for the central handler to log and hide.
+- Only `src/config.ts` reads the environment.
 - ffmpeg belongs in the worker. Code here that calls it today moves there in Phase 1 item 8.
 
 ## Tests

@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and the toolchain, CI, contributor setup and repository restructure are done. Next:
+The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests and shared contract are done. Next:
 
-1. **Continue Phase 1 at item 5** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 1 at item 6** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -34,16 +34,17 @@ The foundation decisions are made, and the toolchain, CI, contributor setup and 
 | Next.js 16.4.3, React 19.3.1 (latest) | Merged to `main` (`7efb290`) |
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
-| Repository layout | `apps/api` and `packages/contract` in place; later folders arrive with their steps |
+| Repository layout | `apps/api`, `packages/contract` and `packages/api-client` in place; later folders arrive with their steps |
 | Required CI check on `main` | Done, and includes the API tests |
-| API and browser tests | Done. Five audit crashes are known failures until items 5, 6 and 8 fix them. The browser job only reports |
+| API and browser tests | Done. Three audit crashes are known failures until item 8 fixes them. The browser job only reports |
+| Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Ports 5000 and 27017 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Deferred until SQLite exists in Phase 1 |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `packages/` and `packages/contract` written; the rest arrive with their apps and packages |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/e2e`, `packages/`, `packages/contract` and `packages/api-client` written; the rest arrive with their apps and packages |
 
 **Not yet safe for the internet.** The API has no authentication of its own, the default `admin`/`admin` account remains, secrets are baked into the image, and there is no HTTPS. All four are fixed in Phase 1.
 
@@ -303,7 +304,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 3 | Default `admin`/`admin` | First-run setup screen creates the owner | 1 |
 | 4 | MongoDB `root`/`root` | Port closed; disappears with SQLite | Partly done; 1 |
 | 5 | Secrets in the API image | Exclude `.env`; pass with `env_file` | 1 |
-| 9 | Operator injection at login | Zod validation; Drizzle parameters | 1 |
+| 9 | Operator injection at login | Zod validation in the contract; Drizzle parameters follow in item 6 | Done |
 | 10 | Sessions expire mid-film | Sliding 30-day sessions | 1 |
 | 39 | Cookie not `Secure` | Enable behind HTTPS | 1 |
 
@@ -313,10 +314,10 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 |---|---|---|---|
 | 6 | Bad video crashes the API | ffmpeg moves to the worker, with error handling | 1 |
 | 7 | Stuck `in progress` jobs | `failed` state; recover jobs at worker startup | 1 |
-| 8 | Malformed URL crashes the API | Validate params; `await` handlers; central error handler | 1 |
-| 11 | API errors are discarded | One error shape in the contract | 1 |
+| 8 | Malformed URL crashes the API | Validate params; `await` handlers; central error handler | Done |
+| 11 | API errors are discarded | One error shape in the contract | Done |
 | 12 | Unawaited DB checks | Removed with Mongoose | 1 |
-| 13 | `MEDIA_FOLDER` half-implemented | One validated config module | 1 |
+| 13 | `MEDIA_FOLDER` half-implemented | One validated config module | Done |
 | 14 | Scan reports false success | Scan is a job with counts and errors | 1 |
 | 15 | `lastScanTime` adds rows | Settings table | 1 |
 | 16 | No limit on ffmpeg jobs | Queue with a concurrency limit | 1 |
@@ -382,7 +383,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | `ts-node`, `nodemon` | 10.9.2, 3.1.14 | Removed | Done | `tsx` replaces both. Tested 2026-11-01: `tsx` boots the API with no database connected |
 | ESLint | 9.39.5 | 10.14.0 | Done | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. Rules that duplicate `react-hooks` are off, as are the rules that flag the `packages/ui` primitives Phase 2 replaces. `next-client` now reports 17 warnings against 8 before, mostly from stricter `react-hooks` 7 rules. Phase 2 deletes that code |
 | Everything else in `pnpm outdated` | Various | Latest | Done | Except rows below, which are removed or replaced later |
-| dotenv | 16.6.1 | 18.0.9 | Done | Tested at runtime. Can be removed with the config module, because Node loads env files itself |
+| dotenv | 16.6.1 | Removed | Done | `process.loadEnvFile` in the config module replaces it, with the same order and non-override behaviour |
 | lucide-react | 0.477.0 | 1.66.0 | 2 | Major jump; check icon renames |
 | @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | With the form rebuild |
 | react-day-picker | 9.14.0 | 10.0.2 | 2 | With the shadcn update |
@@ -626,6 +627,7 @@ Claude Code reads `AGENTS.md` natively as long as no `CLAUDE.md` exists, and nes
 | `packages/ui/AGENTS.md` | The layers and rules from [section 9.2](#92-layers), how to add shadcn components |
 | `packages/db/AGENTS.md` | Schema changes through migrations only, never edit an applied migration |
 | `packages/contract/AGENTS.md` | Schemas are the source of truth; breaking changes need a version note |
+| `packages/api-client/AGENTS.md` | Calls come from the contract, with no per-endpoint code; every failure throws `ApiError` |
 | `docs/AGENTS.md` | What each document is for, keep `PLAN.md` current, record decisions as ADRs |
 
 **Definition of done** for the root file: typecheck, lint, tests and build pass; UI changes verified in a browser; no secrets committed; docs updated.
@@ -659,7 +661,7 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`.
 
-**Status:** items 1, 2, 3 and 4 are done. Findings 6, 7, 8, 9 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
+**Status:** items 1, 2, 3, 4 and 5 are done. Findings 6, 7 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It only receives the changes it needs: login through the API and removal of `proxy.ts`. No new work goes into it.
 
@@ -753,9 +755,9 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Test stack and CI | Phase 1 |
 | Backups for SQLite | Section 8 |
 | Automated dependency updates | Phase 1, with CI, through Renovate |
-| Config validation and structured logs | Phase 1 |
+| Config validation and structured logs | Config validation is done; structured logs arrive in Phase 1 item 9 |
 | Trusted HTTPS for LAN-only installs | Section 5.2 |
-| Shared API contract and typed client | Section 5.4 |
+| Shared API contract and typed client | Done, in `packages/contract` and `packages/api-client` |
 | Background job handling without Redis | Sections 5 and 8 |
 | Image caching | Phase 2 |
 | Keyboard and TV navigation | Section 9.2 |

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { config } from './config';
 import type {
 	MetadataDocument,
 	MediaDocument,
@@ -97,8 +98,8 @@ export const UserModel = mongoose.model('User', userSchema);
  */
 
 const getDbUrl = () => {
-	const port = process.env.MONGO_DB_PORT || 27017;
-	return `mongodb://${process.env.MONGO_DB_USERNAME}:${process.env.MONGO_DB_PASSWORD}@${process.env.MONGO_DB_URL}:${port}`;
+	const { username, password, host, port } = config.mongo;
+	return `mongodb://${username}:${password}@${host}:${port}`;
 };
 
 export const setupDb = async () => {
@@ -137,4 +138,10 @@ export const ensureDbConnection = async (): Promise<boolean> => {
 
 	// @ts-ignore
 	return mongoose.connection.readyState == mongoose.ConnectionStates.connected;
+};
+
+export const requireDbConnection = async () => {
+	if (!(await ensureDbConnection())) {
+		throw new Error('Database not connected');
+	}
 };

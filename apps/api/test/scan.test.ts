@@ -52,6 +52,7 @@ describe('scan', () => {
 		const response = await api.get('/scan');
 
 		expect(response.status).toBe(500);
+		expect(await response.json()).toEqual({ code: 'internal_error', message: 'Something went wrong' });
 		expect((await api.get('/movies')).status).toBe(200);
 	});
 });

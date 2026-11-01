@@ -21,21 +21,21 @@ describe('transcode', () => {
 		await api?.stop();
 	});
 
-	it('answers 400 and not ready for an unknown movie', async () => {
+	it('answers 404 for an unknown movie', async () => {
 		const response = await api.get('/transcode/request/9999');
 
-		expect(response.status).toBe(400);
-		expect(await response.json()).toEqual({ status: 'not ready' });
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ code: 'not_found', message: 'Movie not found' });
 	});
 
-	it('answers 400 when the folder holds no .mp4', async () => {
+	it('answers 404 when the folder holds no .mp4', async () => {
 		const movie = await seedMovie(api, 2001, 'Mkv Only');
 		await writeFile(path.join(api.mediaFolder, movie.folder, 'movie.mkv'), 'not read');
 
 		const response = await api.get(`/transcode/request/${movie.id}`);
 
-		expect(response.status).toBe(400);
-		expect(await response.json()).toEqual({ status: 'not ready' });
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ code: 'not_found', message: 'Video not found' });
 	});
 
 	it('marks a movie ready when its playlist is already cached', async () => {
@@ -55,13 +55,26 @@ describe('transcode', () => {
 	it('has no playlist before a movie is ready', async () => {
 		const movie = await seedMovie(api, 2003, 'Not Started');
 
-		expect((await api.get(`/transcode/playlist/${movie.id}`)).status).toBe(404);
+		const response = await api.get(`/transcode/playlist/${movie.id}`);
+
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ code: 'not_found', message: 'Transcoding not found' });
 	});
 
 	it('refuses to stream a movie that is not ready', async () => {
 		const movie = await seedMovie(api, 2004, 'Not Streamable');
 
-		expect((await api.get(`/streams/${movie.id}/playlist.m3u8`)).status).toBe(400);
+		const response = await api.get(`/streams/${movie.id}/playlist.m3u8`);
+
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ code: 'not_found', message: 'Stream not found' });
+	});
+
+	it('answers 404 for a stream of an unknown movie', async () => {
+		const response = await api.get('/streams/9999/playlist.m3u8');
+
+		expect(response.status).toBe(404);
+		expect(await response.json()).toEqual({ code: 'not_found', message: 'Stream not found' });
 	});
 
 	describe.skipIf(!hasFfmpeg)('with ffmpeg', () => {
@@ -93,6 +106,10 @@ describe('transcode', () => {
 			// A ready movie only streams its own HLS files.
 			expect((await api.get(`/streams/${movie.id}/clip.mp4`)).status).toBe(400);
 			expect((await api.get(`/streams/${movie.id}/..%2Fplaylist.m3u8`)).status).toBe(400);
+
+			const missing = await api.get(`/streams/${movie.id}/segment999.ts`);
+			expect(missing.status).toBe(404);
+			expect(await missing.json()).toEqual({ code: 'not_found', message: 'Stream not found' });
 		});
 	});
 });
