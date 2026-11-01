@@ -1,147 +1,21 @@
-import mongoose from 'mongoose';
+import { migrateDatabase, openDatabase, type Database } from '@workspace/db';
 import { config } from './config';
-import type {
-	MetadataDocument,
-	MediaDocument,
-	MovieDocument,
-	ShowDocument,
-	TranscodeDocument,
-	UserDocument,
-} from '@workspace/contract/db-types';
 
 /**
- * Metadata Database
- *
- * Schemas
- *
- *  Metadata
- *   - lastScanTime
- *
+ * Database
+ * Importing this opens the database and applies its migrations, and stops the process if
+ * either fails. Code that can reach the database therefore always sees a current schema.
  */
 
-const metadataSchema = new mongoose.Schema<MetadataDocument>({
-	lastScanTime: { type: Date, required: true, singleton: true },
-});
-export const MetadataModel = mongoose.model('Metadata', metadataSchema);
-
-/**
- * Media Scan Database
- *
- * Schemas
- *
- *  Media
- *   - id
- *   - type (movie/show)
- *
- *  Movies
- *    - id
- *    - folder path
- *    - metadata
- *
- *  Shows
- *    - id
- *    - folder path
- *    - metadata
- *
- *  Transcode
- * 	 - id
- *   - state
- *   - cache path
- *   - stream path
- *   - last request date
- */
-
-const mediaSchema = new mongoose.Schema<MediaDocument>({
-	id: { type: Number, required: true, unique: true, primary: true },
-	type: { type: String, enum: ['movie', 'show'], required: true },
-});
-const movieSchema = new mongoose.Schema<MovieDocument>({
-	id: { type: Number, required: true, unique: true, primary: true },
-	path: { type: String, required: true },
-	metadata: { type: mongoose.Schema.Types.Mixed, required: true },
-});
-const showSchema = new mongoose.Schema<ShowDocument>({
-	id: { type: Number, required: true, unique: true, primary: true },
-	path: { type: String, required: true },
-	metadata: { type: mongoose.Schema.Types.Mixed, required: true },
-});
-const transcodeSchema = new mongoose.Schema<TranscodeDocument>({
-	id: { type: Number, required: true, unique: true, primary: true },
-	status: { type: String, enum: ['not ready', 'in progress', 'ready'], required: true },
-	lastRequestDate: { type: Date },
-});
-
-export const MediaModel = mongoose.model('Media', mediaSchema);
-export const MovieModel = mongoose.model('Movie', movieSchema);
-export const ShowModel = mongoose.model('Show', showSchema);
-export const TranscodeModel = mongoose.model('Transcode', transcodeSchema);
-
-/**
- * User Database
- *
- * Schemas
- *
- *  User
- * 	 - username
- *   - password
- */
-
-const userSchema = new mongoose.Schema<UserDocument>({
-	username: { type: String, unique: true, required: true },
-	password: { type: String, required: true },
-});
-
-export const UserModel = mongoose.model('User', userSchema);
-
-/**
- * Utility functions for database connection
- */
-
-const getDbUrl = () => {
-	const { username, password, host, port } = config.mongo;
-	return `mongodb://${username}:${password}@${host}:${port}`;
-};
-
-export const setupDb = async () => {
-	await mongoose.connect(getDbUrl());
-	await MetadataModel.createCollection();
-	await MediaModel.createCollection();
-	await MovieModel.createCollection();
-	await ShowModel.createCollection();
-	await TranscodeModel.createCollection();
-	await UserModel.createCollection();
-
-	// TEMP clears
-	// await MovieModel.deleteMany({});
-	// await MediaModel.deleteMany({});
-	// await TranscodeModel.deleteMany({});
-
-	return mongoose.connection.readyState === 1;
-};
-
-export const closeDb = async () => {
-	await mongoose.connection.close();
-};
-
-export const ensureDbConnection = async (): Promise<boolean> => {
-	if (mongoose.connection.readyState == mongoose.ConnectionStates.connected) {
-		return true;
-	}
-
+const openMigratedDatabase = (): Database => {
 	try {
-		await mongoose.connect(getDbUrl());
+		const db = openDatabase(config.databasePath);
+		migrateDatabase(db);
+		return db;
 	} catch (error) {
-		// TODO: Logger
-		console.error('Failed to connect to MongoDB:', error);
-		return false;
-	}
-
-	// @ts-ignore
-	return mongoose.connection.readyState == mongoose.ConnectionStates.connected;
-};
-
-export const requireDbConnection = async () => {
-	if (!(await ensureDbConnection())) {
-		throw new Error('Database not connected');
+		console.error('The API cannot start, because its database could not be opened or migrated:', error);
+		process.exit(1);
 	}
 };
+
+export const db: Database = openMigratedDatabase();

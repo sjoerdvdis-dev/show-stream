@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
 import { config } from './config';
-import { MediaModel, MetadataModel, MovieModel, requireDbConnection, ShowModel } from './db';
+import { db } from './db';
 import { notFound } from './errors';
-import { getTranscoding } from './video';
+import { findMovie, listMovies, listShows, saveMovie, setSetting } from '@workspace/db';
 import { TMDB } from 'tmdb-ts';
 import type { MovieDetails, TvShowDetails } from 'tmdb-ts';
 import type { Logger } from 'winston';
@@ -13,7 +13,6 @@ import type {
 	MoviesAPIData,
 	ShowsAPIData,
 } from '@workspace/contract/api-types';
-import type { MediaDocument, ShowDocument, MovieDocument } from '@workspace/contract/db-types';
 
 const includedCrewJobs = ['Director'];
 
@@ -25,34 +24,24 @@ const includedCrewJobs = ['Director'];
 // /movies
 // -> metadata of all movies
 export const getMovies = async (): Promise<MoviesAPIData> => {
-	const movies = await findMovies();
-	const moviesData: MovieMetadata[] = [];
-	for (const movie of movies) {
-		const { id, metadata } = movie;
-		const transcoding = await getTranscoding(id);
-		moviesData.push({ ...metadata, transcodeStatus: transcoding?.status || 'not ready' });
-	}
-	return { movies: moviesData };
+	const movies = listMovies(db).map(({ metadata, transcodeStatus }) => ({ ...metadata, transcodeStatus }));
+	return { movies };
 };
 
 // /movies/:id
 // -> metadata of a specific movie
 export const getMovie = async (params: { id: number }): Promise<MovieAPIData> => {
-	const { id } = params;
-	const media = await findMedia(id);
-	const movie = media?.type === 'movie' ? await MovieModel.findOne({ id }).lean() : null;
+	const movie = findMovie(db, params.id);
 	if (!movie) {
 		throw notFound('Movie');
 	}
-	const transcoding = await getTranscoding(id);
-	return { metadata: { ...movie.metadata, transcodeStatus: transcoding?.status || 'not ready' } };
+	return { metadata: { ...movie.metadata, transcodeStatus: movie.transcodeStatus } };
 };
 
 // /shows
 // -> metadata of all shows
 export const getShows = async (): Promise<ShowsAPIData> => {
-	const shows = await findShows();
-	return { shows: shows.map((show) => show.metadata) };
+	return { shows: listShows(db).map((show) => show.metadata) };
 };
 
 // /shows/:id
@@ -64,40 +53,18 @@ export const getShows = async (): Promise<ShowsAPIData> => {
  * Creates metadata scan of Movies (later Shows) folder
  */
 
-type IdentifiedMovie = MovieDocument;
+type IdentifiedMovie = { tmdbId: number; path: string; metadata: MovieMetadata };
 const tmdb = new TMDB(config.tmdbToken);
 
 export const mediaScan = async (mediaFolder: string, logger: Logger): Promise<void> => {
 	const identifiedMovies = await movieScan(mediaFolder, logger);
 
-	await requireDbConnection();
-
 	for (const movie of identifiedMovies) {
-		const { id, path, metadata } = movie;
-
-		const mediaExists = await MediaModel.exists({ id });
-		const movieExists = await MovieModel.exists({ id });
-
-		if (mediaExists) {
-			await MediaModel.updateOne({ id }, { $set: { type: 'movie' } });
-		} else {
-			await MediaModel.create({ id, type: 'movie' });
-		}
-
-		if (movieExists) {
-			await MovieModel.updateOne({ id }, { $set: { path, metadata } });
-		} else {
-			await MovieModel.create({ id, path, metadata });
-		}
+		saveMovie(db, movie);
 	}
 
 	const lastScanTime = new Date();
-	const metadataExists = await MetadataModel.exists({ id: 0 });
-	if (!metadataExists) {
-		await MetadataModel.create({ id: 0, lastScanTime });
-	} else {
-		await MetadataModel.updateOne({ id: 0 }, { $set: { lastScanTime } });
-	}
+	setSetting(db, 'lastScanTime', lastScanTime.toISOString());
 
 	logger.log('info', `Media scan completed at ${lastScanTime}`);
 };
@@ -118,7 +85,7 @@ export const movieScan = async (mediaFolder: string, logger: Logger): Promise<Id
 			const movieMetadata = await fetchMovieMetadata({ name: movieName, year: parseInt(movieYear) });
 			if (!movieMetadata || !movieMetadata.details.id) continue;
 			identifiedMovies.push({
-				id: movieMetadata.details.id,
+				tmdbId: movieMetadata.details.id,
 				path: moviePath,
 				metadata: movieMetadata,
 			});
@@ -197,32 +164,6 @@ const fetchShowMetadata = async ({
 /**
  * Utility functions to find media/videos
  */
-
-export const findMedia = async (id: number): Promise<MediaDocument | null> => {
-	await requireDbConnection();
-	return MediaModel.findOne({ id }).lean();
-};
-
-export const findMovies = async (): Promise<MovieDocument[]> => {
-	await requireDbConnection();
-	return MovieModel.find({}).lean();
-};
-
-export const findShows = async (): Promise<ShowDocument[]> => {
-	await requireDbConnection();
-	return ShowModel.find({}).lean();
-};
-
-export const findTranscodeMediaInfo = async (id: number): Promise<{ path?: string; title?: string } | null> => {
-	const media = await findMedia(id);
-
-	if (media?.type === 'movie') {
-		const movie = await MovieModel.findOne({ id }).lean();
-		return { path: movie?.path, title: movie?.metadata.details.title };
-	}
-
-	return null;
-};
 
 const acceptedVideoExtensions = ['.mp4'];
 export const findMediaVideoPath = async (mediaPath: string): Promise<string | null> => {

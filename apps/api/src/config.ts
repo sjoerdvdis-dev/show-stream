@@ -38,10 +38,7 @@ const isFolder = (folder: string) => fs.statSync(folder, { throwIfNoEntry: false
 const environmentSchema = z.object({
 	PORT: optional(port),
 	NEXT_CLIENT_URL: optional(z.string()),
-	MONGO_DB_URL: required,
-	MONGO_DB_PORT: optional(port),
-	MONGO_DB_USERNAME: required,
-	MONGO_DB_PASSWORD: required,
+	DATABASE_PATH: optional(z.string()),
 	JWT_SECRET: required,
 	JWT_EXPIRES_IN: z
 		.string({ error: 'is required' })
@@ -66,12 +63,8 @@ const environment = parseEnvironment();
 export const config = {
 	port: environment.PORT ?? 5000,
 	nextClientUrl: environment.NEXT_CLIENT_URL ?? '',
-	mongo: {
-		host: environment.MONGO_DB_URL,
-		port: environment.MONGO_DB_PORT ?? 27017,
-		username: environment.MONGO_DB_USERNAME,
-		password: environment.MONGO_DB_PASSWORD,
-	},
+	/** The SQLite file. By default it is in the repository's `data` folder, wherever the API runs from. */
+	databasePath: path.resolve(environment.DATABASE_PATH ?? path.join(__dirname, '../../../data/app.db')),
 	jwt: {
 		secret: environment.JWT_SECRET,
 		expiresInSeconds: environment.JWT_EXPIRES_IN,

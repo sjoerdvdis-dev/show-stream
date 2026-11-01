@@ -9,6 +9,9 @@ const tmdbPayload = <T>() => z.custom<T>(isObject);
 /**
  * Media API
  */
+export const mediaTypeSchema = z.enum(['movie', 'show']);
+export type MediaType = z.infer<typeof mediaTypeSchema>;
+
 export const transcodeStatusSchema = z.enum(['not ready', 'in progress', 'ready']);
 export type TranscodeStatus = z.infer<typeof transcodeStatusSchema>;
 

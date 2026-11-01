@@ -4,9 +4,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { runApiUntilExit, startApi, type TestApi } from './support/api';
 
 const validEnvironment = {
-	MONGO_DB_URL: '127.0.0.1',
-	MONGO_DB_USERNAME: 'fake-user',
-	MONGO_DB_PASSWORD: 'fake-password',
 	JWT_SECRET: 'fake-secret',
 	JWT_EXPIRES_IN: '3600',
 };
@@ -32,17 +29,15 @@ describe('configuration', () => {
 		const { code, output } = await runApiUntilExit({
 			...validEnvironment,
 			PORT: 'marker-one',
-			MONGO_DB_PORT: 'marker-two',
-			JWT_EXPIRES_IN: 'marker-three',
-			MEDIA_FOLDER: '/marker-four/missing',
+			JWT_EXPIRES_IN: 'marker-two',
+			MEDIA_FOLDER: '/marker-three/missing',
 		});
 
 		expect(code).toBe(1);
-		for (const name of ['PORT', 'MONGO_DB_PORT', 'JWT_EXPIRES_IN', 'MEDIA_FOLDER']) {
+		for (const name of ['PORT', 'JWT_EXPIRES_IN', 'MEDIA_FOLDER']) {
 			expect(output).toContain(name);
 		}
 		expect(output).not.toContain('marker');
-		expect(output).not.toContain('fake-password');
 		expect(output).not.toContain('fake-secret');
 	});
 
@@ -81,8 +76,6 @@ describe('configuration', () => {
 		it('accepts a short JWT_SECRET and treats empty optional values as unset', async () => {
 			api = await startApi({
 				envFile: [
-					'MONGO_DB_USERNAME=root',
-					'MONGO_DB_PASSWORD=root',
 					'JWT_SECRET=short',
 					'JWT_EXPIRES_IN=3600',
 					'TMDB_API_READ_ACCESS_TOKEN=',
@@ -95,11 +88,25 @@ describe('configuration', () => {
 			expect((await api.get('/scan')).status).toBe(200);
 		});
 
+		// Upgrades keep their .env, and unknown variables are ignored.
+		it('starts with a .env from before SQLite, which still has the MongoDB variables', async () => {
+			api = await startApi({
+				envFile: [
+					'MONGO_DB_URL=mongodb',
+					'MONGO_DB_PORT=not-a-port',
+					'MONGO_DB_USERNAME=root',
+					'MONGO_DB_PASSWORD=root',
+					'JWT_SECRET=fake-secret',
+					'JWT_EXPIRES_IN=3600',
+				].join('\n'),
+			});
+
+			expect((await api.get('/movies')).status).toBe(200);
+		});
+
 		it('lets the environment win over .env, and .env win over .env.development', async () => {
 			api = await startApi({
 				envFile: [
-					'MONGO_DB_USERNAME=root',
-					'MONGO_DB_PASSWORD=root',
 					'JWT_SECRET=fake-secret',
 					'JWT_EXPIRES_IN=3600',
 					// Invalid, so the API only starts if the port from the environment wins.
