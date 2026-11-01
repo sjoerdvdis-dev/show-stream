@@ -2,7 +2,7 @@
 
 Self-hosted media server, intended to replace Jellyfin. A pnpm and Turborepo monorepo.
 
-Today it is an Express API and a Next.js client on MongoDB. It is moving to the architecture in [docs/PLAN.md](docs/PLAN.md). Read that and [docs/adr/](docs/adr/README.md) before structural work.
+Today it is an Express API and a Next.js client on SQLite. It is moving to the architecture in [docs/PLAN.md](docs/PLAN.md). Read that and [docs/adr/](docs/adr/README.md) before structural work.
 
 ## Rules
 

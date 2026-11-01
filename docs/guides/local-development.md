@@ -3,7 +3,7 @@
 ## Requirements
 
 - Node.js 26 (see `.nvmrc`)
-- Docker with Compose, running
+- Docker with Compose, only for the full stack and the browser tests
 
 `scripts/setup.sh` installs the rest, and is safe to run again to repair a setup:
 
@@ -14,7 +14,7 @@
 | Step | What it does |
 |---|---|
 | Tools | Installs pnpm, dependencies, ffmpeg, and the Chromium that Playwright MCP needs |
-| Folders | Creates the media folders and `data`, and the `show_stream_network` Docker network |
+| Folders | Creates the media folders and `data`, and the `show_stream_network` Docker network if Docker is running |
 | `apps/api/.env` | Creates it from `.env.example` with a generated `JWT_SECRET`. An existing file is never changed |
 
 ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries, the script stops and prints the command that installs them.
@@ -22,12 +22,6 @@ ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries
 **One manual step:** set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api/.env`. Create a free token at [TMDB](https://developer.themoviedb.org/docs/getting-started). Only library scans need it.
 
 ## Run the apps
-
-Start MongoDB on loopback:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mongodb
-```
 
 Start the API on port 5000 and the client on port 3000:
 
@@ -37,9 +31,21 @@ pnpm dev
 
 Log in at <http://localhost:3000> with `admin`/`admin`.
 
-`pnpm dev` builds `packages/contract` and `packages/api-client` first, and the API runs that build. After changing either package, restart `pnpm dev`.
+`pnpm dev` builds `packages/contract`, `packages/db` and `packages/api-client` first, and the API runs that build. After changing one of them, restart `pnpm dev`.
 
 `pnpm dev` reads media from `apps/api/media`, and Docker reads it from `./media`.
+
+The API creates its database at `data/app.db` on first start, and applies any new migration each time it starts. To start over, stop the API and delete `data/app.db*`.
+
+## Change the database
+
+Edit `packages/db/src/schema.ts`, then generate a migration and commit it:
+
+```bash
+pnpm --filter @workspace/db generate
+```
+
+See `packages/db/AGENTS.md`.
 
 ## Checks
 
@@ -53,12 +59,14 @@ pnpm turbo check-types lint build test
 
 | Command | Runs | Needs |
 |---|---|---|
-| `pnpm test` | API tests in `apps/api/test` | Nothing beyond setup. No Docker |
+| `pnpm test` | API tests in `apps/api/test`, and database tests in `packages/db/test` | Nothing beyond setup. No Docker |
 | `pnpm test:browser` | Chromium tests in `apps/e2e` | Docker |
 
-**API tests** start the real API as a child process, from a temporary copy of its source, and speak HTTP to it. Each suite gets its own MongoDB from `mongodb-memory-server`, which downloads `mongod` to `~/.cache/mongodb-binaries` on the first run. They use fake configuration and never read `apps/api/.env` or touch your media. TMDB calls go to a closed port, so nothing leaves your machine.
+**API tests** start the real API as a child process, from a temporary copy of its source, and speak HTTP to it. Each server gets its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media. TMDB calls go to a closed port, so nothing leaves your machine.
 
 Tests that run a real ffmpeg job skip with a message if `ffmpeg` is missing. In CI, the missing `ffmpeg` fails the run instead.
+
+**Database tests** call `packages/db` directly on a temporary file, for what HTTP cannot see: migrations from empty, the pragmas, a shared TMDB ID, a title with no TMDB ID and a single settings row.
 
 **Known failures** in `apps/api/test/known-failures` state the correct behaviour for an audit crash, marked `it.fails`. They pass while the bug exists and fail the run once it is fixed. The step that fixes one deletes its marker. Each title names the finding and the roadmap item expected to fix it:
 
@@ -68,7 +76,7 @@ grep -rn "it.fails" apps/api/test
 
 **Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 
-After a failure, screenshots and traces are in `apps/e2e/test-results`. The movie comes from `apps/e2e/fixtures/seed.js`, and `clip.mp4` beside it is a generated 30-second H.264 and AAC clip.
+After a failure, screenshots and traces are in `apps/e2e/test-results`. The movie comes from `apps/e2e/fixtures/seed.mjs`, which the one-shot `seed` service runs after the API has migrated a new volume, and `clip.mp4` beside it is a generated 30-second H.264 and AAC clip.
 
 CI does not build images in the required check. If you change a Dockerfile, build it yourself or read the `browser` job's result.
 
@@ -78,7 +86,7 @@ CI does not build images in the required check. If you change a Dockerfile, buil
 bash build-docker.sh
 ```
 
-This uses `./media` and `./data`, and builds your `.env` into the API image until audit finding 5 is fixed.
+This uses `./media` and the `sqlite-data` volume, and builds your `.env` into the API image until audit finding 5 is fixed. The database is at `/data/app.db` in the volume, which must stay on a local disk, never NFS or SMB.
 
 To test without touching your images or data, export the repo, use fake secrets, and pass a separate project name with `-p`. `docker-compose.yml` sets fixed container names, so stop your own stack first.
 
@@ -109,8 +117,7 @@ Never commit real values.
 - **pnpm refuses very new releases.** Its minimum release age rejected a package published the same day. Wait, or use the previous version. Do not add an exclusion.
 - **Playwright MCP needs a matching browser.** When its pin in `.mcp.json` changes, run setup again.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
-- **Containers run as UID 1000.** `./media` and `./data` must be writable by that user. On Linux with another UID, `chown` them to 1000 until audit finding 44 is fixed.
-- **There is no local `mongod` for development.** `pnpm dev` uses MongoDB in Docker. Only the API tests download their own.
+- **Containers run as UID 1000.** `./media` must be writable by that user. On Linux with another UID, `chown` it to 1000 until audit finding 44 is fixed. The image prepares the `sqlite-data` volume itself.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **Port 3000 is published on all interfaces** until Caddy arrives in Phase 1.
 - **`vitest` alone needs the packages built.** `pnpm test` builds them first. If you run `vitest` directly in `apps/api`, run `pnpm turbo build --filter=api^...` once.

@@ -7,7 +7,6 @@ The single definition of the API. The API serves it and `packages/api-client` ca
 | `src/endpoints.ts` | One definition per endpoint: method, path, params, body, response |
 | `src/api-types.ts` | Response and notification schemas, and the types inferred from them |
 | `src/errors.ts` | The one error shape and its stable codes |
-| `src/db-types.ts` | Database document types, until item 6 replaces them |
 
 - Schemas are the source of truth. Infer types from them and never write a type by hand that a schema could give.
 - To add a route, add an endpoint here. The compiler then requires its handler in `apps/api`, and the typed client gains the call by itself.

@@ -6,6 +6,7 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - Every route requires auth through the shared middleware. Public routes are an explicit allowlist.
 - Every error uses the one error shape in the contract. Throw `ApiFailure` for what the client should see, and anything else for the central handler to log and hide.
 - Only `src/config.ts` reads the environment.
+- The database is reached only through `@workspace/db`, with the `db` from `src/db.ts`. Never import Drizzle or `better-sqlite3`.
 - ffmpeg belongs in the worker. Code here that calls it today moves there in Phase 1 item 8.
 
 ## Tests

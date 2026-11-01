@@ -10,7 +10,7 @@
 		},
 		{
 			"description": "Removed or replaced later, so they get no major updates; delete with each package",
-			"matchPackageNames": ["fluent-ffmpeg", "mongoose", "mongodb-memory-server", "@hookform/resolvers", "lucide-react", "react-day-picker"],
+			"matchPackageNames": ["fluent-ffmpeg", "@hookform/resolvers", "lucide-react", "react-day-picker"],
 			"matchUpdateTypes": ["major"],
 			"enabled": false
 		},
@@ -18,6 +18,11 @@
 			"description": "The Playwright package and image must stay on the same version",
 			"matchPackageNames": ["@playwright/test", "mcr.microsoft.com/playwright"],
 			"groupName": "playwright"
+		},
+		{
+			"description": "Drizzle is pre-1.0, and its ORM and kit must move together",
+			"matchPackageNames": ["drizzle-orm", "drizzle-kit"],
+			"groupName": "drizzle"
 		},
 		{
 			"description": "typescript-eslint refuses TypeScript 7; drop this rule when it supports it",
