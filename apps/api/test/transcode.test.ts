@@ -45,13 +45,25 @@ describe('transcode', () => {
 		await writeFile(path.join(api.mediaFolder, movie.folder, 'movie.mp4'), 'not read');
 		const cache = path.join(api.mediaFolder, 'cache', String(movie.id));
 		await mkdir(cache, { recursive: true });
-		await writeFile(path.join(cache, 'playlist.m3u8'), '#EXTM3U\n');
+		await writeFile(path.join(cache, 'playlist.m3u8'), '#EXTM3U\n#EXT-X-ENDLIST\n');
 
 		const response = await owner.get(`/transcode/request/${movie.id}`);
 
 		expect(response.status).toBe(200);
 		expect(await response.json()).toEqual({ status: 'ready' });
 		await api.waitFor(async () => expect(await transcodeStatus(movie.id)).toBe('ready'));
+	});
+
+	it('does not trust a cached playlist with no end, which an older version may have left', async () => {
+		const movie = await seedMovie(api, 2006, 'Half Cached');
+		await writeFile(path.join(api.mediaFolder, movie.folder, 'movie.mp4'), 'not read');
+		const cache = path.join(api.mediaFolder, 'cache', String(movie.id));
+		await mkdir(cache, { recursive: true });
+		await writeFile(path.join(cache, 'playlist.m3u8'), '#EXTM3U\n#EXTINF:6,\nsegment000.ts\n');
+
+		const response = await owner.get(`/transcode/request/${movie.id}`);
+
+		expect(await response.json()).toEqual({ status: 'in progress' });
 	});
 
 	it('has no playlist before a movie is ready', async () => {

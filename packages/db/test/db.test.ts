@@ -1,11 +1,12 @@
 import { statSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { MovieMetadata } from '@workspace/contract/api-types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
 	addTranscodeRequester,
+	claimNextJob,
 	closeDatabase,
 	createOwner,
 	createSession,
@@ -13,21 +14,28 @@ import {
 	deleteExpiredSessions,
 	deleteSession,
 	extendSession,
+	failJob,
 	findMovie,
 	findSession,
 	findUserByUsername,
+	finishJob,
 	getSetting,
 	hasOwner,
+	isDatabaseMigrated,
 	listMovies,
 	listShows,
+	markTranscodeDone,
 	migrateDatabase,
 	openDatabase,
+	queueTranscode,
 	recordPlaylistRequest,
+	recoverJobs,
+	requeueJob,
+	retryTranscode,
 	saveMedia,
 	saveMovie,
 	setSetting,
-	setTranscodeStatus,
-	takeTranscodeRequesters,
+	takeFinishedTranscodes,
 	type Database,
 } from '../src/index';
 
@@ -46,6 +54,17 @@ const tableNames = (db: Database) =>
 
 const rowCount = (db: Database, table: string) =>
 	db.$client.prepare<[], { count: number }>(`SELECT count(*) AS count FROM ${table}`).get()?.count;
+
+/** A copy of the migrations as an older version shipped them. */
+const migrationsWithoutTheLast = async () => {
+	const folder = await mkdtemp(path.join(tmpdir(), 'show-stream-old-migrations-'));
+	await cp(path.resolve(import.meta.dirname, '../migrations'), folder, { recursive: true });
+	const journalPath = path.join(folder, 'meta', '_journal.json');
+	const journal = JSON.parse(await readFile(journalPath, 'utf8'));
+	journal.entries.pop();
+	await writeFile(journalPath, JSON.stringify(journal));
+	return folder;
+};
 
 describe('database', () => {
 	let folder: string;
@@ -79,6 +98,18 @@ describe('database', () => {
 			migrateDatabase(db);
 
 			expect(findUserByUsername(db, 'sam')).toBeDefined();
+		});
+
+		it('reports whether every migration has been applied', async () => {
+			expect(isDatabaseMigrated(db)).toBe(false);
+
+			const older = await migrationsWithoutTheLast();
+			migrateDatabase(db, older);
+			await rm(older, { recursive: true, force: true });
+			expect(isDatabaseMigrated(db)).toBe(false);
+
+			migrateDatabase(db);
+			expect(isDatabaseMigrated(db)).toBe(true);
 		});
 
 		it('throws when a migration fails', () => {
@@ -181,7 +212,12 @@ describe('database', () => {
 		});
 
 		describe('transcode jobs', () => {
-			const addMovie = () => saveMovie(db, { tmdbId: 7, path: 'movies/Seven', metadata: movieMetadata(7, 'Seven') });
+			const addMovie = (tmdbId = 7) =>
+				saveMovie(db, { tmdbId, path: `movies/${tmdbId}`, metadata: movieMetadata(tmdbId, `Title ${tmdbId}`) });
+
+			const request = { userId: 1, video: 'movies/7/clip.mp4', output: 'cache/7' };
+
+			const failClaimedJob = () => failJob(db, claimNextJob(db)!.id, 'Bad file');
 
 			it('reads as not ready before a job exists', () => {
 				addMovie();
@@ -190,19 +226,41 @@ describe('database', () => {
 				expect(listMovies(db)[0]?.transcodeStatus).toBe('not ready');
 			});
 
-			it('keeps one job per title as its status changes', () => {
+			it('reads as the status clients know through each state of a job', () => {
 				const movie = addMovie();
 
-				setTranscodeStatus(db, movie.id, 'in progress');
-				setTranscodeStatus(db, movie.id, 'ready');
+				queueTranscode(db, movie.id, request);
+				expect(findMovie(db, 7)?.transcodeStatus).toBe('in progress');
+
+				const job = claimNextJob(db)!;
+				expect(findMovie(db, 7)?.transcodeStatus).toBe('in progress');
+
+				finishJob(db, job.id);
+				expect(findMovie(db, 7)?.transcodeStatus).toBe('ready');
+			});
+
+			it('reads as failed with its reason', () => {
+				queueTranscode(db, addMovie().id, request);
+
+				failClaimedJob();
+
+				expect(findMovie(db, 7)).toMatchObject({ transcodeStatus: 'failed', transcodeError: 'Bad file' });
+				expect(listMovies(db)[0]).toMatchObject({ transcodeStatus: 'failed', transcodeError: 'Bad file' });
+			});
+
+			it('keeps one job per title', () => {
+				const movie = addMovie();
+
+				queueTranscode(db, movie.id, request);
+				queueTranscode(db, movie.id, { ...request, userId: 2 });
 
 				expect(rowCount(db, 'jobs')).toBe(1);
-				expect(findMovie(db, 7)?.transcodeStatus).toBe('ready');
 			});
 
 			it('keeps the status when a playlist is requested', () => {
 				const movie = addMovie();
-				setTranscodeStatus(db, movie.id, 'ready');
+				queueTranscode(db, movie.id, request);
+				finishJob(db, claimNextJob(db)!.id);
 
 				recordPlaylistRequest(db, movie.id, new Date('2024-01-01T00:00:00Z'));
 
@@ -211,37 +269,195 @@ describe('database', () => {
 			});
 
 			it('refuses a job for a title that does not exist', () => {
-				expect(() => setTranscodeStatus(db, 999, 'ready')).toThrow(/FOREIGN KEY/);
+				expect(() => queueTranscode(db, 999, request)).toThrow(/FOREIGN KEY/);
 			});
 
-			it('hands over the users who asked once each, and only once', () => {
-				const movie = addMovie();
-				setTranscodeStatus(db, movie.id, 'in progress');
+			describe('claiming', () => {
+				it('takes the oldest job, and counts a run', () => {
+					queueTranscode(db, addMovie(7).id, request);
+					queueTranscode(db, addMovie(8).id, request);
 
-				addTranscodeRequester(db, movie.id, 1);
-				addTranscodeRequester(db, movie.id, 2);
-				addTranscodeRequester(db, movie.id, 1);
+					const first = claimNextJob(db);
 
-				expect(takeTranscodeRequesters(db, movie.id)).toEqual([1, 2]);
-				expect(takeTranscodeRequesters(db, movie.id)).toEqual([]);
+					expect(first).toMatchObject({ status: 'running', attempts: 1 });
+					expect(first?.payload).toMatchObject({ video: 'movies/7/clip.mp4', output: 'cache/7' });
+					expect(first?.mediaId).toBeLessThan(claimNextJob(db)!.mediaId!);
+				});
+
+				it('has nothing to take from an empty queue', () => {
+					expect(claimNextJob(db)).toBeUndefined();
+				});
+
+				it('gives a job to one of two connections', () => {
+					const other = openDatabase(file);
+					queueTranscode(db, addMovie().id, request);
+
+					const claims = [claimNextJob(db), claimNextJob(other)];
+
+					closeDatabase(other);
+					expect(claims.filter(Boolean)).toHaveLength(1);
+				});
+
+				it('skips jobs that are running, done or failed', () => {
+					queueTranscode(db, addMovie(7).id, request);
+					queueTranscode(db, addMovie(8).id, request);
+					queueTranscode(db, addMovie(9).id, request);
+					finishJob(db, claimNextJob(db)!.id);
+					failClaimedJob();
+					claimNextJob(db);
+
+					expect(claimNextJob(db)).toBeUndefined();
+				});
 			});
 
-			it('keeps the users who asked when a playlist is requested', () => {
-				const movie = addMovie();
-				setTranscodeStatus(db, movie.id, 'in progress');
-				addTranscodeRequester(db, movie.id, 1);
+			describe('recovery', () => {
+				it('puts a job that was running back in the queue, and returns it', () => {
+					queueTranscode(db, addMovie().id, request);
+					const job = claimNextJob(db)!;
 
-				recordPlaylistRequest(db, movie.id, new Date('2024-01-01T00:00:00Z'));
+					const recovered = recoverJobs(db, 3);
 
-				expect(takeTranscodeRequesters(db, movie.id)).toEqual([1]);
+					expect(recovered).toMatchObject([{ id: job.id, attempts: 1, payload: { output: 'cache/7' } }]);
+					expect(claimNextJob(db)).toMatchObject({ id: job.id, attempts: 2 });
+				});
+
+				it('fails a job that has reached the limit, with a reason', () => {
+					queueTranscode(db, addMovie().id, request);
+					for (const _attempt of [1, 2]) {
+						claimNextJob(db);
+						recoverJobs(db, 3);
+					}
+					claimNextJob(db);
+
+					recoverJobs(db, 3);
+
+					expect(claimNextJob(db)).toBeUndefined();
+					expect(findMovie(db, 7)).toMatchObject({
+						transcodeStatus: 'failed',
+						transcodeError: 'The worker stopped during all 3 attempts at this job.',
+					});
+				});
+
+				it('leaves other jobs alone', () => {
+					queueTranscode(db, addMovie(7).id, request);
+					queueTranscode(db, addMovie(8).id, request);
+					finishJob(db, claimNextJob(db)!.id);
+
+					expect(recoverJobs(db, 3)).toEqual([]);
+					expect(findMovie(db, 7)?.transcodeStatus).toBe('ready');
+					expect(claimNextJob(db)?.attempts).toBe(1);
+				});
+
+				it('does not count a run that a clean shutdown stopped', () => {
+					queueTranscode(db, addMovie().id, request);
+
+					requeueJob(db, claimNextJob(db)!.id);
+
+					expect(claimNextJob(db)?.attempts).toBe(1);
+				});
 			});
 
-			it('has no users for a title with no job', () => {
+			describe('retrying', () => {
+				it('requeues a failed job as new, for the user who asked', () => {
+					const movie = addMovie();
+					queueTranscode(db, movie.id, request);
+					failClaimedJob();
+					takeFinishedTranscodes(db);
+
+					expect(retryTranscode(db, movie.id, { ...request, userId: 2, video: 'movies/7/new.mp4' })).toBe(true);
+
+					expect(findMovie(db, 7)?.transcodeStatus).toBe('in progress');
+					expect(findMovie(db, 7)?.transcodeError).toBeUndefined();
+					const job = claimNextJob(db)!;
+					expect(job.attempts).toBe(1);
+					expect(job.payload).toMatchObject({ requestedBy: [2], video: 'movies/7/new.mp4' });
+					finishJob(db, job.id);
+					expect(takeFinishedTranscodes(db)).toEqual([{ status: 'done', title: 'Title 7', requestedBy: [2] }]);
+				});
+
+				it.each([
+					['queued', () => {}],
+					['running', () => claimNextJob(db)],
+					['done', () => finishJob(db, claimNextJob(db)!.id)],
+				])('leaves a %s job alone', (_status, prepare) => {
+					const movie = addMovie();
+					queueTranscode(db, movie.id, request);
+					prepare();
+					const before = findMovie(db, 7)?.transcodeStatus;
+
+					expect(retryTranscode(db, movie.id, request)).toBe(false);
+
+					expect(findMovie(db, 7)?.transcodeStatus).toBe(before);
+				});
+
+				it('has nothing to retry for a title with no job', () => {
+					expect(retryTranscode(db, addMovie().id, request)).toBe(false);
+				});
+			});
+
+			describe('announcing', () => {
+				it('hands over a finished job once, with the users who asked once each', () => {
+					const movie = addMovie();
+					queueTranscode(db, movie.id, request);
+					addTranscodeRequester(db, movie.id, 2);
+					addTranscodeRequester(db, movie.id, 1);
+					finishJob(db, claimNextJob(db)!.id);
+
+					expect(takeFinishedTranscodes(db)).toEqual([{ status: 'done', title: 'Title 7', requestedBy: [1, 2] }]);
+					expect(takeFinishedTranscodes(db)).toEqual([]);
+				});
+
+				it('hands over a failed job with its reason', () => {
+					queueTranscode(db, addMovie().id, request);
+					failClaimedJob();
+
+					expect(takeFinishedTranscodes(db)).toEqual([
+						{ status: 'failed', error: 'Bad file', title: 'Title 7', requestedBy: [1] },
+					]);
+				});
+
+				it('waits for a job to finish', () => {
+					queueTranscode(db, addMovie().id, request);
+					claimNextJob(db);
+
+					expect(takeFinishedTranscodes(db)).toEqual([]);
+				});
+
+				it('keeps a user who joined while the job ran', () => {
+					const movie = addMovie();
+					queueTranscode(db, movie.id, request);
+					const job = claimNextJob(db)!;
+
+					addTranscodeRequester(db, movie.id, 2);
+					finishJob(db, job.id);
+
+					expect(takeFinishedTranscodes(db)[0]?.requestedBy).toEqual([1, 2]);
+				});
+
+				it('keeps the users who asked when a playlist is requested', () => {
+					const movie = addMovie();
+					queueTranscode(db, movie.id, request);
+
+					recordPlaylistRequest(db, movie.id, new Date('2024-01-01T00:00:00Z'));
+					finishJob(db, claimNextJob(db)!.id);
+
+					expect(takeFinishedTranscodes(db)[0]?.requestedBy).toEqual([1]);
+				});
+
+				it('has no one to tell about output that was already there', () => {
+					markTranscodeDone(db, addMovie().id);
+
+					expect(findMovie(db, 7)?.transcodeStatus).toBe('ready');
+					expect(takeFinishedTranscodes(db)).toEqual([]);
+				});
+			});
+
+			it('does nothing when a user joins a title with no job', () => {
 				const movie = addMovie();
 
 				addTranscodeRequester(db, movie.id, 1);
 
-				expect(takeTranscodeRequesters(db, movie.id)).toEqual([]);
+				expect(rowCount(db, 'jobs')).toBe(0);
 			});
 		});
 

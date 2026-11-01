@@ -1,9 +1,9 @@
 import { and, asc, eq, getTableColumns } from 'drizzle-orm';
 import type { MovieMetadata, TranscodeStatus } from '@workspace/contract/api-types';
 import type { Database } from './connection.js';
-import { jobs, media, type Media, type NewMedia, type ShowMetadata } from './schema.js';
+import { jobs, media, type JobStatus, type Media, type NewMedia, type ShowMetadata } from './schema.js';
 
-export type Movie = Media & { metadata: MovieMetadata; transcodeStatus: TranscodeStatus };
+export type Movie = Media & { metadata: MovieMetadata; transcodeStatus: TranscodeStatus; transcodeError?: string };
 export type Show = Media & { metadata: ShowMetadata };
 
 /**
@@ -43,16 +43,25 @@ const parseYear = (releaseDate: string | undefined) => {
 /** A title with no job yet has not been requested, which reads as `not ready`. */
 const selectMovies = (db: Database) =>
 	db
-		.select({ ...getTableColumns(media), jobStatus: jobs.status })
+		.select({ ...getTableColumns(media), jobStatus: jobs.status, jobError: jobs.error })
 		.from(media)
 		.leftJoin(jobs, and(eq(jobs.mediaId, media.id), eq(jobs.type, 'transcode')));
 
-type MovieRow = Media & { jobStatus: TranscodeStatus | null };
+type MovieRow = Media & { jobStatus: JobStatus | null; jobError: string | null };
 
-const toMovie = ({ jobStatus, ...movie }: MovieRow): Movie => ({
+/** What clients see of a job. They need not know how the worker gets through its queue. */
+const transcodeStatusOfJob: Record<JobStatus, TranscodeStatus> = {
+	queued: 'in progress',
+	running: 'in progress',
+	done: 'ready',
+	failed: 'failed',
+};
+
+const toMovie = ({ jobStatus, jobError, ...movie }: MovieRow): Movie => ({
 	...movie,
 	metadata: movie.metadata as MovieMetadata,
-	transcodeStatus: jobStatus ?? 'not ready',
+	transcodeStatus: jobStatus ? transcodeStatusOfJob[jobStatus] : 'not ready',
+	...(jobError ? { transcodeError: jobError } : {}),
 });
 
 export const listMovies = (db: Database): Movie[] =>

@@ -33,6 +33,16 @@ const withDatabase = <T>(databasePath: string, use: (db: Database) => T): T => {
 	}
 };
 
+const movieRow = (id: number, title: string) => ({
+	tmdbId: id,
+	path: `movies/${title} (2024)`,
+	metadata: {
+		details: { id, title, release_date: '2024-01-01' },
+		credits: { cast: [], crew: [] },
+		images: { posters: [], backdrops: [], logos: [] },
+	} as unknown as MovieMetadata,
+});
+
 /**
  * Adds a movie the way a successful scan would.
  *
@@ -40,22 +50,12 @@ const withDatabase = <T>(databasePath: string, use: (db: Database) => T): T => {
  * TMDB, only setup creates a user, and no route shows a session's row.
  */
 export const seedMovie = async (api: TestApi, id: number, title = `Movie ${id}`): Promise<SeededMovie> => {
-	const folder = `movies/${title} (2024)`;
-	await mkdir(path.join(api.mediaFolder, folder), { recursive: true });
+	const movie = movieRow(id, title);
+	await mkdir(path.join(api.mediaFolder, movie.path), { recursive: true });
 
-	withDatabase(api.databasePath, (db) =>
-		saveMovie(db, {
-			tmdbId: id,
-			path: folder,
-			metadata: {
-				details: { id, title, release_date: '2024-01-01' },
-				credits: { cast: [], crew: [] },
-				images: { posters: [], backdrops: [], logos: [] },
-			} as unknown as MovieMetadata,
-		}),
-	);
+	withDatabase(api.databasePath, (db) => saveMovie(db, movie));
 
-	return { id, title, folder };
+	return { id, title, folder: movie.path };
 };
 
 /** Adds an account, because only setup creates one through the API. */
@@ -107,6 +107,37 @@ export const createDatabaseWithDefaultAccount = async (databasePath: string) => 
 		closeDatabase(db);
 	}
 };
+
+type OldJob = { title: string; status: string };
+
+/** Builds a database from before the worker, with a job of each status the API then wrote. */
+export const createDatabaseWithOldJobs = async (databasePath: string, oldJobs: OldJob[]) => {
+	const db = openDatabase(databasePath);
+	try {
+		await migrateUpTo(db, '0002_remove_default_account');
+		oldJobs.forEach(({ title, status }, index) => {
+			const movie = saveMovie(db, movieRow(7000 + index, title));
+			db.$client
+				.prepare(`INSERT INTO jobs (type, media_id, status) VALUES ('transcode', ?, ?)`)
+				.run(movie.id, status);
+		});
+	} finally {
+		closeDatabase(db);
+	}
+};
+
+export type JobRow = { status: string; attempts: number; error: string | null };
+
+/** The stored row of a title's transcode job. Clients see only a status derived from it. */
+export const jobRow = (api: TestApi, movie: SeededMovie) =>
+	withDatabase(api.databasePath, (db) =>
+		db.$client
+			.prepare<[number], JobRow>(
+				`SELECT jobs.status, jobs.attempts, jobs.error FROM jobs
+				JOIN media ON media.id = jobs.media_id WHERE media.tmdb_id = ?`,
+			)
+			.get(movie.id),
+	);
 
 /** Writes a file that has a video extension but is not a video. */
 export const addCorruptVideo = async (api: TestApi, movie: SeededMovie) => {

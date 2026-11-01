@@ -85,6 +85,12 @@ export const endpoints = {
 		params: titleParams,
 		response: transcodeRequestResponseSchema,
 	},
+	transcodeRetry: {
+		method: 'POST',
+		path: '/transcode/retry/:id',
+		params: titleParams,
+		response: transcodeRequestResponseSchema,
+	},
 	transcodePlaylist: {
 		method: 'GET',
 		path: '/transcode/playlist/:id',

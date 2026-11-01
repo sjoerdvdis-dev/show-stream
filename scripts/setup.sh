@@ -58,6 +58,7 @@ install_dependencies() {
   ok "Dependencies"
 }
 
+# The worker runs ffmpeg under pnpm dev, and the API tests need it too.
 install_ffmpeg() {
   if ! command -v ffmpeg >/dev/null; then
     if command -v apt-get >/dev/null; then

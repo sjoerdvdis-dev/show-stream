@@ -22,7 +22,7 @@ describe('the database', () => {
 			await writeFile(path.join(api.mediaFolder, movie.folder, 'movie.mp4'), 'not read');
 			const cache = path.join(api.mediaFolder, 'cache', String(movie.id));
 			await mkdir(cache, { recursive: true });
-			await writeFile(path.join(cache, 'playlist.m3u8'), '#EXTM3U\n');
+			await writeFile(path.join(cache, 'playlist.m3u8'), '#EXTM3U\n#EXT-X-ENDLIST\n');
 			const owner = await api.createOwner();
 			await owner.get(`/transcode/request/${movie.id}`);
 

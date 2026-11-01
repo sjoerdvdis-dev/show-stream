@@ -23,7 +23,7 @@ ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries
 
 ## Run the apps
 
-Start the API on port 5000 and the client on port 3000:
+Start the API on port 5000, the worker and the client on port 3000:
 
 ```bash
 pnpm dev
@@ -36,6 +36,8 @@ Open <http://localhost:3000>. A new database takes you to `/setup`, where you cr
 `pnpm dev` reads media from `apps/api/media`, and Docker reads it from `./media`.
 
 The API creates its database at `data/app.db` on first start, and applies any new migration each time it starts. To start over, stop the API and delete `data/app.db*`.
+
+The worker runs ffmpeg from the host, on the same database and media. It prints `Waiting for the API to migrate the database` until the API has started, which is normal. `JOB_CONCURRENCY` sets how many jobs run at once, and the worker reads `apps/api/.env` as well as your environment.
 
 ## Change the database
 
@@ -83,12 +85,16 @@ pnpm turbo check-types lint build test
 
 | Command | Runs | Needs |
 |---|---|---|
-| `pnpm test` | API tests in `apps/api/test`, and database tests in `packages/db/test` | Nothing beyond setup. No Docker |
+| `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, and database tests in `packages/db/test` | Nothing beyond setup. No Docker |
 | `pnpm test:browser` | Chromium tests in `apps/e2e` | Docker |
 
-**API tests** start the real API as a child process, from a temporary copy of its source, and speak HTTP to it. Each server gets its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media. TMDB calls go to a closed port, so nothing leaves your machine.
+**API tests** start the real API and a real worker as child processes, from temporary copies of their source, and speak HTTP to the API. Each suite gets its own pair and its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media. TMDB calls go to a closed port, so nothing leaves your machine.
 
 Tests that run a real ffmpeg job skip with a message if `ffmpeg` is missing. In CI, the missing `ffmpeg` fails the run instead.
+
+To catch a job partway, a test calls `holdFfmpeg` from `test/support/ffmpeg.ts`. In these tests the worker's `ffmpeg` is the script in `test/support/ffmpeg-shim`, which writes partial output and waits for a held title, and otherwise runs the real one. The harness can then kill the worker, or ask it to stop, at a known point.
+
+**Worker tests** call the ffmpeg wrapper and the job loop directly, with a fake `ffmpeg` on the `PATH` or a fake job handler.
 
 **Database tests** call `packages/db` directly on a temporary file, for what HTTP cannot see: migrations from empty, the pragmas, a shared TMDB ID, a title with no TMDB ID and a single settings row.
 
@@ -102,7 +108,7 @@ grep -rn "it.fails" apps/api/test
 
 **Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 
-After a failure, screenshots and traces are in `apps/e2e/test-results`. The movie comes from `apps/e2e/fixtures/seed.mjs`, which the one-shot `seed` service runs after the API has migrated a new volume, and `clip.mp4` beside it is a generated 30-second H.264 and AAC clip.
+After a failure, screenshots and traces are in `apps/e2e/test-results`. The movies come from `apps/e2e/fixtures/seed.mjs`, which the one-shot `seed` service runs after the API has migrated a new volume. `clip.mp4` beside it is a generated 30-second H.264 and AAC clip, and `corrupt.mp4` is a text file that the worker fails on.
 
 CI does not build images in the required check. If you change a Dockerfile, build it yourself or read the `browser` job's result.
 
@@ -113,6 +119,12 @@ bash build-docker.sh
 ```
 
 This uses `./media` and the `sqlite-data` volume, and builds your `.env` into the API image until audit finding 5 is fixed. The database is at `/data/app.db` in the volume, which must stay on a local disk, never NFS or SMB.
+
+The `worker` service shares that volume and `./media`, which it sees at `/media`, and publishes no ports. It has no copy of `apps/api/.env`, so to change `JOB_CONCURRENCY`, set it in a `.env` at the repository root. Only one worker may run per database.
+
+## Failed videos
+
+A video that ffmpeg cannot read shows as failed, with ffmpeg's last lines as the reason, and the movie's page has a Retry button. Replace the file first if it is corrupt, since a retry looks for the video again. If the worker dies three times during one job, that job fails too, so that it cannot keep taking the worker down.
 
 To test without touching your images or data, export the repo, use fake secrets, and pass a separate project name with `-p`. `docker-compose.yml` sets fixed container names, so stop your own stack first.
 

@@ -1,4 +1,4 @@
-import { AsteriskIcon, CheckIcon, LoaderCircle, XIcon } from 'lucide-react';
+import { AsteriskIcon, CheckIcon, LoaderCircle, TriangleAlertIcon, XIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@workspace/ui/components/tooltip';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
 
@@ -15,6 +15,7 @@ export default function TranscodeStatusIcon({
 		'not ready': `Not ready for playback`,
 		ready: 'Ready for playback',
 		'in progress': 'Preparing for playback',
+		failed: 'Preparing for playback failed',
 	};
 
 	return (
@@ -38,5 +39,6 @@ export function getTranscodeStatusIcon(transcodeStatus: TranscodeStatus | 'all',
 		'not ready': <XIcon className="text-red-500" size={size} />,
 		ready: <CheckIcon className="text-green-500" size={size} />,
 		'in progress': <LoaderCircle className="animate-spin text-yellow-500" size={size} />,
+		failed: <TriangleAlertIcon className="text-red-500" size={size} />,
 	}[transcodeStatus];
 }

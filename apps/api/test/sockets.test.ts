@@ -1,9 +1,11 @@
+import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import type { Socket } from 'socket.io-client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { ownerCredentials, startApi, type TestApi, type TestClient } from './support/api';
-import { addValidVideo, hasFfmpeg } from './support/ffmpeg';
-import { addUser, seedMovie } from './support/seed';
+import { hasFfmpeg, holdFfmpeg, releaseFfmpeg, waitForHeldRun } from './support/ffmpeg';
+import { addCorruptVideo, addUser, seedMovie } from './support/seed';
 import { collectNotifications, connection, disconnection, openSocket } from './support/socket';
 
 describe('sockets', () => {
@@ -80,29 +82,57 @@ describe('sockets', () => {
 		expect(await connection(open({ headers: { cookie: leaving.cookie } }))).toBe('unauthorized');
 	});
 
-	describe.skipIf(!hasFfmpeg)('notifications', () => {
-		it('reach the users who asked for a transcode, and no one else', async () => {
+	describe('notifications', () => {
+		let second: TestClient;
+		let bystander: TestClient;
+
+		beforeAll(async () => {
 			await addUser(api, 'second', 'correct horse');
 			await addUser(api, 'bystander', 'correct horse');
-			const second = await api.logIn('second', 'correct horse');
-			const bystander = await api.logIn('bystander', 'correct horse');
+			second = await api.logIn('second', 'correct horse');
+			bystander = await api.logIn('bystander', 'correct horse');
+		});
+
+		/** Long enough for the API to have announced a job twice, had it been going to. */
+		const announcePeriod = 1_200;
+
+		it('reach the users who asked for a transcode, including one who joined mid-job, once each', async () => {
 			const ownerNotifications = collectNotifications(await openFor(owner));
 			const secondNotifications = collectNotifications(await openFor(second));
 			const bystanderNotifications = collectNotifications(await openFor(bystander));
 			const movie = await seedMovie(api, 5001, 'Notified');
-			await addValidVideo(api, movie);
+			await writeFile(path.join(api.mediaFolder, movie.folder, 'held.mp4'), 'not read');
+			await holdFfmpeg(api, movie);
 
 			await owner.get(`/transcode/request/${movie.id}`);
-			await api.waitFor(async () => {
-				const { metadata } = await (await owner.get(`/movie/${movie.id}`)).json();
-				expect(metadata.transcodeStatus).toBe('in progress');
-			});
+			await waitForHeldRun(api, movie);
 			await second.get(`/transcode/request/${movie.id}`);
+			await releaseFfmpeg(api, movie);
 
 			const ready = { type: 'transcode:ready', data: { title: 'Notified' } };
 			await api.waitFor(async () => expect(ownerNotifications).toEqual([ready]));
 			await api.waitFor(async () => expect(secondNotifications).toEqual([ready]));
-			await sleep(200);
+			await sleep(announcePeriod);
+			expect(ownerNotifications).toEqual([ready]);
+			expect(secondNotifications).toEqual([ready]);
+			expect(bystanderNotifications).toEqual([]);
+		});
+
+		it.skipIf(!hasFfmpeg)('say why a transcode failed, once, to those who asked', async () => {
+			const ownerNotifications = collectNotifications(await openFor(owner));
+			const bystanderNotifications = collectNotifications(await openFor(bystander));
+			const movie = await seedMovie(api, 5002, 'Unwatchable');
+			await addCorruptVideo(api, movie);
+
+			await owner.get(`/transcode/request/${movie.id}`);
+
+			await api.waitFor(async () => expect(ownerNotifications).toHaveLength(1));
+			expect(ownerNotifications[0]).toEqual({
+				type: 'transcode:failed',
+				data: { title: 'Unwatchable', error: expect.stringContaining('Invalid data') },
+			});
+			await sleep(announcePeriod);
+			expect(ownerNotifications).toHaveLength(1);
 			expect(bystanderNotifications).toEqual([]);
 		});
 	});

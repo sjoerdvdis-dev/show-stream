@@ -1,5 +1,6 @@
 // Runs once, after the API has migrated the throwaway database. Adds the movie in
-// fixtures/clip.mp4, and a movie with no video, which cannot be prepared.
+// fixtures/clip.mp4, a movie with no video, which cannot be prepared, and the movie in
+// fixtures/corrupt.mp4, which fails in the worker.
 import { closeDatabase, openDatabase, saveMovie } from '@workspace/db';
 
 const db = openDatabase(process.env.DATABASE_PATH);
@@ -33,5 +34,6 @@ const addMovie = (id, title) => {
 
 addMovie(550001, 'Demo Movie');
 addMovie(550002, 'Missing Video');
+addMovie(550003, 'Corrupt Movie');
 
 closeDatabase(db);

@@ -5,6 +5,8 @@ const movieId = 550001;
 const movieTitle = 'Demo Movie';
 const unplayableMovieId = 550002;
 const unplayableMovieTitle = 'Missing Video';
+const corruptMovieId = 550003;
+const corruptMovieTitle = 'Corrupt Movie';
 
 const logIn = async (page: Page, password = owner.password) => {
 	await page.goto('/login');
@@ -130,6 +132,30 @@ test('a movie that cannot be prepared says so', async ({ page }) => {
 	await page.getByRole('button', { name: 'Play' }).click();
 
 	await expect(page.getByText(`Playback preparation for ${unplayableMovieTitle} failed.`)).toBeVisible();
+});
+
+test('a corrupt movie shows why it failed, and can be retried', async ({ page }) => {
+	await logInAsAdmin(page);
+	await page.goto(`/dashboard/movies/${corruptMovieId}`);
+
+	await page.getByRole('button', { name: 'Play' }).click();
+
+	const failed = `Playback preparation for ${corruptMovieTitle} failed.`;
+	await expect(page.getByText(failed)).toBeVisible({ timeout: 45_000 });
+	const failure = page.getByRole('alert').filter({ hasText: 'Preparing this movie for playback failed' });
+	await expect(failure).toContainText('Invalid data found');
+	await expect(failure).not.toContainText('/media');
+
+	// Reloading shows the failure again, and does not repeat the job.
+	await page.reload();
+	await expect(failure).toBeVisible();
+	await expect(page.getByText(failed)).toHaveCount(0);
+
+	await page.getByRole('button', { name: 'Retry' }).click();
+
+	await expect(page.getByText(`Playback for ${corruptMovieTitle} is being prepared.`)).toBeVisible();
+	await expect(page.getByText(failed)).toBeVisible({ timeout: 45_000 });
+	await expect(failure).toContainText('Invalid data found');
 });
 
 test('the notification socket upgrades to a WebSocket', async ({ page }) => {

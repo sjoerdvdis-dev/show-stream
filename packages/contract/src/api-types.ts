@@ -12,7 +12,7 @@ const tmdbPayload = <T>() => z.custom<T>(isObject);
 export const mediaTypeSchema = z.enum(['movie', 'show']);
 export type MediaType = z.infer<typeof mediaTypeSchema>;
 
-export const transcodeStatusSchema = z.enum(['not ready', 'in progress', 'ready']);
+export const transcodeStatusSchema = z.enum(['not ready', 'in progress', 'ready', 'failed']);
 export type TranscodeStatus = z.infer<typeof transcodeStatusSchema>;
 
 const movieMetadataShape = z.object({
@@ -20,6 +20,8 @@ const movieMetadataShape = z.object({
 	credits: tmdbPayload<Credits>(),
 	images: tmdbPayload<Images>(),
 	transcodeStatus: transcodeStatusSchema.optional(),
+	/** Why the transcode failed, when `transcodeStatus` is `failed`. */
+	transcodeError: z.string().optional(),
 });
 /** An interface, so that types inferred in other packages can refer to it by name. */
 export interface MovieMetadata extends z.infer<typeof movieMetadataShape> {}
@@ -37,7 +39,11 @@ export type ShowsAPIData = z.infer<typeof showsResponseSchema>;
 /**
  * Video API
  */
-export const transcodeRequestResponseSchema = z.object({ status: transcodeStatusSchema });
+export const transcodeRequestResponseSchema = z.object({
+	status: transcodeStatusSchema,
+	/** Why the transcode failed, when `status` is `failed`. */
+	error: z.string().optional(),
+});
 export type TranscodeRequestAPIData = z.infer<typeof transcodeRequestResponseSchema>;
 
 export const transcodePlaylistResponseSchema = z.object({ playlistUrl: z.string() });
@@ -52,7 +58,16 @@ export const notificationTranscodeReadySchema = z.object({
 });
 export type NotificationTranscodeReady = z.infer<typeof notificationTranscodeReadySchema>;
 
-export const apiNotificationSchema = z.discriminatedUnion('type', [notificationTranscodeReadySchema]);
+export const notificationTranscodeFailedSchema = z.object({
+	type: z.literal('transcode:failed'),
+	data: z.object({ title: z.string(), error: z.string() }),
+});
+export type NotificationTranscodeFailed = z.infer<typeof notificationTranscodeFailedSchema>;
+
+export const apiNotificationSchema = z.discriminatedUnion('type', [
+	notificationTranscodeReadySchema,
+	notificationTranscodeFailedSchema,
+]);
 export type APINotification = z.infer<typeof apiNotificationSchema>;
 
 /**

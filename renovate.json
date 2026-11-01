@@ -10,7 +10,7 @@
 		},
 		{
 			"description": "Removed or replaced later, so they get no major updates; delete with each package",
-			"matchPackageNames": ["fluent-ffmpeg", "@hookform/resolvers", "lucide-react", "react-day-picker"],
+			"matchPackageNames": ["@hookform/resolvers", "lucide-react", "react-day-picker"],
 			"matchUpdateTypes": ["major"],
 			"enabled": false
 		},
