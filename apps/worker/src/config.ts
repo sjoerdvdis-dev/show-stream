@@ -32,7 +32,9 @@ const positiveNumber = z
 const environmentSchema = z.object({
 	DATABASE_PATH: optional(z.string()),
 	MEDIA_FOLDER: optional(z.string()),
+	BACKUP_FOLDER: optional(z.string()),
 	JOB_CONCURRENCY: optional(positiveNumber),
+	TMDB_API_READ_ACCESS_TOKEN: optional(z.string()),
 });
 
 const parseEnvironment = () => {
@@ -50,8 +52,12 @@ const environment = parseEnvironment();
 export const config = {
 	/** The SQLite file. By default it is in the repository's `data` folder, as for the API. */
 	databasePath: path.resolve(environment.DATABASE_PATH ?? path.join(__dirname, '../../../data/app.db')),
-	/** The library, which transcodes read and cache under. By default it is the API's folder. */
+	/** The library, which scans read and transcodes cache under. By default it is the API's folder. */
 	mediaFolder: path.resolve(environment.MEDIA_FOLDER ?? path.join(__dirname, '../../api/media')),
+	/** Where daily backups go. By default it is the repository's `backups` folder. */
+	backupFolder: path.resolve(environment.BACKUP_FOLDER ?? path.join(__dirname, '../../../backups')),
 	/** How many jobs run at once. */
 	jobConcurrency: environment.JOB_CONCURRENCY ?? 1,
+	/** Empty when none is set. A scan then fails and says so. */
+	tmdbToken: environment.TMDB_API_READ_ACCESS_TOKEN ?? '',
 };

@@ -8,7 +8,7 @@ import {
 	transcodeRequest,
 	transcodeRetry,
 } from './video';
-import { getMovie, getMovies, getShows, mediaScan } from './media';
+import { getMovie, getMovies, getScan, getShows, startScan } from './media';
 import { setupNotifications } from './notification';
 import { login, logout, me, removeExpiredSessions, setup, setupStatus } from './auth';
 
@@ -25,10 +25,8 @@ const { httpServer, io } = createServer(
 		login: ({ body }, res) => login(body, res),
 		logout: ({ session }, res) => logout(session, res),
 		me: ({ session }) => me(session),
-		scan: async () => {
-			await mediaScan(config.mediaFolder, logger);
-			return 'Successfully scanned media folder';
-		},
+		scan: () => startScan(),
+		scanStatus: () => getScan(),
 		transcodeRequest: ({ params, session }) => transcodeRequest({ id: params.id, userId: session.user.id, logger }),
 		transcodeRetry: ({ params, session }) => transcodeRetry({ id: params.id, userId: session.user.id }),
 		transcodePlaylist: ({ params }) => transcodePlaylist({ id: params.id, logger }),

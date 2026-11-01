@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { MediaType, MovieMetadata } from '@workspace/contract/api-types';
+import type { MediaType, MovieMetadata, ScanCounts } from '@workspace/contract/api-types';
 
 export type ShowMetadata = Record<string, unknown>;
 
@@ -68,6 +68,13 @@ export const media = sqliteTable(
 	],
 );
 
+export type ScanResult = {
+	/** ISO 8601. */
+	finishedAt: string;
+	counts: ScanCounts;
+	errors: string[];
+};
+
 export type JobPayload = {
 	/** ISO 8601. When a client last asked for this title's playlist. */
 	lastRequestDate?: string;
@@ -77,17 +84,21 @@ export type JobPayload = {
 	video?: string;
 	/** The folder that holds the result, relative to the media folder. */
 	output?: string;
+	/** ISO 8601. When an admin asked for this scan. */
+	requestedAt?: string;
+	/** What a scan found. A scan that stopped early has none. */
+	scanResult?: ScanResult;
 };
 
 /**
- * The queue between the API and the worker. A title has one job of each type, and a job with
- * no title, such as a scan, has a NULL `media_id`.
+ * The queue between the API and the worker. A title has one job of each type. A job with no
+ * title, such as a scan, has a NULL `media_id`, and only one of each type can be active.
  */
 export const jobs = sqliteTable(
 	'jobs',
 	{
 		id: integer().primaryKey({ autoIncrement: true }),
-		type: text({ enum: ['transcode'] }).notNull(),
+		type: text({ enum: ['transcode', 'scan', 'backup'] }).notNull(),
 		mediaId: integer('media_id').references(() => media.id, { onDelete: 'cascade' }),
 		status: text({ enum: ['queued', 'running', 'done', 'failed'] }).notNull(),
 		payload: text({ mode: 'json' }).$type<JobPayload>().notNull().default({}),
@@ -100,6 +111,10 @@ export const jobs = sqliteTable(
 	},
 	(table) => [
 		uniqueIndex('jobs_type_media_id_unique').on(table.type, table.mediaId),
+		// SQLite treats every NULL as distinct, so the index above does not cover these.
+		uniqueIndex('jobs_one_active_without_title')
+			.on(table.type)
+			.where(sql`media_id IS NULL AND status IN ('queued', 'running')`),
 		index('jobs_status_announced_idx').on(table.status, table.announced),
 	],
 );

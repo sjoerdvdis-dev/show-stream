@@ -6,6 +6,7 @@ import type { MovieMetadata } from '@workspace/contract/api-types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
 	addTranscodeRequester,
+	backupDatabase,
 	claimNextJob,
 	closeDatabase,
 	createOwner,
@@ -15,6 +16,7 @@ import {
 	deleteSession,
 	extendSession,
 	failJob,
+	findLatestScan,
 	findMovie,
 	findSession,
 	findUserByUsername,
@@ -27,8 +29,11 @@ import {
 	markTranscodeDone,
 	migrateDatabase,
 	openDatabase,
+	queueDailyBackup,
+	queueScan,
 	queueTranscode,
 	recordPlaylistRequest,
+	recordScanResult,
 	recoverJobs,
 	requeueJob,
 	retryTranscode,
@@ -458,6 +463,135 @@ describe('database', () => {
 				addTranscodeRequester(db, movie.id, 1);
 
 				expect(rowCount(db, 'jobs')).toBe(0);
+			});
+		});
+
+		describe('scans', () => {
+			const asked = new Date('2026-11-01T10:00:00Z');
+			const result = {
+				finishedAt: '2026-11-01T10:05:00.000Z',
+				counts: { found: 1, added: 1, updated: 0, unmatched: 0, failed: 0 },
+				errors: [],
+			};
+
+			it('has none until one is asked for', () => {
+				expect(findLatestScan(db)).toBeUndefined();
+			});
+
+			it('queues a scan with the time it was asked for, and nobody to tell', () => {
+				const scan = queueScan(db, asked);
+
+				expect(scan).toMatchObject({ type: 'scan', status: 'queued', mediaId: null, announced: true });
+				expect(scan?.payload.requestedAt).toBe('2026-11-01T10:00:00.000Z');
+				expect(findLatestScan(db)?.id).toBe(scan?.id);
+			});
+
+			it('refuses a second while one is queued or running', () => {
+				const scan = queueScan(db, asked);
+				expect(queueScan(db, asked)).toBeUndefined();
+
+				claimNextJob(db);
+				expect(queueScan(db, asked)).toBeUndefined();
+
+				expect(findLatestScan(db)?.id).toBe(scan?.id);
+				expect(rowCount(db, 'jobs')).toBe(1);
+			});
+
+			it.each([
+				['done', finishJob],
+				['failed', (database: Database, id: number) => failJob(database, id, 'No')],
+			] as const)('allows another once one is %s, and keeps only the latest', (_status, end) => {
+				end(db, queueScan(db, asked)!.id);
+
+				const next = queueScan(db, asked);
+
+				expect(next?.status).toBe('queued');
+				expect(findLatestScan(db)?.id).toBe(next?.id);
+				expect(rowCount(db, 'jobs')).toBe(1);
+			});
+
+			it('keeps its result beside what it was asked', () => {
+				const scan = queueScan(db, asked)!;
+
+				recordScanResult(db, scan.id, result);
+
+				expect(findLatestScan(db)?.payload).toEqual({ requestedAt: scan.payload.requestedAt, scanResult: result });
+			});
+
+			it('does not count as a transcode to announce', () => {
+				finishJob(db, queueScan(db, asked)!.id);
+
+				expect(takeFinishedTranscodes(db)).toEqual([]);
+			});
+
+			it('leaves transcodes out of its limit', () => {
+				const movie = saveMovie(db, { tmdbId: 7, path: 'movies/Seven', metadata: movieMetadata(7, 'Seven') });
+				queueTranscode(db, movie.id, { userId: 1, video: 'a.mp4', output: 'cache/7' });
+
+				expect(queueScan(db, asked)?.status).toBe('queued');
+			});
+		});
+
+		describe('backups', () => {
+			it('queues one backup for a day', () => {
+				expect(queueDailyBackup(db, '2026-11-01')).toBe(true);
+				finishJob(db, claimNextJob(db)!.id);
+
+				expect(queueDailyBackup(db, '2026-11-01')).toBe(false);
+				expect(rowCount(db, 'jobs')).toBe(1);
+				expect(getSetting(db, 'lastBackupDay')).toBe('2026-11-01');
+			});
+
+			it('queues the next day, and keeps only the latest job', () => {
+				queueDailyBackup(db, '2026-11-01');
+				finishJob(db, claimNextJob(db)!.id);
+
+				expect(queueDailyBackup(db, '2026-11-02')).toBe(true);
+				expect(rowCount(db, 'jobs')).toBe(1);
+			});
+
+			it('waits for a day whose backup is still active, without marking the new day', () => {
+				queueDailyBackup(db, '2026-11-01');
+
+				expect(queueDailyBackup(db, '2026-11-02')).toBe(false);
+				expect(getSetting(db, 'lastBackupDay')).toBe('2026-11-01');
+
+				finishJob(db, claimNextJob(db)!.id);
+				expect(queueDailyBackup(db, '2026-11-02')).toBe(true);
+			});
+
+			it('does not try again on the day a backup failed', () => {
+				queueDailyBackup(db, '2026-11-01');
+				failJob(db, claimNextJob(db)!.id, 'The disk is full.');
+
+				expect(queueDailyBackup(db, '2026-11-01')).toBe(false);
+				expect(queueDailyBackup(db, '2026-11-02')).toBe(true);
+			});
+
+			it('repeats nothing when the clock moves back', () => {
+				queueDailyBackup(db, '2026-11-02');
+				finishJob(db, claimNextJob(db)!.id);
+
+				expect(queueDailyBackup(db, '2026-11-01')).toBe(false);
+			});
+
+			it('copies the database to a file that opens and holds the data', () => {
+				createUser(db, { username: 'sam', passwordHash: 'hash' });
+				const file = path.join(folder, 'backup.db');
+
+				backupDatabase(db, file);
+
+				const copy = openDatabase(file);
+				expect(isDatabaseMigrated(copy)).toBe(true);
+				expect(findUserByUsername(copy, 'sam')?.passwordHash).toBe('hash');
+				closeDatabase(copy);
+			});
+
+			it('refuses to write over a file', () => {
+				const file = path.join(folder, 'backup.db');
+				backupDatabase(db, file);
+
+				expect(() => backupDatabase(db, file)).toThrow();
 			});
 		});
 

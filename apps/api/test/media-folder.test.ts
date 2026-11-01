@@ -34,7 +34,11 @@ describe.skipIf(!hasFfmpeg)('a MEDIA_FOLDER outside the app folder', () => {
 	});
 
 	it('scans, transcodes and streams a title', async () => {
-		expect((await owner.post('/scan')).status).toBe(200);
+		expect((await owner.post('/scan')).status).toBe(202);
+		await api.waitFor(async () => {
+			const { scan } = await (await owner.get('/scan')).json();
+			expect(scan).toMatchObject({ status: 'done', counts: { added: 1 } });
+		});
 		expect(await transcodeStatus()).toBe('not ready');
 
 		const request = await owner.get(`/transcode/request/${scannedMovie.id}`);

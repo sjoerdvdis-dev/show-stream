@@ -49,6 +49,15 @@ export const isDatabaseMigrated = (db: Database) => {
 	return (applied?.createdAt ?? 0) >= latest;
 };
 
+/**
+ * Writes a compact, consistent copy of the database to `file`, which must not exist yet.
+ * Unlike a file copy, `VACUUM INTO` is safe while the other process writes, and it blocks no
+ * writer.
+ */
+export const backupDatabase = (db: Database, file: string) => {
+	db.$client.prepare('VACUUM INTO ?').run(file);
+};
+
 export const closeDatabase = (db: Database) => {
 	db.$client.close();
 };
