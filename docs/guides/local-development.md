@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Node.js 26 and pnpm (the version comes from `packageManager` in `package.json`)
+- Node.js 26 (see `.nvmrc`) and pnpm (the version comes from `packageManager` in `package.json`)
 - Docker with Compose
 - ffmpeg, for running the API outside Docker
 
