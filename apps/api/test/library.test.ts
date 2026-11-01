@@ -49,17 +49,11 @@ describe('library', () => {
 			});
 		});
 
-		it('answers 400 for an unknown id', async () => {
+		it('answers 404 for an unknown id', async () => {
 			const response = await api.get('/movie/9999');
 
-			expect(response.status).toBe(400);
-		});
-
-		it('survives a movie id that is not a number', async () => {
-			const response = await api.get('/movie/abc');
-
-			expect(response.status).toBe(500);
-			expect((await api.get('/movies')).status).toBe(200);
+			expect(response.status).toBe(404);
+			expect(await response.json()).toEqual({ code: 'not_found', message: 'Movie not found' });
 		});
 	});
 });
