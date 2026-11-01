@@ -44,10 +44,31 @@ Log in at <http://localhost:3000> with `admin`/`admin`.
 Run this before finishing work. It is the same command the required CI check runs:
 
 ```bash
-pnpm turbo check-types lint build
+pnpm turbo check-types lint build test
 ```
 
-CI does not build images. If you change a Dockerfile, build it yourself.
+## Tests
+
+| Command | Runs | Needs |
+|---|---|---|
+| `pnpm test` | API tests in `apps/api/test` | Nothing beyond setup. No Docker |
+| `pnpm test:browser` | Chromium tests in `apps/e2e` | Docker |
+
+**API tests** start the real API as a child process, from a temporary copy of its source, and speak HTTP to it. Each suite gets its own MongoDB from `mongodb-memory-server`, which downloads `mongod` to `~/.cache/mongodb-binaries` on the first run. They use fake configuration and never read `apps/api/.env` or touch your media. TMDB calls go to a closed port, so nothing leaves your machine.
+
+Tests that run a real ffmpeg job skip with a message if `ffmpeg` is missing. In CI, the missing `ffmpeg` fails the run instead.
+
+**Known failures** in `apps/api/test/known-failures` state the correct behaviour for an audit crash, marked `it.fails`. They pass while the bug exists and fail the run once it is fixed. The step that fixes one deletes its marker. Each title names the finding and the roadmap item expected to fix it:
+
+```bash
+grep -rn "it.fails" apps/api/test
+```
+
+**Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
+
+After a failure, screenshots and traces are in `apps/e2e/test-results`. The movie comes from `apps/e2e/fixtures/seed.js`, and `clip.mp4` beside it is a generated 30-second H.264 and AAC clip.
+
+CI does not build images in the required check. If you change a Dockerfile, build it yourself or read the `browser` job's result.
 
 ## Full stack in Docker
 
@@ -83,6 +104,6 @@ Never commit real values.
 - **Playwright MCP needs a matching browser.** When its pin in `.mcp.json` changes, run setup again.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
 - **Containers run as UID 1000.** `./media` and `./data` must be writable by that user. On Linux with another UID, `chown` them to 1000 until audit finding 44 is fixed.
-- **There is no local `mongod` or browser.** MongoDB runs in Docker, and Chromium comes from Playwright. For browser tests in Docker, use `mcr.microsoft.com/playwright`.
+- **There is no local `mongod` for development.** `pnpm dev` uses MongoDB in Docker. Only the API tests download their own.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **Port 3000 is published on all interfaces** until Caddy arrives in Phase 1.

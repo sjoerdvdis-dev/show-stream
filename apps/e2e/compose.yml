@@ -1,0 +1,74 @@
+# The whole system with fake secrets and throwaway data. Start it with `pnpm test:browser`,
+# which sets E2E_CONTEXT and E2E_USER and removes everything afterwards.
+#
+# Nothing is published to the host, and ./media and ./data are not mounted: the database
+# and media live in anonymous volumes.
+name: show-stream-browser-tests
+
+services:
+  mongodb:
+    image: mongodb/mongodb-community-server:7.0-ubi8
+    environment:
+      MONGODB_INITDB_ROOT_USERNAME: root
+      MONGODB_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - ./fixtures/seed.js:/docker-entrypoint-initdb.d/seed.js:ro
+    healthcheck:
+      # By hostname, because the first start listens only on localhost while it seeds.
+      test: ["CMD", "mongosh", "--quiet", "--host", "mongodb", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 2s
+      timeout: 10s
+      retries: 30
+
+  api:
+    build:
+      context: ${E2E_CONTEXT:?Run this with pnpm test:browser}
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      JWT_SECRET: fake-secret-for-browser-tests
+      JWT_EXPIRES_IN: "3600"
+      MONGO_DB_USERNAME: root
+      MONGO_DB_PASSWORD: root
+      TMDB_API_READ_ACCESS_TOKEN: fake-token-for-browser-tests
+    volumes:
+      - /app/apps/api/media
+      - type: bind
+        source: ./fixtures/clip.mp4
+        target: /app/apps/api/media/movies/Demo Movie (2024)/clip.mp4
+        read_only: true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5000/movies"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  next-client:
+    build:
+      context: ${E2E_CONTEXT:?Run this with pnpm test:browser}
+      dockerfile: apps/next-client/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Keep this tag equal to @playwright/test in package.json.
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.64.1-noble
+    depends_on:
+      next-client:
+        condition: service_healthy
+    user: ${E2E_USER:?Run this with pnpm test:browser}
+    environment:
+      HOME: /tmp
+    working_dir: /repo/apps/e2e
+    volumes:
+      - ../..:/repo:ro
+      - ./test-results:/repo/apps/e2e/test-results
+    command: ["./node_modules/.bin/playwright", "test"]

@@ -9,6 +9,7 @@
 		"lint": "turbo lint",
 		"check-types": "turbo check-types",
 		"test": "turbo test",
+		"test:browser": "apps/e2e/run.sh",
 		"format": "prettier --write \"**/*.{ts,tsx,md}\""
 	},
 	"devDependencies": {

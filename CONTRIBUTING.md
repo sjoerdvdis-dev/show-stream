@@ -25,12 +25,12 @@ It needs Node.js 26 and a running Docker, and tells you what to do if either is 
 4. Run the checks:
 
    ```bash
-   pnpm turbo check-types lint build
+   pnpm turbo check-types lint build test
    ```
 
 5. Open a pull request to `main`. The template asks for evidence and what you did not test.
 
-`main` only accepts pull requests that pass the `check` job. The `audit` job only reports, so it does not block a merge.
+`main` only accepts pull requests that pass the `check` job. The `audit` and `browser` jobs only report, so they do not block a merge.
 
 ## Definition of done and project rules
 

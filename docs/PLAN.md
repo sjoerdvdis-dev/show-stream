@@ -8,7 +8,7 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 The foundation decisions are made, and the toolchain, CI, contributor setup and repository restructure are done. Next:
 
-1. **Continue Phase 1 at item 4** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 1 at item 5** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -35,7 +35,8 @@ The foundation decisions are made, and the toolchain, CI, contributor setup and 
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
 | Repository layout | `apps/api` and `packages/contract` in place; later folders arrive with their steps |
-| Required CI check on `main` | Done |
+| Required CI check on `main` | Done, and includes the API tests |
+| API and browser tests | Done. Five audit crashes are known failures until items 5, 6 and 8 fix them. The browser job only reports |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Ports 5000 and 27017 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
@@ -111,9 +112,10 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Fonts | `@fontsource-variable/geist` | 5.3.0 | Tested |
 | PWA | `vite-plugin-pwa` | 2.0.0 | Tested, service worker generated |
 | Desktop | `electron`, `electron-builder` | 45.2.1, 26.18.0 | Planned |
-| Unit tests | `vitest`, `@testing-library/react` | 5.0.5, 16.3.3 | Planned |
+| Unit tests | `vitest` | 5.0.5 | In use for the API |
+| Component tests | `@testing-library/react` | 16.3.3 | Planned |
 | API mocks | `msw` | 3.0.3 | Planned |
-| Browser tests | `playwright` | 1.64.1 | In use for verification |
+| Browser tests | `@playwright/test` | 1.64.1 | In use in `apps/e2e` |
 
 **Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), and the Next ESLint rules.
 
@@ -233,7 +235,8 @@ show-stream/
 │   ├── web/            React SPA (web and PWA)
 │   ├── api/            Express, Socket.IO, routes and services
 │   ├── worker/         ffmpeg jobs, library scans
-│   └── desktop/        Electron shell
+│   ├── desktop/        Electron shell
+│   └── e2e/            Browser tests
 ├── packages/
 │   ├── ui/             Tokens, shadcn primitives, patterns
 │   ├── contract/       Zod schemas and inferred types
@@ -341,7 +344,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 20 | `pnpm start` fails | Root task removed. Only the API has a `start` script | Done |
 | 21 | `pnpm lint` fails | Fixed | Done |
 | 22 | Root ESLint config is broken | Deleted `.eslintrc.js` | Done |
-| 23 | No tests or CI | CI done. Vitest and Playwright next | Partly done; 1 |
+| 23 | No tests or CI | CI, Vitest and Playwright in place | Done |
 | 24 | Malformed Turbo `env` | Two separate entries | Done |
 | 25 | API `dist/` not cached by Turbo | Added `dist/**` to `outputs` | Done |
 | 26 | `--host-name` does nothing | Removed with the Next `start` script | Done |
@@ -419,7 +422,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 4. Move library sorting and filtering into SQL. FTS5 powers search.
 5. Run migrations at API startup.
 6. Add the read-only [DBHub](https://github.com/bytebase/dbhub) MCP for development ([section 10.3](#103-database-mcp-in-docker)), as soon as the SQLite volume exists.
-7. Remove Mongoose, the `mongodb` service, `MONGO_DB_*` variables and `data/` Mongo docs.
+7. Remove Mongoose, `mongodb-memory-server`, the `mongodb` service, `MONGO_DB_*` variables and `data/` Mongo docs.
 8. Add scheduled `VACUUM INTO` backups.
 
 No data migration is needed if no other deployment holds data: `data/` in this repo is empty. A library can be rebuilt by rescanning, except for users.
@@ -656,7 +659,7 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`.
 
-**Status:** items 1, 2 and 3 are done.
+**Status:** items 1, 2, 3 and 4 are done. Findings 6, 7, 8, 9 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It only receives the changes it needs: login through the API and removal of `proxy.ts`. No new work goes into it.
 

@@ -10,6 +10,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - Required CI check on pull requests to `main`, and Renovate for dependency updates.
 - `scripts/setup.sh`, which prepares a clone for development.
 - Contributor documentation and issue and pull request templates.
+- API tests with `pnpm test`, and browser tests with `pnpm test:browser`.
 
 ### Changed
 
