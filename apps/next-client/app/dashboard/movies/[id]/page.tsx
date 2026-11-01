@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { redirect, useParams } from 'next/navigation';
 import { Star } from 'lucide-react';
 import { cn } from '@workspace/ui/lib/utils';
-import { useFetchTranscodeRequest } from '@/hooks/use-video-api';
+import { useFetchTranscodeRequest, useRetryTranscode } from '@/hooks/use-video-api';
 import { useMoviesBrowserContext } from '@/hooks/use-movies-browser';
 import TranscodeStatusIcon from '@/components/media/transcode-status-icon';
 import { Button } from '@workspace/ui/components/button';
@@ -72,14 +72,17 @@ export default function MoviePage() {
 							/>
 						</div>
 					</div>
-					<div className="ml-auto mt-auto text-white py-8 px-12 flex items-center gap-2">
-						<PlayButton
-							id={metadata.details.id as number}
-							title={metadata.details.title}
-							transcodeStatus={transcodeStatus}
-						/>
-						<TranscodeStatusIcon transcodeStatus={transcodeStatus} size="32" offset={4} />
-						<MoreOptionsPopover size="32" />
+					<div className="ml-auto mt-auto text-white py-8 px-12 flex flex-col items-end gap-3">
+						{transcodeStatus === 'failed' && <TranscodeFailure reason={metadata.transcodeError} />}
+						<div className="flex items-center gap-2">
+							<PlayButton
+								id={metadata.details.id as number}
+								title={metadata.details.title}
+								transcodeStatus={transcodeStatus}
+							/>
+							<TranscodeStatusIcon transcodeStatus={transcodeStatus} size="32" offset={4} />
+							<MoreOptionsPopover size="32" />
+						</div>
 					</div>
 				</div>
 				<div className="grid grid-cols-12 gap-8 h-full min-h-fit bg-background pt-8 px-12 pr-16">
@@ -173,9 +176,32 @@ export default function MoviePage() {
 	);
 }
 
+function TranscodeFailure({ reason }: { reason?: string }) {
+	return (
+		<div role="alert" className="max-w-xl text-right">
+			<p className="font-bold">Preparing this movie for playback failed</p>
+			{reason && <p className="text-sm whitespace-pre-line break-words">{reason}</p>}
+		</div>
+	);
+}
+
 function PlayButton({ id, title, transcodeStatus }: { id: number; title?: string; transcodeStatus: TranscodeStatus }) {
 	const ready = transcodeStatus === 'ready';
 	const transcodeRequest = useFetchTranscodeRequest();
+	const retryTranscode = useRetryTranscode();
+
+	if (transcodeStatus === 'failed') {
+		return (
+			<Button
+				variant="default"
+				size="lg"
+				className="text-lg px-10 py-5 rounded-4xl"
+				onClick={() => retryTranscode(id, title)}
+			>
+				Retry
+			</Button>
+		);
+	}
 
 	if (ready) {
 		return (

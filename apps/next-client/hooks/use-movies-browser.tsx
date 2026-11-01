@@ -68,7 +68,7 @@ export function useMoviesFilterInput(movies: MoviesAPIData['movies']): FilterInp
 		return {
 			genres: Array.from(genres).sort(),
 			studios: Array.from(studios).sort(),
-			transcodeStatuses: ['all', 'ready', 'not ready', 'in progress'],
+			transcodeStatuses: ['all', 'ready', 'not ready', 'in progress', 'failed'],
 			runtimes: [0, Math.ceil(Math.max(...runtimes) / 100) * 100],
 			votes: [0, Math.ceil(Math.max(...votes) / 1000) * 1000],
 		};

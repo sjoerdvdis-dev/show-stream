@@ -37,7 +37,7 @@ status=0
 docker compose up --build --attach playwright --exit-code-from playwright || status=$?
 
 if [ "$status" -ne 0 ]; then
-  docker compose logs --tail 50 api next-client || true
+  docker compose logs --tail 50 api worker next-client || true
 fi
 
 exit "$status"

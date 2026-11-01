@@ -18,6 +18,24 @@ services:
       - sqlite-data:/data
     networks:
       - show_stream_network
+  # Runs ffmpeg jobs. It publishes no ports, and reaches the API only through the database.
+  worker:
+    container_name: worker
+    build:
+      context: .
+      dockerfile: ./apps/worker/Dockerfile
+    restart: always
+    depends_on:
+      - api
+    environment:
+      JOB_CONCURRENCY: ${JOB_CONCURRENCY:-1}
+    volumes:
+      - type: bind
+        source: ./media
+        target: /media
+      - sqlite-data:/data
+    networks:
+      - show_stream_network
   next-client:
     container_name: next-client
     build:

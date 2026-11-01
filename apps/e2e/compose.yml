@@ -15,18 +15,42 @@ services:
     environment:
       SESSION_COOKIE_SECURE: "false"
       TMDB_API_READ_ACCESS_TOKEN: fake-token-for-browser-tests
+    # The API starts first, so its image gives the new media volume to UID 1000.
     volumes:
       - sqlite-data:/data
-      - /app/apps/api/media
+      - media:/app/apps/api/media
       - type: bind
         source: ./fixtures/clip.mp4
         target: /app/apps/api/media/movies/Demo Movie (2024)/clip.mp4
+        read_only: true
+      - type: bind
+        source: ./fixtures/corrupt.mp4
+        target: /app/apps/api/media/movies/Corrupt Movie (2024)/corrupt.mp4
         read_only: true
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5000/auth/setup"]
       interval: 2s
       timeout: 5s
       retries: 30
+
+  worker:
+    build:
+      context: ${E2E_CONTEXT:?Run this with pnpm test:browser}
+      dockerfile: apps/worker/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - sqlite-data:/data
+      - media:/media
+      - type: bind
+        source: ./fixtures/clip.mp4
+        target: /media/movies/Demo Movie (2024)/clip.mp4
+        read_only: true
+      - type: bind
+        source: ./fixtures/corrupt.mp4
+        target: /media/movies/Corrupt Movie (2024)/corrupt.mp4
+        read_only: true
 
   # Runs once the API has migrated the new volume, from the API image so that it can load
   # packages/db.
@@ -48,6 +72,8 @@ services:
     depends_on:
       seed:
         condition: service_completed_successfully
+      worker:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
       interval: 2s
@@ -71,3 +97,4 @@ services:
 
 volumes:
   sqlite-data:
+  media:

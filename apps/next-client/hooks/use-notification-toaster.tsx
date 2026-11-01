@@ -7,9 +7,13 @@ import type { APINotification } from '@workspace/contract/api-types';
 
 export const useNotificationToaster = () => {
 	useEffect(() => {
-		const notificationHandler = ({ type, data }: APINotification) => {
-			if (type == 'transcode:ready') {
-				toast.success(`Playback for ${data.title} is ready!`, { closeButton: true });
+		const notificationHandler = (notification: APINotification) => {
+			if (notification.type == 'transcode:ready') {
+				toast.success(`Playback for ${notification.data.title} is ready!`, { closeButton: true });
+			}
+			if (notification.type == 'transcode:failed') {
+				const { title, error } = notification.data;
+				toast.error(`Playback preparation for ${title} failed.`, { description: error, closeButton: true });
 			}
 		};
 
