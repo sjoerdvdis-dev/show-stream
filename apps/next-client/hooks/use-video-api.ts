@@ -3,10 +3,11 @@
 import type { TranscodePlaylistAPIData, TranscodeRequestAPIData } from '@workspace/contract/api-types';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { fetchWithSession } from '@/lib/api';
 
 export const useFetchTranscodeRequest = () => {
 	const fetchTranscodeRequest = async (id: number) => {
-		const response = await fetch(`/api/transcode/request/${id}`);
+		const response = await fetchWithSession(`/api/transcode/request/${id}`);
 		if (!response.ok) {
 			return 'not ready';
 		}
@@ -35,7 +36,7 @@ export const useFetchTranscodeRequest = () => {
 
 export const useFetchTranscodePlaylist = () => {
 	const fetchTranscodePlaylist = async (id: number) => {
-		const response = await fetch(`/api/transcode/playlist/${id}`);
+		const response = await fetchWithSession(`/api/transcode/playlist/${id}`);
 		if (!response.ok) {
 			return null;
 		}

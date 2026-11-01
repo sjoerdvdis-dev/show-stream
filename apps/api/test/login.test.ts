@@ -42,15 +42,19 @@ describe('login', () => {
 	});
 
 	it('still compares a password for an unknown user, so that timing reveals no names', async () => {
-		const timed = async (username: string) => {
-			const start = performance.now();
-			await login(username, 'wrong');
-			return performance.now() - start;
+		const fastest = async (username: string) => {
+			const times: number[] = [];
+			for (let attempt = 0; attempt < 3; attempt++) {
+				const start = performance.now();
+				await login(username, 'wrong');
+				times.push(performance.now() - start);
+			}
+			return Math.min(...times);
 		};
 
 		// A real comparison takes tens of milliseconds, and no comparison takes about one.
-		const wrongPassword = await timed(ownerCredentials.username);
-		const unknownUser = await timed('nobody');
+		const wrongPassword = await fastest(ownerCredentials.username);
+		const unknownUser = await fastest('nobody');
 
 		expect(unknownUser).toBeGreaterThan(wrongPassword / 4);
 	});

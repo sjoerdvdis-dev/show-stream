@@ -1,5 +1,6 @@
 import DashboardToaster from '@/components/dashboard/dashboard-toaster';
 import Sidebar from '@/components/dashboard/sidebar';
+import SessionGuard from '@/components/session-guard';
 
 export default function DashboardLayout({
 	children,
@@ -7,10 +8,12 @@ export default function DashboardLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<div className="flex h-screen w-full">
-			<Sidebar />
-			{children}
-			<DashboardToaster />
-		</div>
+		<SessionGuard>
+			<div className="flex h-screen w-full">
+				<Sidebar />
+				{children}
+				<DashboardToaster />
+			</div>
+		</SessionGuard>
 	);
 }

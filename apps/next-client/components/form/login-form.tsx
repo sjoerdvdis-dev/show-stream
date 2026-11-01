@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@workspace/ui/components/input';
@@ -15,21 +15,31 @@ import {
 	FormMessage,
 	FormRootError,
 } from '@workspace/ui/components/form';
-import { login } from '@/lib/login';
-import { loginSchema } from '@/lib/form';
+import { ApiError } from '@workspace/api-client';
+import { api } from '@/lib/api';
+import { loginSchema, setupSchema } from '@/lib/form';
 
-export default function LoginForm() {
+const modes = {
+	login: { schema: loginSchema, submit: api.login, label: 'Login' },
+	setup: { schema: setupSchema, submit: api.setup, label: 'Create account' },
+};
+
+export default function LoginForm({ mode }: { mode: keyof typeof modes }) {
+	const { schema, submit, label } = modes[mode];
+	const router = useRouter();
+
 	const form = useForm<z.infer<typeof loginSchema>>({
-		resolver: zodResolver(loginSchema),
+		resolver: zodResolver(schema),
 	});
 
 	const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-		const { success, error } = await login(values);
-		if (!success || error) {
-			form.setError('root', { message: error || 'Login failed' });
+		try {
+			await submit({ body: values });
+		} catch (error) {
+			form.setError('root', { message: error instanceof ApiError ? error.message : 'Login failed' });
 			return;
 		}
-		redirect('/'); // Redirect to home page after successful login
+		router.replace('/dashboard');
 	};
 
 	return (
@@ -62,7 +72,7 @@ export default function LoginForm() {
 					)}
 				/>
 				<FormRootError />
-				<Button type="submit">Login</Button>
+				<Button type="submit">{label}</Button>
 			</form>
 		</Form>
 	);

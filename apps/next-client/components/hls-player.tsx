@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Hls from 'hls.js';
+import { returnToLogin } from '@/lib/api';
 
 export default function HLSPlayer({ playlistUrl }: { playlistUrl: string | null }) {
 	const videoRef = useRef<HTMLVideoElement>(null);
@@ -15,6 +16,11 @@ export default function HLSPlayer({ playlistUrl }: { playlistUrl: string | null 
 		if (Hls.isSupported()) {
 			hls = new Hls({
 				debug: true,
+			});
+			hls.on(Hls.Events.ERROR, (_event, data) => {
+				if (data.response?.code === 401) {
+					returnToLogin();
+				}
 			});
 			hls.loadSource(playlistUrl);
 			hls.attachMedia(video);
