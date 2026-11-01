@@ -35,4 +35,6 @@ COPY --from=installer --chown=nextjs:nextjs /app/apps/next-client/.next/standalo
 COPY --from=installer --chown=nextjs:nextjs /app/apps/next-client/.next/static /app/apps/next-client/.next/static
 COPY --from=installer --chown=nextjs:nextjs /app/apps/next-client/public /app/next-client/public
 
-CMD ["sh", "-c", "cd apps/next-client && pnpm run start"]
+ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
+CMD ["node", "apps/next-client/server.js"]

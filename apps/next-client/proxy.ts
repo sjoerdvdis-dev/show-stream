@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/jwt';
 
 /**
- * Auth Middleware
+ * Auth Proxy
  * calls /authenticate from API to verify token
  */
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
 	const cookieToken = request.cookies.get('authToken');
 
 	// No token, redirect to /login

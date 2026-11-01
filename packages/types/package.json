@@ -7,6 +7,6 @@
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"tmdb-ts": "^2.0.1"
+		"tmdb-ts": "^2.3.0"
 	}
 }
