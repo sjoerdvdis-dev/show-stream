@@ -6,8 +6,9 @@
 	"scripts": {
 		"dev": "next dev --turbopack",
 		"build": "next build",
-		"start": "node server.js --host-name 0.0.0.0",
-		"lint": "eslint ."
+		"start": "node .next/standalone/apps/next-client/server.js",
+		"lint": "eslint .",
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.9.2",

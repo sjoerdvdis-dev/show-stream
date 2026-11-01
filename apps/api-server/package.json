@@ -5,7 +5,8 @@
 	"scripts": {
 		"start": "cross-env NODE_ENV=production node dist/index.js",
 		"build": "tsc",
-		"dev": "cross-env NODE_ENV=development npx nodemon --watch 'src/**/*' --exec ts-node src/index.ts"
+		"dev": "cross-env NODE_ENV=development npx nodemon --watch 'src/**/*' --exec ts-node src/index.ts",
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"bcryptjs": "^3.0.3",

@@ -11,7 +11,8 @@
 		"./hooks/*": "./src/hooks/*.ts"
 	},
 	"scripts": {
-		"lint": "eslint . --max-warnings 0"
+		"lint": "eslint . --max-warnings 0",
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@radix-ui/react-dialog": "^1.3.1",
