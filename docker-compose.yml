@@ -5,8 +5,8 @@ services:
       context: .
       dockerfile: ./apps/api-server/Dockerfile
     restart: always
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
     volumes:
       - type: bind
         source: ./media
@@ -26,9 +26,11 @@ services:
   mongodb:
     container_name: mongodb
     image: mongodb/mongodb-community-server:7.0-ubi8
+    # Must be able to write the bind-mounted ./data
+    user: "1000:1000"
     restart: always
-    ports:
-      - "27017:27017"
+    expose:
+      - "27017"
     environment:
       MONGODB_INITDB_ROOT_USERNAME: root
       MONGODB_INITDB_ROOT_PASSWORD: root

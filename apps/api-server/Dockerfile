@@ -3,9 +3,6 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 expressjs
-
 FROM base AS builder
 RUN apk update
 RUN apk add --no-cache libc6-compat
@@ -26,14 +23,17 @@ RUN pnpm install
 COPY --from=builder /app/out/full/ .
 
 RUN pnpm turbo build
-RUN chown -R expressjs:nodejs /app/apps/api-server
+RUN chown -R node:node /app/apps/api-server
 
 FROM base AS runner
 WORKDIR /app
 
 RUN apk add --no-cache ffmpeg
 
-USER expressjs
+# node is UID 1000, which must be able to write the bind-mounted ./media
+USER node
 COPY --from=installer /app .
 
-CMD ["sh", "-c", "cd apps/api-server && pnpm run start"]
+ENV NODE_ENV=production
+WORKDIR /app/apps/api-server
+CMD ["node", "dist/index.js"]

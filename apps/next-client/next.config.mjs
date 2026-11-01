@@ -20,8 +20,8 @@ const nextConfig = {
 				destination: `${process.env.API_SERVER_URL}/:path*`,
 			},
 			{
-				source: '/socket-api:path*',
-				destination: `${process.env.API_SERVER_URL}/socket/socket-io:path*`,
+				source: '/socket-api',
+				destination: `${process.env.API_SERVER_URL}/socket/socket-io`,
 			},
 		];
 	},

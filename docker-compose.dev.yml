@@ -1,0 +1,6 @@
+# Local development only: lets `pnpm dev` reach MongoDB on the host.
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mongodb
+services:
+  mongodb:
+    ports:
+      - "127.0.0.1:27017:27017"
