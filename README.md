@@ -22,7 +22,7 @@ You need Node.js 26, Docker with Compose, and a free [TMDB read access token](ht
    ./scripts/setup.sh
    ```
 
-2. Set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api-server/.env`.
+2. Set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api/.env`.
 
 3. Put your movies in `media/movies`, one folder each, with the video named like its folder:
 

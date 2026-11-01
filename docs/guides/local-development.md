@@ -15,11 +15,11 @@
 |---|---|
 | Tools | Installs pnpm, dependencies, ffmpeg, and the Chromium that Playwright MCP needs |
 | Folders | Creates the media folders and `data`, and the `show_stream_network` Docker network |
-| `apps/api-server/.env` | Creates it from `.env.example` with a generated `JWT_SECRET`. An existing file is never changed |
+| `apps/api/.env` | Creates it from `.env.example` with a generated `JWT_SECRET`. An existing file is never changed |
 
 ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries, the script stops and prints the command that installs them.
 
-**One manual step:** set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api-server/.env`. Create a free token at [TMDB](https://developer.themoviedb.org/docs/getting-started). Only library scans need it.
+**One manual step:** set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api/.env`. Create a free token at [TMDB](https://developer.themoviedb.org/docs/getting-started). Only library scans need it.
 
 ## Run the apps
 
@@ -37,7 +37,7 @@ pnpm dev
 
 Log in at <http://localhost:3000> with `admin`/`admin`.
 
-`pnpm dev` reads media from `apps/api-server/media`, and Docker reads it from `./media`.
+`pnpm dev` reads media from `apps/api/media`, and Docker reads it from `./media`.
 
 ## Checks
 
@@ -69,7 +69,7 @@ There is no scan button yet. Call `GET /api/scan` while logged in.
 |---|---|---|
 | `.env.example` | Yes | Every variable, explained |
 | `.env.development`, `.env.production` | Yes | Defaults with no secrets |
-| `apps/api-server/.env` | No | Your secrets. Wins over the tracked files |
+| `apps/api/.env` | No | Your secrets. Wins over the tracked files |
 
 Never commit real values.
 
