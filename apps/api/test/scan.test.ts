@@ -1,6 +1,6 @@
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { afterAll, beforeEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startApi, type TestApi } from './support/api';
 
 // TMDB is unreachable in these tests, so no scan can identify a movie.

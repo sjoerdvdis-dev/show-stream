@@ -40,6 +40,6 @@ export const seedMovie = async (api: TestApi, id: number, title = `Movie ${id}`)
 };
 
 /** Writes a file that has a video extension but is not a video. */
-export const addCorruptVideo = async (api: TestApi, movie: SeededMovie, name = 'corrupt.mp4') => {
-	await writeFile(path.join(api.mediaFolder, movie.folder, name), 'This is not a video.');
+export const addCorruptVideo = async (api: TestApi, movie: SeededMovie) => {
+	await writeFile(path.join(api.mediaFolder, movie.folder, 'corrupt.mp4'), 'This is not a video.');
 };

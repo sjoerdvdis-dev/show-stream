@@ -50,12 +50,12 @@ export const startApi = async (): Promise<TestApi> => {
 	const port = await findFreePort();
 	const url = `http://127.0.0.1:${port}`;
 
-	let process_: ChildProcess;
+	let child: ChildProcess;
 	let output = '';
 
 	const launch = () => {
 		output = '';
-		process_ = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
+		child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
 			cwd: root,
 			stdio: ['ignore', 'pipe', 'pipe'],
 			env: {
@@ -75,14 +75,14 @@ export const startApi = async (): Promise<TestApi> => {
 				HTTPS_PROXY: 'http://127.0.0.1:9',
 			},
 		});
-		process_.stdout?.on('data', (data) => (output += data));
-		process_.stderr?.on('data', (data) => (output += data));
+		child.stdout?.on('data', (data) => (output += data));
+		child.stderr?.on('data', (data) => (output += data));
 	};
 
-	const isRunning = () => process_.exitCode === null && process_.signalCode === null;
+	const isRunning = () => child.exitCode === null && child.signalCode === null;
 
 	const describeExit = () =>
-		`API process exited (code ${process_.exitCode}, signal ${process_.signalCode}). Last output:\n${output.slice(-2000)}`;
+		`API process exited (code ${child.exitCode}, signal ${child.signalCode}). Last output:\n${output.slice(-2000)}`;
 
 	const request = (route: string, init?: RequestInit) =>
 		fetch(`${url}${route}`, { ...init, signal: AbortSignal.timeout(10_000) });
@@ -124,8 +124,8 @@ export const startApi = async (): Promise<TestApi> => {
 
 	const kill = async () => {
 		if (isRunning()) {
-			const exited = new Promise((resolve) => process_.once('exit', resolve));
-			process_.kill('SIGKILL');
+			const exited = new Promise((resolve) => child.once('exit', resolve));
+			child.kill('SIGKILL');
 			await exited;
 		}
 	};
