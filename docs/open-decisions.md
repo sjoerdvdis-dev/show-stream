@@ -40,6 +40,5 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | F5 | Config validation | Validate environment variables at startup and fail fast |
 | F6 | Logging | Structured logs to stdout, with health endpoints for Compose |
 | F7 | Release flow | Versioned images in a registry, changelog, upgrade notes |
-| F8 | Project licence | Must require attribution to the author. The repo is public and has no licence file |
 | F9 | Package names | Rename to `apps/web`, `apps/api`, `apps/desktop` during the restructure |
 | F10 | Image handling | API endpoint that caches TMDB images on disk |

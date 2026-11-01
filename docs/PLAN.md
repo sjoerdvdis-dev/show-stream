@@ -360,7 +360,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 47 | `PlayButton` is duplicated in two files | One shared pattern | 2 |
 | 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens | 2 |
 | 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | [Section 9.6](#96-updating-shadcn) | 2 |
-| 50 | No project licence | Choose one before release | 1 |
+| 50 | No project licence | Apache-2.0, with a `NOTICE` that requires attribution | Done |
 | 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Add `.next/**` to the ignores | 1 |
 
 ## 7. Version upgrades
@@ -750,7 +750,7 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Keyboard and TV navigation | Section 9.2 |
 | `PUID`/`PGID` for other hosts | Section 6, item 44 |
 | Release flow, image registry, changelog | Before first public release |
-| Project licence | Phase 1 |
+| Project licence | Apache-2.0, in `LICENSE` and `NOTICE` |
 
 ## 15. Risks and unknowns
 
