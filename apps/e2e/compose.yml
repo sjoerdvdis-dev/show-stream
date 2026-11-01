@@ -1,39 +1,23 @@
 # The whole system with fake secrets and throwaway data. Start it with `pnpm test:browser`,
 # which sets E2E_CONTEXT and E2E_USER and removes everything afterwards.
 #
-# Nothing is published to the host, and ./media and ./data are not mounted: the database
-# and media live in anonymous volumes.
+# Nothing is published to the host, and ./media is not mounted: the database and media
+# live in volumes that the run removes.
 name: show-stream-browser-tests
 
-services:
-  mongodb:
-    image: mongodb/mongodb-community-server:7.0-ubi8
-    environment:
-      MONGODB_INITDB_ROOT_USERNAME: root
-      MONGODB_INITDB_ROOT_PASSWORD: root
-    volumes:
-      - ./fixtures/seed.js:/docker-entrypoint-initdb.d/seed.js:ro
-    healthcheck:
-      # By hostname, because the first start listens only on localhost while it seeds.
-      test: ["CMD", "mongosh", "--quiet", "--host", "mongodb", "--eval", "db.runCommand({ ping: 1 })"]
-      interval: 2s
-      timeout: 10s
-      retries: 30
+x-api-build: &api-build
+  context: ${E2E_CONTEXT:?Run this with pnpm test:browser}
+  dockerfile: apps/api/Dockerfile
 
+services:
   api:
-    build:
-      context: ${E2E_CONTEXT:?Run this with pnpm test:browser}
-      dockerfile: apps/api/Dockerfile
-    depends_on:
-      mongodb:
-        condition: service_healthy
+    build: *api-build
     environment:
       JWT_SECRET: fake-secret-for-browser-tests
       JWT_EXPIRES_IN: "3600"
-      MONGO_DB_USERNAME: root
-      MONGO_DB_PASSWORD: root
       TMDB_API_READ_ACCESS_TOKEN: fake-token-for-browser-tests
     volumes:
+      - sqlite-data:/data
       - /app/apps/api/media
       - type: bind
         source: ./fixtures/clip.mp4
@@ -45,13 +29,26 @@ services:
       timeout: 5s
       retries: 30
 
+  # Runs once the API has migrated the new volume, from the API image so that it can load
+  # packages/db.
+  seed:
+    build: *api-build
+    depends_on:
+      api:
+        condition: service_healthy
+    working_dir: /app/apps/api
+    volumes:
+      - sqlite-data:/data
+      - ./fixtures/seed.mjs:/app/apps/api/seed.mjs:ro
+    command: ["node", "seed.mjs"]
+
   next-client:
     build:
       context: ${E2E_CONTEXT:?Run this with pnpm test:browser}
       dockerfile: apps/next-client/Dockerfile
     depends_on:
-      api:
-        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
       interval: 2s
@@ -72,3 +69,6 @@ services:
       - ../..:/repo:ro
       - ./test-results:/repo/apps/e2e/test-results
     command: ["./node_modules/.bin/playwright", "test"]
+
+volumes:
+  sqlite-data:

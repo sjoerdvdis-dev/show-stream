@@ -11,6 +11,8 @@ services:
       - type: bind
         source: ./media
         target: /app/apps/api/media
+      # A named volume, so that the database stays on local disk even if ./media is on a NAS.
+      - sqlite-data:/data
     networks:
       - show_stream_network
   next-client:
@@ -23,23 +25,9 @@ services:
       - "3000:3000"
     networks:
       - show_stream_network
-  mongodb:
-    container_name: mongodb
-    image: mongodb/mongodb-community-server:7.0-ubi8
-    # Must be able to write the bind-mounted ./data
-    user: "1000:1000"
-    restart: always
-    expose:
-      - "27017"
-    environment:
-      MONGODB_INITDB_ROOT_USERNAME: root
-      MONGODB_INITDB_ROOT_PASSWORD: root
-    volumes: 
-      - type: bind
-        source: ./data
-        target: /data/db
-    networks:
-      - show_stream_network
+
+volumes:
+  sqlite-data:
 
 networks:
   show_stream_network:
