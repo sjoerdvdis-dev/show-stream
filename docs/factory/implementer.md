@@ -8,7 +8,7 @@ You own ticket `<n>` and nothing else. You start with no context from earlier wo
 4. After your first commit, push and open a draft PR with `Closes #<n>`. Then commit and push often, so an interrupted run loses little.
 5. Build the ticket until every acceptance criterion is met.
 6. Meet the definition of done in `AGENTS.md`, and keep `PLAN.md` status current.
-7. Mark the PR ready for review. The maintainer merges it.
+7. Mark the PR ready for review. The orchestrator merges it.
 
 ## Rules
 

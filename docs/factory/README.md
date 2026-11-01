@@ -1,6 +1,6 @@
 # Factory
 
-The factory works through [PLAN.md](../PLAN.md) unattended. One orchestrator session turns the plan into tickets, and at most two implementers build them. You review and merge.
+The factory works through [PLAN.md](../PLAN.md) unattended. One orchestrator session turns the plan into tickets, and at most two implementers build them. The orchestrator merges ready PRs unless you say otherwise.
 
 ## Start
 
@@ -33,7 +33,7 @@ flowchart TD
     D --> I["Implementer in its own worktree"]
     I --> DP["Draft PR"]
     DP --> RP["Ready PR"]
-    RP --> M["You review and merge"]
+    RP --> M["Orchestrator merges, unless you hold it"]
     M -->|"Closes the ticket, unblocks the next"| L
 ```
 
@@ -41,9 +41,9 @@ flowchart TD
 
 | Role | Runs as | Does | Never does |
 |---|---|---|---|
-| Orchestrator | The `/loop` session | Writes specs and tickets, dispatches, reports | Implements or changes the main checkout |
+| Orchestrator | The `/loop` session | Writes specs and tickets, dispatches, merges ready PRs, reports | Implements, changes the main checkout, or bypasses branch protection |
 | Implementer | Background agent in a worktree | Builds one ticket, then ends | Works on another ticket or merges |
-| You | | Review, merge, make decisions | |
+| You | | Make decisions, review what you choose to, and hold any merge | |
 
 ## Ticket states
 
@@ -55,7 +55,7 @@ GitHub holds all state, so a compacted or restarted orchestrator loses nothing.
 | Running | Assigned, with a live implementer | Leave it |
 | Interrupted | Assigned or draft PR, with no live implementer | Dispatch on the same branch |
 | Needs fixing | Ready PR with a failed required check, conflicts or requested changes | Dispatch on the same branch |
-| Waiting on you | Ready PR with passing checks | Report it. It uses no slot |
+| Ready to merge | Ready PR with a passing required check | Merge it, unless it is held. It uses no slot |
 | Needs a decision | `needs-info` or `ready-for-human` | Skip and report it |
 
 ## Design choices
