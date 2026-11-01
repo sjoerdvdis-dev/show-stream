@@ -336,13 +336,13 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 
 | # | Problem | Fix | Phase |
 |---|---|---|---|
-| 20 | `pnpm start` fails | Root task removed; each app keeps its own | Done |
+| 20 | `pnpm start` fails | Root task removed. Only the API has a `start` script | Done |
 | 21 | `pnpm lint` fails | Fixed | Done |
 | 22 | Root ESLint config is broken | Deleted `.eslintrc.js` | Done |
 | 23 | No tests or CI | CI done. Vitest and Playwright next | Partly done; 1 |
 | 24 | Malformed Turbo `env` | Two separate entries | Done |
 | 25 | API `dist/` not cached by Turbo | Added `dist/**` to `outputs` | Done |
-| 26 | `--host-name` does nothing | Removed the script flag | Done |
+| 26 | `--host-name` does nothing | Removed with the Next `start` script | Done |
 | 27 | `public/` copied to the wrong path | Goes away with static hosting | 2 |
 | 28 | `fluent-ffmpeg` deprecated | Replace with `child_process.spawn` | 1 |
 | 35 | No-op schema options | Removed with Mongoose | 1 |
@@ -369,13 +369,13 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 
 **Verified 2026-11-01 on the moved versions:** typecheck, lint and build pass in CI. Both images build on `node:26.13-alpine` and the Chromium flow passes: login, library, detail, socket, HLS playback and seek, with fake secrets and a test clip.
 
-| Package | Now | Target | When | Notes |
+| Package | From | Target | When | Notes |
 |---|---|---|---|---|
 | Node image | 22.15 | 26 LTS | Done | Node 26 has no corepack; Dockerfiles install pnpm and turbo with `npm` |
 | pnpm | 10.13.1 | 12.16.1 | Done | Tested 2026-11-01: install passes once `allowBuilds` in `pnpm-workspace.yaml` covers `esbuild` and `sharp` |
 | TypeScript | 5.7.3 and 5.9.3 | 7.0.2, with 6.0.3 private to `packages/eslint-config` | Done | Tested 2026-11-01: `tsc` and `next build` pass on 7.0.2 once `baseUrl` is removed from the Next tsconfig. `typescript-eslint` 8.72.1 refuses 7.0, so lint parses with 6.0.3 until it supports 7. |
 | `ts-node`, `nodemon` | 10.9.2, 3.1.14 | Removed | Done | `tsx` replaces both. Tested 2026-11-01: `tsx` boots the API with no database connected |
-| ESLint | 9.39.5 | 10.14.0 | Done | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. That gives 39 warnings against 12 today. Turn off rules that duplicate `react-hooks`, and the rules behind the 10 `packages/ui` warnings, because Phase 2 replaces those primitives |
+| ESLint | 9.39.5 | 10.14.0 | Done | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. Rules that duplicate `react-hooks` are off, as are the rules that flag the `packages/ui` primitives Phase 2 replaces. `next-client` now reports 17 warnings against 8 before, mostly from stricter `react-hooks` 7 rules. Phase 2 deletes that code |
 | Everything else in `pnpm outdated` | Various | Latest | Done | Except rows below, which are removed or replaced later |
 | dotenv | 16.6.1 | 18.0.9 | Done | Tested at runtime. Can be removed with the config module, because Node loads env files itself |
 | lucide-react | 0.477.0 | 1.66.0 | 2 | Major jump; check icon renames |
@@ -386,7 +386,9 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | next, swr, next-themes | Current | Removed | 2 | Replaced by the [frontend stack](#4-frontend-stack) |
 | jsonwebtoken | 9.0.2 | Removed | 1 | Replaced by API sessions |
 
-Each row group gets its own commit, with typecheck, build, lint and the Chromium flow run afterwards. Anything that cannot move yet is left out and recorded here.
+Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm shared a commit, as did TypeScript and `tsx`, and the Chromium flow ran once on the final state rather than after each group. Anything that cannot move yet is left out and recorded here.
+
+**Keeping current:** Renovate opens one grouped weekly PR for non-major updates across npm, images, Actions, the Dockerfile pins and `.mcp.json`. Majors arrive separately, and packages in the table above that are removed or replaced get no majors. It needs its GitHub App installed. pnpm's minimum release age stays on, so brand-new releases wait.
 
 ## 8. MongoDB to SQLite with Drizzle
 
@@ -642,7 +644,7 @@ Each phase ends with a working app.
 
 ### Phase 1: Stable foundation
 
-1. Toolchain upgrades, then minimal CI: one required check on PRs to `main` with typecheck, lint and build. Audit only reports. Tests join the check as they arrive. Browser tests stay outside it until they have proven reliable, so that they cannot block work.
+1. Toolchain upgrades and minimal CI: one required check on PRs to `main` with typecheck, lint and build. Audit only reports. Tests join the check as they arrive. Browser tests stay outside it until they have proven reliable, so that they cannot block work.
 2. Contributor-ready repository: everything mandatory for development, including Claude tooling and skills, can be installed or reproduced from a clone through one setup script. Every `.env` file has a `.env.example`. Adds `CONTRIBUTING.md`, the other standard repository files and a rewritten `README.md`.
 3. Repository restructure from [section 5.4](#54-repository-layout).
 4. Vitest and Playwright around today's behavior, including every crash from the audit.
