@@ -7,6 +7,9 @@ overrides:
   '@babel/runtime-corejs3@<7.26.10': '>=7.26.10'
   # drizzle-kit pulls in an old esbuild through @esbuild-kit (GHSA-67mh-4wv8-2f99).
   '@esbuild-kit/core-utils>esbuild': '>=0.25.0'
+  # ESLint asks for minimatch 10, which has no patched release (GHSA-g3hv-75wg-m249).
+  # Remove once ESLint depends on minimatch 11.
+  'minimatch@<11.0.1': '>=11.0.1'
 
 allowBuilds:
   better-sqlite3: true
