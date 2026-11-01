@@ -1,5 +1,6 @@
 #!/bin/bash
+set -e
 
-docker network create show_stream_network
-COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose --progress=plain -f docker-compose.yml build
-docker-compose -f docker-compose.yml up -d
+docker network inspect show_stream_network >/dev/null 2>&1 || docker network create show_stream_network
+docker compose -f docker-compose.yml build
+docker compose -f docker-compose.yml up -d
