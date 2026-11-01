@@ -1,6 +1,6 @@
 # ShowStream Plan
 
-Last updated: 2026-11-01. Companions: [AUDIT.md](./AUDIT.md) (what is wrong today) and [DECISIONS.md](./DECISIONS.md) (every choice and its status).
+Last updated: 2026-11-01. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
 
 ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize and clean up, rebuild on a stable foundation, then add features one at a time.
 
@@ -8,13 +8,11 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 The foundation decisions are made and the upgrade is on `main`. Next:
 
-1. **Install the remaining AI tooling** ([section 10](#10-ai-tooling)).
-2. **Write the `AGENTS.md` files** ([section 11](#11-agentsmd-files)).
-3. **Start Phase 1** ([section 12](#12-roadmap)).
+1. **Start Phase 1** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
-| Decisions to make | [Section 3](#3-decisions) and [DECISIONS.md](./DECISIONS.md) |
+| Decisions to make | [Section 3](#3-decisions) and [open decisions](./open-decisions.md) |
 | Frontend stack, router and libraries | [Section 4](#4-frontend-stack) |
 | Authentication in the API | [Section 5.6](#56-authentication) |
 | Problems with the architecture, and the new one | [Section 5](#5-architecture) |
@@ -38,8 +36,9 @@ The foundation decisions are made and the upgrade is on `main`. Next:
 | Ports 5000 and 27017 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
-| Other skills and MCPs | Not installed |
-| `AGENTS.md` files | Not written |
+| Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed on `chore/ai-tooling` |
+| Database MCP | Deferred until SQLite exists in Phase 1 |
+| `AGENTS.md` files | Root and `docs/` written; the rest arrive with their apps and packages |
 
 **Not yet safe for the internet.** The API has no authentication of its own, the default `admin`/`admin` account remains, secrets are baked into the image, and there is no HTTPS. All four are fixed in Phase 1.
 
@@ -58,7 +57,7 @@ All foundation decisions are made:
 | Clients | Web, PWA and Electron from one codebase |
 | Agent rules | `AGENTS.md` files |
 
-SQLite replaces the earlier Postgres request. The remaining lower-impact choices are in [DECISIONS.md](./DECISIONS.md), and this plan follows their recommendations.
+SQLite replaces the earlier Postgres request. Each one has an [ADR](./adr/README.md). The remaining lower-impact choices are in [open-decisions.md](./open-decisions.md), and this plan follows their recommendations.
 
 ## 4. Frontend stack
 
@@ -286,7 +285,7 @@ The API owns authentication. Next's `proxy.ts`, `lib/login.ts`, `lib/jwt.ts`, th
 
 ## 6. Problems and fixes
 
-Numbers 1-40 are the [audit findings](./AUDIT.md#6-findings). 41 onward were found since. "Done" means done on the upgrade branch.
+Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-findings). 41 onward were found since. "Done" means done on the upgrade branch.
 
 ### Security and data
 
@@ -513,43 +512,31 @@ The desktop docs state plugins are not available in WSL sessions, so everything 
 
 ### 10.1 Skills
 
-| Tool | Command | Notes |
-|---|---|---|
-| Impeccable | `npx impeccable install --providers=claude --scope=project --no-hooks` | Then `npx impeccable telemetry off`. Telemetry is on by default, and its hook runs outside model approval and may download a binary. Pin the version |
-| Matt Pocock skills | `npx skills@latest add mattpocock/skills` | Then run `/setup-matt-pocock-skills` with GitHub Issues. Install by one route only |
-| shadcn skill | `pnpm dlx skills add shadcn/ui` | Needed for Base UI migration |
+Installed at project scope in `.claude/skills/`. `skills-lock.json` records hashes. After install they were scanned rather than read line by line: no hooks were added, a search for injected instructions found none, and the network references checked were documentation examples or the Impeccable engine download.
 
-**Next.js:** the current client is on the latest release, 16.4.3. With the move to Vite, the Next.js skills and `next-devtools-mcp` are **not** installed, because Phase 2 removes Next.
+| Tool | Installed | Notes |
+|---|---|---|
+| Matt Pocock skills | 27 skills, excluding `deprecated`, `in-progress` and `misc` | Configured for GitHub Issues in `docs/agents/` |
+| shadcn | `shadcn`, `migrate-radix-to-base` | Used in Phase 2 |
+| Impeccable | 4.8.0, with 4 agents in `.claude/agents/` | Installed without hooks, telemetry off. Run `/impeccable init` in Phase 2 |
+
+The Impeccable engine binary is ignored by git. Its wrapper downloads the engine when missing, so a fresh clone fetches it on first use.
+
+Next.js skills and `next-devtools-mcp` are not installed, because Phase 2 removes Next.
 
 ### 10.2 MCP servers
 
-**Playwright is set up.** `.mcp.json` holds a pinned version, and Chromium is installed in `~/.cache/ms-playwright`. It was tested through the exact configured command, which drove headless Chromium to a local page and returned a page snapshot.
+`.mcp.json` pins each server. Claude Code asks for approval on first use, and a new session is needed to load them.
 
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@0.0.84", "--headless", "--isolated", "--browser", "chromium"]
-    }
-  }
-}
-```
-
-Claude Code asks for approval on first use, and a new session is needed to load it. Artifacts go to `.playwright-mcp/`, which is ignored by git.
-
-These two are added when their phase needs them:
-
-```json
-{
-  "shadcn": { "command": "npx", "args": ["shadcn@latest", "mcp"] },
-  "database": { "type": "http", "url": "http://127.0.0.1:8099/mcp" }
-}
-```
+| Server | Status |
+|---|---|
+| `playwright` | Configured and tested with headless Chromium. Output goes to `.playwright-mcp/`, ignored by git |
+| `shadcn` | Configured and tested at MCP level |
+| `database` | Added with the first SQLite work, using the setup below |
 
 ### 10.3 Database MCP in Docker
 
-Uses DBHub in a dev-only Compose profile, in `docker-compose.dev.yml`:
+Deferred until the SQLite volume exists. It uses DBHub in a dev-only Compose profile, in `docker-compose.dev.yml`:
 
 ```yaml
 services:
@@ -592,6 +579,23 @@ max_rows = 100
 
 Worth adding as project skills once patterns settle: `add-screen`, `add-api-route`, `add-migration`, each encoding this repo's steps.
 
+### 10.5 How we develop
+
+Development follows the Matt Pocock skills. `/ask-matt` suggests the right one when unsure.
+
+| Stage | Skill |
+|---|---|
+| Sharpen an idea, update glossary and ADRs | `/grill-with-docs` |
+| Turn it into a spec | `/to-spec` |
+| Break the spec into tickets | `/to-tickets` |
+| Build a ticket or spec | `/implement` or `/implement-spec` |
+| Large work with unknowns | `/wayfinder` |
+| Bugs | `/diagnosing-bugs` |
+| Answer a design question cheaply | `/prototype` |
+| After a session | `/retro` |
+
+Each Phase 1 step in [section 12](#12-roadmap) becomes a spec with tickets in GitHub Issues.
+
 ## 11. AGENTS.md files
 
 Claude Code reads `AGENTS.md` natively as long as no `CLAUDE.md` exists, and nested files load when a file in that folder is read. Confirm with `/context` in the desktop app. Keep each file short: rules an agent would otherwise get wrong.
@@ -608,7 +612,7 @@ Claude Code reads `AGENTS.md` natively as long as no `CLAUDE.md` exists, and nes
 | `packages/ui/AGENTS.md` | The layers and rules from [section 9.2](#92-layers), how to add shadcn components |
 | `packages/db/AGENTS.md` | Schema changes through migrations only, never edit an applied migration |
 | `packages/contract/AGENTS.md` | Schemas are the source of truth; breaking changes need a version note |
-| `docs/AGENTS.md` | What each document is for, keep `PLAN.md` and `DECISIONS.md` current, record decisions rather than rewriting history |
+| `docs/AGENTS.md` | What each document is for, keep `PLAN.md` current, record decisions as ADRs |
 
 **Definition of done** for the root file: typecheck, lint, tests and build pass; UI changes verified in a browser; no secrets committed; docs updated.
 
@@ -622,9 +626,10 @@ Each phase ends with a working app.
 - [x] Upgrade committed
 - [x] Playwright MCP
 - [x] Merge to `main`
-- [ ] Install Impeccable, Matt Pocock skills and the shadcn skill, then review what they add
-- [ ] Add the shadcn MCP
-- [ ] Write `AGENTS.md` files
+- [x] Install Impeccable, Matt Pocock skills and the shadcn skill, then review what they add
+- [x] Add the shadcn MCP
+- [x] Set up `docs/` and the skills configuration
+- [x] Write root and `docs/` `AGENTS.md` files; each app and package gets its file when created or restructured
 
 **Done when:** `main` holds the upgraded baseline, MCPs connect, and `/context` shows the rules.
 
@@ -646,7 +651,7 @@ The Next client stays running behind Caddy until Phase 2 replaces it. It only re
 ### Phase 2: Design system and frontend rebuild
 
 1. Create `apps/web` with the [frontend stack](#4-frontend-stack), and get login working end to end.
-2. Add tokens and fonts, then a rendered theme preview for review.
+2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
 3. Update shadcn and migrate primitives to Base UI.
 4. Build the patterns and `/dev/components`.
 5. Add the API image cache and server-side library queries.
@@ -724,7 +729,7 @@ Built top to bottom. Each row is one vertical slice, tested end to end. Sizes ar
 
 ## 14. What was missing
 
-Added to your list, each recorded in [DECISIONS.md](./DECISIONS.md):
+Added to your list, each tracked in this plan or in [open-decisions.md](./open-decisions.md):
 
 | Gap | Handled in |
 |---|---|

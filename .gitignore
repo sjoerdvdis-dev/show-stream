@@ -36,3 +36,6 @@ npm-debug.log*
 *.pem
 # Playwright MCP
 .playwright-mcp
+
+# Impeccable engine (downloaded on first use)
+.claude/skills/impeccable/scripts/bin/
