@@ -5,6 +5,8 @@ packages:
 overrides:
   'socks@<2.8.10': '>=2.8.10'
   '@babel/runtime-corejs3@<7.26.10': '>=7.26.10'
+  # drizzle-kit pulls in an old esbuild through @esbuild-kit (GHSA-67mh-4wv8-2f99).
+  '@esbuild-kit/core-utils>esbuild': '>=0.25.0'
 
 allowBuilds:
   better-sqlite3: true
