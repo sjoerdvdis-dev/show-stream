@@ -30,6 +30,8 @@ You need Node.js 26, Docker with Compose, and a free [TMDB read access token](ht
    media/movies/The Dark Knight (2008)/The Dark Knight (2008).mp4
    ```
 
+   Only `.mp4` files are scanned for now.
+
 4. Build and start everything:
 
    ```bash

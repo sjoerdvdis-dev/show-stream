@@ -3,6 +3,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+api_env=apps/api-server/.env
+
 ok() { echo "✓ $1"; }
 
 fail() {
@@ -69,39 +71,50 @@ install_ffmpeg() {
 
 # The browser must match the Playwright inside the MCP server pinned in .mcp.json.
 install_browser() {
-  local mcp deps=()
-  mcp=$(node -p 'JSON.parse(require("fs").readFileSync(".mcp.json")).mcpServers.playwright.args.find((a) => a.startsWith("@playwright/mcp@"))')
+  local mcp_package browser
+  mcp_package=$(node -p 'JSON.parse(require("fs").readFileSync(".mcp.json")).mcpServers.playwright.args.find((a) => a.startsWith("@playwright/mcp@"))')
   if [ "$(uname -s)" = "Linux" ] && [ "$(id -u)" -eq 0 ]; then
-    deps=(--with-deps)
+    npx -y -p "$mcp_package" playwright install --with-deps chromium
+  else
+    npx -y -p "$mcp_package" playwright install chromium
   fi
-  npx -y -p "$mcp" playwright install "${deps[@]}" chromium
+  if command -v ldd >/dev/null; then
+    browser=$(find "$HOME/.cache/ms-playwright" -type f -name chrome -path '*chromium-*' 2>/dev/null | head -n 1)
+    if [ -n "$browser" ] && ldd "$browser" | grep -q 'not found'; then
+      fail "Chromium is missing system libraries." "Install them with: npx -y -p $mcp_package playwright install --with-deps chromium"
+    fi
+  fi
   ok "Chromium for Playwright"
 }
 
 create_folders() {
-  mkdir -p media/movies media/shows data
+  # Docker uses ./media and pnpm dev uses apps/api-server/media.
+  mkdir -p media/movies media/shows apps/api-server/media/movies apps/api-server/media/shows data
   docker network inspect show_stream_network >/dev/null 2>&1 || docker network create show_stream_network >/dev/null
-  ok "Media folders and Docker network"
+  ok "Media and data folders, and Docker network"
+  if [ "$(id -u)" -ne 1000 ]; then
+    echo "! Containers run as UID 1000, so ./media and ./data must be writable by that user."
+  fi
 }
 
 # Never overwrites an existing .env, and never prints its values.
 create_env() {
-  local env=apps/api-server/.env secret
-  if [ -f "$env" ]; then
-    ok "$env already exists, left unchanged"
+  local secret
+  if [ -f "$api_env" ]; then
+    ok "$api_env already exists, left unchanged"
     return
   fi
   secret=$(node -p 'require("crypto").randomBytes(32).toString("hex")')
-  sed "s/^JWT_SECRET=.*/JWT_SECRET=$secret/" apps/api-server/.env.example > "$env"
-  chmod 600 "$env"
-  ok "$env created with a generated JWT_SECRET"
+  sed "s/^JWT_SECRET=.*/JWT_SECRET=$secret/" apps/api-server/.env.example > "$api_env"
+  chmod 600 "$api_env"
+  ok "$api_env created with a generated JWT_SECRET"
 }
 
 check_tmdb_token() {
-  if grep -q '^TMDB_API_READ_ACCESS_TOKEN=.' apps/api-server/.env; then
+  if grep -q '^TMDB_API_READ_ACCESS_TOKEN=.' "$api_env"; then
     ok "TMDB token"
   else
-    echo "! TMDB_API_READ_ACCESS_TOKEN is empty in apps/api-server/.env. Library scans need it."
+    echo "! TMDB_API_READ_ACCESS_TOKEN is empty in $api_env. Library scans need it."
     echo "  Create a free token at https://developer.themoviedb.org/docs/getting-started"
   fi
 }
