@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract and SQLite move are done. Next:
+The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move and API authentication are done. Next:
 
-1. **Continue Phase 1 at item 7** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 1 at item 8** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -39,6 +39,7 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | API and browser tests | Done. Three audit crashes are known failures until item 8 fixes them. The browser job only reports |
 | Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API |
 | SQLite and Drizzle | Done. `packages/db` owns the schema and queries, and migrations run at API startup. `pnpm dev` and `pnpm test` need no Docker |
+| Authentication | Done. The API owns sessions and first-run setup, every route needs a session unless the contract marks it public, and sockets are authenticated with per-user rooms |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Port 5000 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
@@ -47,7 +48,7 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client` and `packages/db` written; the rest arrive with their apps and packages |
 
-**Not yet safe for the internet.** The API has no authentication of its own, the default `admin`/`admin` account remains, secrets are baked into the image, and there is no HTTPS. All four are fixed in Phase 1.
+**Not yet safe for the internet.** Secrets are baked into the image, there is no HTTPS, the session cookie is not `Secure` under Compose, and Next forwards a client's own `X-Forwarded-For`, so the login rate limit can be dodged. Item 9 fixes all four.
 
 ## 3. Decisions
 
@@ -269,18 +270,20 @@ The API owns authentication. Next's `proxy.ts`, `lib/login.ts`, `lib/jwt.ts`, th
 | Topic | Design |
 |---|---|
 | Sessions | Random 256-bit token; only its SHA-256 hash is stored in `sessions` |
-| Cookie | `httpOnly`, `Secure`, `SameSite=Lax`, sent to all routes |
-| Lifetime | Sliding 30-day idle expiry, so a film never logs you out |
+| Cookie | `session`: `httpOnly`, `Secure`, `SameSite=Lax`, sent to all routes. `SESSION_COOKIE_SECURE=false` turns `Secure` off for plain HTTP, which development and Compose set until item 9 |
+| Lifetime | Sliding 30-day idle expiry, so a film never logs you out. Extended at most once an hour, so that segments cost no writes |
 | Passwords | `bcryptjs`, already in use |
 | Default rule | Every route requires auth through shared middleware; public routes are an explicit allowlist |
-| Public routes | Login, setup status and first-run setup only |
+| Public routes | Login, setup status and first-run setup only. A contract endpoint is protected unless it says `access: 'public'`, and the route helper enforces this |
 | Roles | `owner`, `admin`, `user`; scans and user management are admin-only |
 | Streams | `/streams` checks the session on each request, with an indexed lookup |
 | Sockets | Session checked at the handshake; events sent to per-user rooms |
-| CSRF | `SameSite=Lax` plus an `Origin` check on every non-GET request |
-| Brute force | `express-rate-limit` on login and setup |
+| CSRF | `SameSite=Lax` plus an `Origin` check on every non-GET request and the socket handshake. The `Origin` host must match the host the proxy was asked for |
+| Brute force | `express-rate-limit` on login and setup: 10 failures per address in 15 minutes |
 | Behind Caddy | Express `trust proxy` set to the one proxy hop |
 | Client | `GET /api/auth/me` fills router context; `beforeLoad` redirects; any 401 returns to login |
+
+The API serves these at `/auth/*`, and clients reach them as `/api/auth/*` through the Next rewrite. Item 9 decides how Caddy maps `/api`.
 
 | Endpoint | Purpose |
 |---|---|
@@ -301,13 +304,13 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | # | Problem | Fix | Phase |
 |---|---|---|---|
 | 1 | Next.js/React RCE | Upgraded | Done |
-| 2 | API has no authentication | Port closed. Auth required by default ([section 5.6](#56-authentication)) | Partly done; 1 |
-| 3 | Default `admin`/`admin` | First-run setup screen creates the owner | 1 |
+| 2 | API has no authentication | Port closed. Auth required by default ([section 5.6](#56-authentication)) | Done |
+| 3 | Default `admin`/`admin` | First-run setup screen creates the owner, and a migration deletes the old account | Done |
 | 4 | MongoDB `root`/`root` | Gone with SQLite, which has no password or server | Done |
 | 5 | Secrets in the API image | Exclude `.env`; pass with `env_file` | 1 |
 | 9 | Operator injection at login | Zod validation in the contract, and Drizzle parameters | Done |
-| 10 | Sessions expire mid-film | Sliding 30-day sessions | 1 |
-| 39 | Cookie not `Secure` | Enable behind HTTPS | 1 |
+| 10 | Sessions expire mid-film | Sliding 30-day sessions | Done |
+| 39 | Cookie not `Secure` | `Secure` by default. Item 9 removes the Compose override behind HTTPS | Partly done; 1 |
 
 ### Stability
 
@@ -371,6 +374,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | [Section 9.6](#96-updating-shadcn) | 2 |
 | 50 | No project licence | Apache-2.0, with a `NOTICE` that requires attribution | Done |
 | 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Add `.next/**` to the ignores | Done |
+| 52 | Next forwards a client's own `X-Forwarded-For`, so a client that sets it escapes the login rate limit | Caddy replaces the header. Item 9 must test this | 1 |
 
 ## 7. Version upgrades
 
@@ -391,7 +395,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | mongoose | 8.24.7 | Removed | Done | With `mongodb-memory-server` |
 | fluent-ffmpeg | 2.1.3 | Removed | 1 | |
 | next, swr, next-themes | Current | Removed | 2 | Replaced by the [frontend stack](#4-frontend-stack) |
-| jsonwebtoken | 9.0.2 | Removed | 1 | Replaced by API sessions |
+| jsonwebtoken | 9.0.2 | Removed | Done | Replaced by API sessions |
 
 Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm shared a commit, as did TypeScript and `tsx`, and the Chromium flow ran once on the final state rather than after each group. Anything that cannot move yet is left out and recorded here.
 
@@ -409,12 +413,12 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 
 | Table | Key columns | Replaces or fixes |
 |---|---|---|
-| `users` | `id`, `username` unique, `password_hash`, `role` | `users` |
-| `sessions` | `id`, `user_id`, `expires_at` | Audit finding 10. Arrives in item 7 |
+| `users` | `id`, `username` unique, `password_hash`, `role` | `users`. A partial unique index allows one owner |
+| `sessions` | `id` (the SHA-256 of the token), `user_id`, `expires_at` | Audit finding 10 |
 | `media` | `id`, `type`, `tmdb_id` (nullable), `title`, `year`, `path`, `release_date`, `runtime`, `vote_average`, `vote_count`, `popularity`, `metadata` JSON | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision |
 | `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 4 playback. Not yet created |
 | `seasons`, `episodes` | Link to `media` | Phase 6. Not yet created |
-| `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error` | `transcodes`, in-memory state. Findings 6, 7 and 16 stay for item 8 |
+| `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error` | `transcodes`, in-memory state. `payload` records the users who asked for a transcode, and item 8 carries that across the worker. Findings 6, 7 and 16 stay for item 8 |
 | `watch_progress` | `user_id`, `media_file_id`, `position` | Phase 5. Not yet created |
 | `settings` | `key`, `value` | `metadatas` |
 
@@ -664,17 +668,22 @@ Each phase ends with a working app.
 6. SQLite and Drizzle, then the read-only DBHub MCP for development ([section 10.3](#103-database-mcp-in-docker)).
 7. Authentication in the API ([section 5.6](#56-authentication)), first-run setup, authenticated sockets.
 8. Worker with the job table and ffmpeg wrapper.
-9. Caddy, HTTPS, health checks, secrets through `env_file`.
+9. Caddy, HTTPS, health checks, secrets through `env_file`. Remove `SESSION_COOKIE_SECURE` from `docker-compose.yml`, and test finding 52.
 
-**Status:** items 1, 2, 3, 4, 5 and 6 are done. Findings 6, 7 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
+**Status:** items 1, 2, 3, 4, 5, 6 and 7 are done. Findings 6, 7 and 14 are `it.fails` tests in `apps/api/test/known-failures`, and each step that fixes one removes its marker. No marker may remain when the phase ends.
 
-The Next client stays running behind Caddy until Phase 2 replaces it. It only receives the changes it needs: login through the API and removal of `proxy.ts`. No new work goes into it.
+The Next client stays running behind Caddy until Phase 2 replaces it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
 
 **Done when:** the audit crash cases have passing tests, only 80 and 443 are public, and a fresh `docker compose up` reaches a setup screen. **This is the earliest the app may go on the internet.**
 
 ### Phase 2: Design system and frontend rebuild
 
-1. Create `apps/web` with the [frontend stack](#4-frontend-stack), and get login working end to end.
+1. Create `apps/web` with the [frontend stack](#4-frontend-stack), and get login working end to end, including everything item 7 added to the Next client:
+   - The `/setup` page, with `/login` redirecting to it while setup is needed, and back once an owner exists.
+   - Logout, which the Next client has on the settings page.
+   - The session guard on `GET /auth/me`, on the library and on the player.
+   - The return to login on any 401, from a data call or `hls.js`.
+   - Connecting the notification socket only once there is a session, and disconnecting it on leaving.
 2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
 3. Update shadcn and migrate primitives to Base UI.
 4. Build the patterns and `/dev/components`.
@@ -781,5 +790,5 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Drizzle is pre-1.0 | Pin versions; keep queries behind `packages/db` |
 | Only Chromium is tested | Add Firefox and WebKit in Playwright; test real Safari in Phase 3 |
 | Caddy, Electron and full-app PWA behavior are planned, not prototyped | Each gets a test in its phase |
-| Moving auth while the Next client still runs | Keep Next changes minimal, and cover login with a browser test first |
+| Moving auth while the Next client still runs | Done in item 7, with browser tests over the Next rewrite |
 | `media-chrome` may not suit the player | Confirm in S8; fall back to custom controls on `hls.js` |

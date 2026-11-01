@@ -28,7 +28,7 @@ export default function SessionGuard({ children }: { children: React.ReactNode }
 	}, []);
 
 	if (user) {
-		return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
+		return <UserContext value={user}>{children}</UserContext>;
 	}
 
 	return (

@@ -14,7 +14,7 @@ The single definition of the API. The API serves it and `packages/api-client` ca
 - `code` values are stable, so never rename one. Clients must not match on `message`.
 - Paths are strings until `params` parses them. Validate strictly, because `Number()` accepts `''`, `0x10` and `1e3`.
 - TMDB data stays a passthrough: typed with `tmdb-ts`, not validated field by field.
-- `apps/next-client` imports from here with `import type` only, so that Zod stays out of its bundle.
+- A contract endpoint needs a session by default. Set `access` to `public` or `admin` only on purpose.
 - Runtime code loads `dist`, so a consumer's task must depend on `^build`. Types come straight from `src`.
 
 Every breaking change carries a version note in `CHANGELOG.md`.

@@ -15,7 +15,7 @@
 |---|---|
 | Tools | Installs pnpm, dependencies, ffmpeg, and the Chromium that Playwright MCP needs |
 | Folders | Creates the media folders and `data`, and the `show_stream_network` Docker network if Docker is running |
-| `apps/api/.env` | Creates it from `.env.example` with a generated `JWT_SECRET`. An existing file is never changed |
+| `apps/api/.env` | Creates it from `.env.example`. An existing file is never changed |
 
 ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries, the script stops and prints the command that installs them.
 
@@ -29,7 +29,7 @@ Start the API on port 5000 and the client on port 3000:
 pnpm dev
 ```
 
-Log in at <http://localhost:3000> with `admin`/`admin`.
+Open <http://localhost:3000>. A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
 
 `pnpm dev` builds `packages/contract`, `packages/db` and `packages/api-client` first, and the API runs that build. After changing one of them, restart `pnpm dev`.
 
@@ -92,7 +92,9 @@ Tests that run a real ffmpeg job skip with a message if `ffmpeg` is missing. In 
 
 **Database tests** call `packages/db` directly on a temporary file, for what HTTP cannot see: migrations from empty, the pragmas, a shared TMDB ID, a title with no TMDB ID and a single settings row.
 
-**Known failures** in `apps/api/test/known-failures` state the correct behaviour for an audit crash, marked `it.fails`. They pass while the bug exists and fail the run once it is fixed. The step that fixes one deletes its marker. Each title names the finding and the roadmap item expected to fix it:
+Almost every route needs a session, so a test starts with `api.createOwner()` and makes its requests through the client that returns.
+
+**Known failures** in `apps/api/test/known-failures` state the correct behaviour for an audit crash, marked `it.fails`. They pass while the bug exists and fail the run once it is fixed. The step that fixes one deletes its marker. `it.fails` accepts any failure, so after changing one, run it without the marker and confirm that it fails on its bug and not on a 401. Each title names the finding and the roadmap item expected to fix it:
 
 ```bash
 grep -rn "it.fails" apps/api/test
@@ -116,7 +118,11 @@ To test without touching your images or data, export the repo, use fake secrets,
 
 ## Scanning the library
 
-There is no scan button yet. Call `GET /api/scan` while logged in.
+There is no scan button yet, and a scan is admin-only. Log in as the owner, then run this in the browser console:
+
+```js
+await fetch('/api/scan', { method: 'POST' });
+```
 
 ## Environment files
 
@@ -132,6 +138,8 @@ Variables already set in the environment win over all of these. An empty value c
 
 Never commit real values.
 
+`SESSION_COOKIE_SECURE` defaults to true. Browsers drop a `Secure` cookie over plain HTTP, so `.env.development`, `docker-compose.yml` and the browser tests set it to false until Caddy adds HTTPS. If you run the API yourself over HTTP and login seems to do nothing, this is why.
+
 ## Known problems
 
 - **WSL: Docker stops after a restart.** `docker` then says it is not in this distro. Start Docker Desktop on Windows.
@@ -144,5 +152,7 @@ Never commit real values.
 - **Containers run as UID 1000.** `./media` must be writable by that user. On Linux with another UID, `chown` it to 1000 until audit finding 44 is fixed. The image prepares the `sqlite-data` volume itself.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **Port 3000 is published on all interfaces** until Caddy arrives in Phase 1.
+- **`Too many attempts`** after 10 failed logins or setups from one address in 15 minutes. The count lives in memory, so restarting the API clears it.
+- **The rate limit trusts `X-Forwarded-For` from Next.** Next forwards a client's own header, so until Caddy replaces it as the proxy, a client that sets this header escapes the limit.
 - **`vitest` alone needs the packages built.** `pnpm test` builds them first. If you run `vitest` directly in `apps/api`, run `pnpm turbo build --filter=api^...` once.
 - **ffmpeg cannot write to a `MEDIA_FOLDER` containing `%d` or a form like `%03d`.** It reads that as part of the segment pattern, and `%%` does not escape it. Rename the folder.
