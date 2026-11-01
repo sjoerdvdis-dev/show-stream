@@ -1,4 +1,4 @@
-import type { TranscodeStatus } from "@workspace/types/db-types";
+import type { TranscodeStatus } from "@workspace/contract/db-types";
 import type { Credits, Images, MovieDetails, TvShowDetails } from 'tmdb-ts';
 
 export interface BaseAPIResponse {

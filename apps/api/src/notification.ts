@@ -4,7 +4,7 @@
  */
 
 import { Socket } from 'socket.io';
-import type { APINotification } from '@workspace/types/api-types';
+import type { APINotification } from '@workspace/contract/api-types';
 
 let sockets: Socket[] = [];
 

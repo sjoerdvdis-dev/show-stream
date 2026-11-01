@@ -11,8 +11,8 @@ import type {
 	MovieMetadata,
 	MoviesAPIData,
 	ShowsAPIData,
-} from '@workspace/types/api-types';
-import type { MediaDocument, ShowDocument, MovieDocument, MediaType } from '@workspace/types/db-types';
+} from '@workspace/contract/api-types';
+import type { MediaDocument, ShowDocument, MovieDocument, MediaType } from '@workspace/contract/db-types';
 
 const includedCrewJobs = ['Director'];
 

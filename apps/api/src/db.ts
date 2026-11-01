@@ -6,7 +6,7 @@ import type {
 	ShowDocument,
 	TranscodeDocument,
 	UserDocument,
-} from '@workspace/types/db-types';
+} from '@workspace/contract/db-types';
 
 /**
  * Metadata Database

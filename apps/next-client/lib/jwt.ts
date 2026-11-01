@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import type { AuthenticateAPIData, User } from '@workspace/types/api-types';
+import type { AuthenticateAPIData, User } from '@workspace/contract/api-types';
 
 export const verifyToken = async (token: string): Promise<AuthenticateAPIData | null> => {
 	const response = await fetch(`${process.env.API_SERVER_URL}/authenticate`, {

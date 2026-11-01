@@ -9,7 +9,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 RUN npm install -g turbo@2.11.10
 COPY . .
-RUN turbo prune api-server --docker
+RUN turbo prune api --docker
 
 FROM base AS installer
 RUN apk update
@@ -23,7 +23,7 @@ RUN pnpm install
 COPY --from=builder /app/out/full/ .
 
 RUN pnpm turbo build
-RUN chown -R node:node /app/apps/api-server
+RUN chown -R node:node /app/apps/api
 
 FROM base AS runner
 WORKDIR /app
@@ -35,5 +35,5 @@ USER node
 COPY --from=installer /app .
 
 ENV NODE_ENV=production
-WORKDIR /app/apps/api-server
+WORKDIR /app/apps/api
 CMD ["node", "dist/index.js"]

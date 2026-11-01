@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { ensureDbConnection, UserModel } from './db';
-import { AuthenticateAPIData, BaseAPIResponse, LoginAPIData, RegisterAPIData, User } from '@workspace/types/api-types';
+import { AuthenticateAPIData, BaseAPIResponse, LoginAPIData, RegisterAPIData, User } from '@workspace/contract/api-types';
 
 /**
  * Authentication API

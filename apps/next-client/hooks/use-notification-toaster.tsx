@@ -3,7 +3,7 @@
 import { socket } from '@/lib/socket';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import type { APINotification } from '@workspace/types/api-types';
+import type { APINotification } from '@workspace/contract/api-types';
 
 export const useNotificationToaster = () => {
 	useEffect(() => {
