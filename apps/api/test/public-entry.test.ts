@@ -24,7 +24,7 @@ type ComposeService = {
 	healthcheck?: { test: string[] };
 	depends_on?: Record<string, { condition: string }>;
 	logging?: { driver: string; options?: Record<string, string> };
-	env_file?: { path: string; required: boolean }[];
+	environment?: Record<string, string | null>;
 };
 
 type ComposeConfig = { services: Record<string, ComposeService> };
@@ -128,11 +128,25 @@ describe.skipIf(!hasDocker)('the Compose stack', () => {
 		}
 	});
 
-	it('gives the optional .env to the worker alone', async () => {
-		const { services } = await stack();
+	it('gives an optional .env to the worker alone', async () => {
+		const folder = await mkdtemp(path.join(tmpdir(), 'show-stream-compose-test-'));
+		const inThisFolder = async () => {
+			const { stdout } = await run('docker', ['compose', 'config', '--format', 'json'], { cwd: folder });
+			return (JSON.parse(stdout) as ComposeConfig).services;
+		};
+		try {
+			await cp(path.join(root, 'docker-compose.yml'), path.join(folder, 'docker-compose.yml'));
 
-		expect(services.worker!.env_file).toEqual([{ path: path.join(root, '.env'), required: false }]);
-		expect(services.api!.env_file).toBeUndefined();
+			expect((await inThisFolder()).worker!.environment).not.toHaveProperty('TMDB_API_READ_ACCESS_TOKEN');
+
+			await writeFile(path.join(folder, '.env'), 'TMDB_API_READ_ACCESS_TOKEN=fake-token\n');
+
+			const services = await inThisFolder();
+			expect(services.worker!.environment).toHaveProperty('TMDB_API_READ_ACCESS_TOKEN', 'fake-token');
+			expect(services.api!.environment).not.toHaveProperty('TMDB_API_READ_ACCESS_TOKEN');
+		} finally {
+			await rm(folder, { recursive: true, force: true });
+		}
 	});
 });
 
