@@ -10,4 +10,4 @@
 | [agents/](./agents/domain.md) | Config for the engineering skills | The tracker, labels or doc layout change |
 | [factory/](./factory/README.md) | Agent setup that works through the plan | The orchestrator or implementer flow changes |
 
-Start with [CONTRIBUTING.md](../CONTRIBUTING.md) to work on the project. Work in progress lives in [GitHub Issues](https://github.com/sjoerdvdis-dev/show-stream/issues). Domain language lives in `GLOSSARY.md` at the repo root, created by `/domain-modeling` as terms are resolved.
+Start with [CONTRIBUTING.md](../CONTRIBUTING.md) to work on the project. Work in progress lives in [GitHub Issues](https://github.com/sjoerdvdis-dev/show-stream/issues). Domain language lives in [GLOSSARY.md](../GLOSSARY.md) at the repo root, and `/domain-modeling` updates it as terms are resolved.
