@@ -9,7 +9,7 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - Every error uses the one error shape in the contract. Throw `ApiFailure` for what the client should see, and anything else for the central handler to log and hide.
 - Only `src/config.ts` reads the environment.
 - The database is reached only through `@workspace/db`, with the `db` from `src/db.ts`. Never import Drizzle or `better-sqlite3`.
-- ffmpeg belongs in the worker, and this image has none. The API queues transcodes and reads their state in `@workspace/db`, and SQLite is the only link between the two.
+- ffmpeg and TMDB belong in the worker, and this image has no ffmpeg. The API queues transcodes and scans and reads their state in `@workspace/db`, and SQLite is the only link between the two.
 
 ## Tests
 
@@ -18,4 +18,4 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - `api.createOwner()` runs setup and returns a client with a session. Everything on `api` itself has no session.
 - Each request from the harness looks like a new address, so that failures do not reach the rate limit. A test of the limit passes its own `x-forwarded-for`.
 - Direct database access lives in `test/support/seed.ts` and nowhere else.
-- `test/known-failures/` holds audit crashes as `it.fails`, which accepts any failure. When a fix makes one fail the run, delete its marker and keep the test. When you change one, remove the marker for a run and confirm it fails on its bug.
+- The worker's TMDB calls go to a closed port. To identify a title, pass `fakeTmdb` to `startApi`, and see `test/support/fake-tmdb.mjs` for the folder names it answers.

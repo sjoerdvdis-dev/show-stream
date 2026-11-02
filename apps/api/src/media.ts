@@ -1,20 +1,17 @@
 import path from 'path';
 import fs from 'fs';
-import { config } from './config';
 import { db } from './db';
-import { notFound } from './errors';
-import { findMovie, listMovies, listShows, saveMovie, setSetting, type Movie } from '@workspace/db';
-import { TMDB } from 'tmdb-ts';
-import type { MovieDetails, TvShowDetails } from 'tmdb-ts';
-import type { Logger } from 'winston';
+import { ApiFailure, notFound } from './errors';
+import { findLatestScan, findMovie, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
 import type {
 	MovieAPIData,
 	MovieMetadata,
 	MoviesAPIData,
+	Scan,
+	ScanAPIData,
+	ScanCounts,
 	ShowsAPIData,
 } from '@workspace/contract/api-types';
-
-const includedCrewJobs = ['Director'];
 
 /**
  * Media API
@@ -56,115 +53,34 @@ export const getShows = async (): Promise<ShowsAPIData> => {
 
 /**
  * Media Scan
- * Creates metadata scan of Movies (later Shows) folder
+ * The worker runs scans. The API queues them and reads what they found.
  */
 
-type IdentifiedMovie = { tmdbId: number; path: string; metadata: MovieMetadata };
-const tmdb = new TMDB(config.tmdbToken);
+const noCounts: ScanCounts = { found: 0, added: 0, updated: 0, unmatched: 0, failed: 0 };
 
-export const mediaScan = async (mediaFolder: string, logger: Logger): Promise<void> => {
-	const identifiedMovies = await movieScan(mediaFolder, logger);
+const toScan = ({ status, error, payload: { requestedAt, scanResult } }: Job): Scan => ({
+	status,
+	// `queueScan` always sets `requestedAt`.
+	time: scanResult?.finishedAt ?? requestedAt!,
+	counts: scanResult?.counts ?? noCounts,
+	...(error ? { error } : {}),
+	errors: scanResult?.errors ?? [],
+});
 
-	for (const movie of identifiedMovies) {
-		saveMovie(db, movie);
+// POST /scan
+export const startScan = async (): Promise<ScanAPIData> => {
+	const job = queueScan(db, new Date());
+	if (!job) {
+		throw new ApiFailure('conflict', 'A scan is already queued or running');
 	}
-
-	const lastScanTime = new Date();
-	setSetting(db, 'lastScanTime', lastScanTime.toISOString());
-
-	logger.log('info', `Media scan completed at ${lastScanTime}`);
+	return { scan: toScan(job) };
 };
 
-export const movieScan = async (mediaFolder: string, logger: Logger): Promise<IdentifiedMovie[]> => {
-	const movieBaseFolder = 'movies';
-	const movieFolder = path.resolve(mediaFolder, movieBaseFolder);
-	const movieDirs = fs.readdirSync(movieFolder);
-	const identifiedMovies: IdentifiedMovie[] = [];
-
-	for (const movieDir of movieDirs) {
-		// Format: "Movie Name (Year)"
-		const movieRegex = /^(.*)\s\((\d{4})\)$/;
-		const [_, movieName, movieYear] = movieDir.match(movieRegex) || [];
-		const moviePath = `${movieBaseFolder}/${movieDir}`;
-
-		if (movieName && movieYear) {
-			const movieMetadata = await fetchMovieMetadata({ name: movieName, year: parseInt(movieYear) });
-			if (!movieMetadata || !movieMetadata.details.id) continue;
-			identifiedMovies.push({
-				tmdbId: movieMetadata.details.id,
-				path: moviePath,
-				metadata: movieMetadata,
-			});
-		}
-	}
-
-	logger.log('info', `Identified ${identifiedMovies.length} movies`);
-	return identifiedMovies;
-};
-
-export const showScan = async (mediaFolder: string, logger: Logger) => {
-	return [];
-};
-
-const fetchMovieMetadata = async ({
-	name,
-	year,
-}: {
-	name: string;
-	year: number;
-}): Promise<MovieMetadata | undefined> => {
-	try {
-		const search = await tmdb.search.movies({ query: name, year });
-		const { id } = search.results![0] || {};
-
-		if (!id) {
-			return undefined;
-		}
-
-		const details = await tmdb.movies.details(id!);
-		let credits = await tmdb.movies.credits(id!);
-		let images = await tmdb.movies.images(id!)
-
-		// Filter crew jobs
-		credits.crew = credits.crew.filter((crew) => includedCrewJobs.includes(crew.job));
-
-		// Only include english images
-		images.posters = images.posters.filter((poster) => poster.iso_639_1 === 'en');
-		images.backdrops = images.backdrops.filter((backdrop) => backdrop.iso_639_1 === 'en');
-		images.logos = images.logos.filter((logo) =>
-			logo.iso_639_1 === 'en'
-		);
-
-		return {
-			details,
-			credits,
-			images
-		};
-	} catch (error) {
-		console.error('Error fetching movie details:', error);
-	}
-};
-
-const fetchShowMetadata = async ({
-	name,
-	year,
-}: {
-	name: string;
-	year: number;
-}): Promise<TvShowDetails | undefined> => {
-	try {
-		const search = await tmdb.search.tvShows({ query: name, year });
-		const { id } = search.results![0] || {};
-
-		if (!id) {
-			return undefined;
-		}
-
-		const details = await tmdb.tvShows.details(id!);
-		return details;
-	} catch (error) {
-		console.error('Error fetching show details:', error);
-	}
+// GET /scan
+// -> the latest scan
+export const getScan = async (): Promise<ScanAPIData> => {
+	const job = findLatestScan(db);
+	return { scan: job ? toScan(job) : null };
 };
 
 /**

@@ -50,6 +50,41 @@ export const transcodePlaylistResponseSchema = z.object({ playlistUrl: z.string(
 export type TranscodePlaylistAPIData = z.infer<typeof transcodePlaylistResponseSchema>;
 
 /**
+ * Scan API
+ */
+export const scanStatusSchema = z.enum(['queued', 'running', 'done', 'failed']);
+export type ScanStatus = z.infer<typeof scanStatusSchema>;
+
+export const scanCountsSchema = z.object({
+	/** Folders named `Title (Year)`. */
+	found: z.number(),
+	added: z.number(),
+	updated: z.number(),
+	/** Folders that TMDB has no match for. */
+	unmatched: z.number(),
+	/** Folders whose lookup or save failed. */
+	failed: z.number(),
+});
+export type ScanCounts = z.infer<typeof scanCountsSchema>;
+
+export const scanSchema = z.object({
+	status: scanStatusSchema,
+	/** ISO 8601. When the scan finished, or, if it has no result, when it was asked for. */
+	time: z.string(),
+	/** All zero until the scan finishes. */
+	counts: scanCountsSchema,
+	/** Why the scan failed, when `status` is `failed`. */
+	error: z.string().optional(),
+	/** What went wrong with single folders. The list is capped, and `counts` keeps the true totals. */
+	errors: z.array(z.string()),
+});
+export type Scan = z.infer<typeof scanSchema>;
+
+/** `scan` is null until the first scan is asked for. */
+export const scanResponseSchema = z.object({ scan: scanSchema.nullable() });
+export type ScanAPIData = z.infer<typeof scanResponseSchema>;
+
+/**
  * Notifications
  */
 export const notificationTranscodeReadySchema = z.object({

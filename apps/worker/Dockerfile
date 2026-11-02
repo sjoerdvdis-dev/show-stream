@@ -32,7 +32,7 @@ WORKDIR /app
 RUN apk add --no-cache ffmpeg
 
 # New named volumes take these folders' owner, so that UID 1000 can write them on first start.
-RUN mkdir -p /data /media && chown node:node /data /media
+RUN mkdir -p /data /media /backups && chown node:node /data /media /backups
 
 # node is UID 1000, which must be able to write the bind-mounted ./media
 USER node
@@ -41,5 +41,6 @@ COPY --from=installer /app .
 ENV NODE_ENV=production
 ENV DATABASE_PATH=/data/app.db
 ENV MEDIA_FOLDER=/media
+ENV BACKUP_FOLDER=/backups
 WORKDIR /app/apps/worker
 CMD ["node", "dist/index.js"]

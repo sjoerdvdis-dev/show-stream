@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `jobs_one_active_without_title` ON `jobs` (`type`) WHERE media_id IS NULL AND status IN ('queued', 'running');

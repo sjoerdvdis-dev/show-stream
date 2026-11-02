@@ -1,15 +1,31 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { closeDatabase, isDatabaseMigrated, openDatabase, recoverJobs, type Database } from '@workspace/db';
+import {
+	closeDatabase,
+	isDatabaseMigrated,
+	openDatabase,
+	queueDailyBackup,
+	recoverJobs,
+	type Database,
+} from '@workspace/db';
+import { backup, dayOf } from './backup';
 import { config } from './config';
 import { createJobLoop, type JobHandlers } from './job-loop';
+import { scanLibrary } from './scan';
+import { createMovieLookup } from './tmdb';
 import { removePartialOutput, transcode } from './transcode';
 
 /** After this many runs that ended with the worker dying, a job has failed. */
 const maxAttempts = 3;
 const schemaRetryMs = 500;
+const backupCheckMs = 60_000;
 
-const handlers: JobHandlers = {
-	transcode: (job, signal) => transcode(config.mediaFolder, job, signal),
+const createHandlers = (db: Database): JobHandlers => {
+	const lookup = config.tmdbToken ? createMovieLookup(config.tmdbToken) : undefined;
+	return {
+		transcode: (job, signal) => transcode(config.mediaFolder, job, signal),
+		scan: (job, signal) => scanLibrary(db, config.mediaFolder, lookup, job, signal),
+		backup: (_job, signal) => backup(db, config.backupFolder, new Date(), signal),
+	};
 };
 
 let stopping = false;
@@ -55,6 +71,17 @@ const recover = async (db: Database) => {
 	}
 };
 
+const queueBackupIfDue = (db: Database) => {
+	try {
+		if (queueDailyBackup(db, dayOf(new Date()))) {
+			console.log('Queued the daily backup');
+		}
+	} catch (error) {
+		// Most likely a busy database, and the next check can try again.
+		console.error('Could not queue the daily backup:', error);
+	}
+};
+
 const main = async () => {
 	const db = await waitForDatabase();
 	if (!db) {
@@ -63,11 +90,16 @@ const main = async () => {
 
 	await recover(db);
 
-	const loop = createJobLoop(db, handlers, config.jobConcurrency);
+	// A day missed while the worker was down is taken here, at the first check.
+	queueBackupIfDue(db);
+	const backupCheck = setInterval(() => queueBackupIfDue(db), backupCheckMs);
+
+	const loop = createJobLoop(db, createHandlers(db), config.jobConcurrency);
 	loop.start();
 	console.log(`Worker is running, with a concurrency limit of ${config.jobConcurrency}`);
 
 	await stopRequested;
+	clearInterval(backupCheck);
 	await loop.stop();
 	closeDatabase(db);
 	console.log('Worker stopped');

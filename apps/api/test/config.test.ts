@@ -58,7 +58,7 @@ describe('configuration', () => {
 			const owner = await api.createOwner();
 
 			expect((await owner.get('/movies')).status).toBe(200);
-			expect((await owner.post('/scan')).status).toBe(200);
+			expect((await owner.post('/scan')).status).toBe(202);
 		});
 
 		// Upgrades keep their .env, and unknown variables are ignored.

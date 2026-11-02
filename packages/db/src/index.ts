@@ -4,4 +4,15 @@ export * from './media.js';
 export * from './sessions.js';
 export * from './settings.js';
 export * from './users.js';
-export type { Job, JobPayload, JobStatus, Media, NewMedia, Session, ShowMetadata, User, UserRole } from './schema.js';
+export type {
+	Job,
+	JobPayload,
+	JobStatus,
+	Media,
+	NewMedia,
+	ScanResult,
+	Session,
+	ShowMetadata,
+	User,
+	UserRole,
+} from './schema.js';

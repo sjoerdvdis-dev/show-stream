@@ -10,7 +10,10 @@ A self-hosted media server, built to replace Jellyfin. Early development.
 - Browsing a movie library
 - Converting a video to HLS and playing it in the browser, with seeking
 
-Library scans and filters exist, but scans have not been tested against real TMDB responses. TV shows are not supported yet. Where this is going is in [the plan](./docs/PLAN.md).
+- Scanning the library from Settings, as an admin
+- A daily backup of the database, keeping the last 7
+
+Filters exist, but scans have not been tested against real TMDB responses. TV shows are not supported yet. Where this is going is in [the plan](./docs/PLAN.md).
 
 ## Run it
 
@@ -38,9 +41,9 @@ You need Node.js 26, Docker with Compose for the full stack, and a free [TMDB re
    bash build-docker.sh
    ```
 
-Open <http://localhost:3000>. The first start takes you to a setup page, where you create the owner account.
+Open <http://localhost:3000>. The first start takes you to a setup page, where you create the owner account. Then open Settings and press **Scan library**.
 
-The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS.
+The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS. Backups go to `./backups`, and the [guide](./docs/guides/local-development.md#back-up-and-restore) explains how to restore one.
 
 ## Develop
 

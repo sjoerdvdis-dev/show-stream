@@ -1,14 +1,14 @@
 # ShowStream Plan
 
-Last updated: 2026-11-01. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
+Last updated: 2026-11-02. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
 
 ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize and clean up, rebuild on a stable foundation, then add features one at a time.
 
 ## 1. Where we start
 
-The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication and the worker's transcoding are done. Next:
+The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication and the worker are done. Next:
 
-1. **Finish Phase 1 item 8 with scans and backups** ([section 12](#12-roadmap), issue #30) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Finish Phase 1 with item 9: Caddy, HTTPS, health checks and secrets** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -37,11 +37,11 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
 | Repository layout | `apps/api`, `apps/worker`, `packages/contract`, `packages/api-client` and `packages/db` in place; later folders arrive with their steps |
 | Required CI check on `main` | Done, and includes the API tests |
-| API and browser tests | Done. One audit finding, 14, is a known failure until issue #30 fixes it. The browser job only reports |
+| API and browser tests | Done. No `it.fails` marker remains. The browser job only reports |
 | Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API |
 | SQLite and Drizzle | Done. `packages/db` owns the schema and queries, and migrations run at API startup. `pnpm dev` and `pnpm test` need no Docker |
 | Authentication | Done. The API owns sessions and first-run setup, every route needs a session unless the contract marks it public, and sockets are authenticated with per-user rooms |
-| Worker | Transcoding done: `apps/worker` runs ffmpeg from a job queue in SQLite, with recovery, retry and failure reasons. Scans and backups follow in issue #30 |
+| Worker | Done. `apps/worker` runs transcodes, library scans and daily backups from a job queue in SQLite, with recovery, retry and failure reasons. An admin starts a scan and reads its result in Settings. A real TMDB token has not been tried ([section 15](#15-risks-and-unknowns)) |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Port 5000 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
@@ -295,7 +295,7 @@ The API serves these at `/auth/*`, and clients reach them as `/api/auth/*` throu
 | `POST /api/auth/logout` | Delete the session |
 | `GET /api/auth/me` | Current user |
 
-`POST /register` and the startup `admin`/`admin` account are deleted, and `GET /scan` becomes an admin-only `POST`.
+`POST /register` and the startup `admin`/`admin` account are deleted. An admin-only `POST /scan` queues a scan, and an admin-only `GET /scan` reads the latest one.
 
 ### 5.7 Worker and jobs
 
@@ -314,6 +314,11 @@ The API serves these at `/auth/*`, and clients reach them as `/api/auth/*` throu
 | Retry | `POST /transcode/retry/:id` requeues a failed job and looks for its video again. `GET /transcode/request/:id` never requeues one, so that loading a page does not repeat a failure |
 | Requesting users | The job's payload keeps everyone who asked, including anyone who asks while it runs |
 | Notifications | The API polls every 500 ms for finished jobs not yet announced, sends `transcode:ready` or `transcode:failed` to those users' rooms, and marks them announced |
+| Jobs with no title | `scan` and `backup` have a NULL `media_id`. A partial unique index allows one active job of each, and queueing one deletes the type's older, finished row |
+| Scans | `POST /scan` queues a job and answers 202, or 409 if one is active. The worker saves each title as it goes, and keeps counts and up to 20 problems in the job's payload. `GET /scan` reads them |
+| Scan outcome | The job fails if there is no TMDB token, or if folders were found and none were identified. Partial success is `done`, with its failures listed. Nothing retries a scan, because an admin can start another |
+| Backups | The worker checks every minute. When a new UTC day has no backup, one transaction queues a `backup` job and stores the day in `settings`, so that a restart cannot repeat it, and recovery looks after the job. A missed day is taken at the next start. A failed backup waits for the next day |
+| Backup files | `VACUUM INTO` writes `show-stream-YYYY-MM-DD.db.partial` in `BACKUP_FOLDER`, which is renamed when complete. A day with a file keeps it, so that a restore cannot be overwritten by the older database. The last 7 stay |
 
 There is one worker per database. Claims are safe with two, but a worker starting up treats every `running` job as dead, so a second worker requeues what the first is running.
 
@@ -344,8 +349,8 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 11 | API errors are discarded | One error shape in the contract | Done |
 | 12 | Unawaited DB checks | Removed with Mongoose | Done |
 | 13 | `MEDIA_FOLDER` half-implemented | One validated config module | Done |
-| 14 | Scan reports false success | Scan is a job with counts and errors | 1 |
-| 15 | `lastScanTime` adds rows | Settings table | Done |
+| 14 | Scan reports false success | Scan is a job with counts and errors | Done |
+| 15 | `lastScanTime` adds rows | Gone. A scan's job keeps its time | Done |
 | 16 | No limit on ffmpeg jobs | Queue with a concurrency limit | Done |
 | 36 | Startup relies on crash loops | Health checks and `depends_on` | 1 |
 | 37 | Logs unrotated, not on a volume | Structured logs to stdout | 1 |
@@ -427,7 +432,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 
 **Stack:** `drizzle-orm`, `drizzle-kit`, and `better-sqlite3` on the SQLite WAL journal. Drizzle has no `node:sqlite` driver.
 
-**Status:** steps 1, 2, 3, 5 and 7 are done. Step 4 is Phase 2 item 5, and step 8 moves to issue #30, because the worker runs scheduled work.
+**Status:** done, except step 4, which is Phase 2 item 5.
 
 **Tested on 2026-11-01:** Drizzle 0.45.4 and `better-sqlite3` 13.0.3 on Node 26 and `node:26.13-alpine`; `drizzle-kit` migrations from empty, as UID 1000 on a new named volume; data surviving a container restart and a recreated container; the browser tests with no MongoDB service. `better-sqlite3` 13 ships prebuilt binaries for glibc and musl, so the image needs no compiler. Drizzle is pre-1.0, so versions are pinned.
 
@@ -440,9 +445,9 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 | `media` | `id`, `type`, `tmdb_id` (nullable), `title`, `year`, `path`, `release_date`, `runtime`, `vote_average`, `vote_count`, `popularity`, `metadata` JSON | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision |
 | `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 4 playback. Not yet created |
 | `seasons`, `episodes` | Link to `media` | Phase 6. Not yet created |
-| `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error`, `announced` | `transcodes`, in-memory state. `payload` holds the video, the output folder and the users who asked. See [section 5.7](#57-worker-and-jobs) |
+| `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error`, `announced` | `transcodes`, in-memory state. `payload` holds a transcode's video, output folder and the users who asked, or a scan's request time and result. See [section 5.7](#57-worker-and-jobs) |
 | `watch_progress` | `user_id`, `media_file_id`, `position` | Phase 5. Not yet created |
-| `settings` | `key`, `value` | `metadatas` |
+| `settings` | `key`, `value` | `metadatas`. `lastBackupDay` schedules backups |
 
 ### Steps
 
@@ -453,7 +458,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 5. Run migrations at API startup.
 6. Add the read-only [DBHub](https://github.com/bytebase/dbhub) MCP for development ([section 10.3](#103-database-mcp-in-docker)), as soon as the SQLite volume exists.
 7. Remove Mongoose, `mongodb-memory-server`, the `mongodb` service and the `MONGO_DB_*` variables.
-8. Add scheduled `VACUUM INTO` backups.
+8. Add scheduled `VACUUM INTO` backups ([section 5.7](#57-worker-and-jobs)). Restoring one is in the [guide](./guides/local-development.md#back-up-and-restore), and was tested once by hand under Compose on 2026-11-02. A backup folder on a NAS is not tested.
 
 No data migration: `data/` in this repo was empty, and no deployment held data. A library comes back with a rescan. Users do not, and the changelog says so.
 
@@ -692,7 +697,7 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`. Remove `SESSION_COOKIE_SECURE` from `docker-compose.yml`, and test finding 52.
 
-**Status:** items 1, 2, 3, 4, 5, 6 and 7 are done, and item 8 has its worker, transcoding, recovery and retry. Its scans and backups are issue #30. Finding 14 is an `it.fails` test in `apps/api/test/known-failures`, and the step that fixes it removes its marker. No marker may remain when the phase ends.
+**Status:** items 1 to 8 are done, and no `it.fails` marker remains. Item 9 is next.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
 
@@ -715,6 +720,7 @@ The Next client stays running behind Caddy until Phase 2 replaces it. It may cha
    - The reason for a failure on the movie's detail page, with a Retry button in place of Play.
    - A failure toast with the reason and a Retry action when a failed title is played from a card.
    - The `transcode:failed` notification as a toast.
+   - A Library section in Settings for admins: a Scan library button, disabled while a scan is queued or running, with the status, time, counts, reason and problems of the latest scan. Without it, a new install cannot fill its library.
 7. Switch Caddy to serve `apps/web`.
 8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules.
 
@@ -793,12 +799,12 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Gap | Handled in |
 |---|---|
 | Test stack and CI | Phase 1 |
-| Backups for SQLite | Section 8 |
+| Backups for SQLite | Done. Daily, in [section 5.7](#57-worker-and-jobs) and section 8 |
 | Automated dependency updates | Phase 1, with CI, through Renovate |
 | Config validation and structured logs | Config validation is done; structured logs arrive in Phase 1 item 9 |
 | Trusted HTTPS for LAN-only installs | Section 5.2 |
 | Shared API contract and typed client | Done, in `packages/contract` and `packages/api-client` |
-| Background job handling without Redis | Sections 5 and 8 |
+| Background job handling without Redis | Done. [Section 5.7](#57-worker-and-jobs) |
 | Image caching | Phase 2 |
 | Keyboard and TV navigation | Section 9.2 |
 | `PUID`/`PGID` for other hosts | Section 6, item 44 |
@@ -812,7 +818,7 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | TypeScript 7 or ESLint 10 may not fit the stack | Try in Phase 1; stay on the newest supported version if not |
 | Phase 4 is much larger than it looks | Direct play first, so value arrives early |
 | Plugin, skill and MCP behavior in WSL desktop sessions | Verified at install; documentation does not confirm project skills in the Code tab |
-| Real TMDB responses have never been verified | Test with a real token in Phase 1 |
+| Real TMDB responses have never been verified | Test with a real token in Phase 1. Only the maintainer can, because agents do not read real `.env` values |
 | Drizzle is pre-1.0 | Pin versions; keep queries behind `packages/db` |
 | Only Chromium is tested | Add Firefox and WebKit in Playwright; test real Safari in Phase 3 |
 | Caddy, Electron and full-app PWA behavior are planned, not prototyped | Each gets a test in its phase |

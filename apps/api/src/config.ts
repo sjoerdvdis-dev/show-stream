@@ -38,7 +38,6 @@ const environmentSchema = z.object({
 	NEXT_CLIENT_URL: optional(z.string()),
 	DATABASE_PATH: optional(z.string()),
 	SESSION_COOKIE_SECURE: optional(z.enum(['true', 'false'], { error: 'must be true or false' })),
-	TMDB_API_READ_ACCESS_TOKEN: optional(z.string()),
 	MEDIA_FOLDER: optional(z.string().refine(isFolder, 'must be an existing folder')),
 });
 
@@ -61,7 +60,6 @@ export const config = {
 	databasePath: path.resolve(environment.DATABASE_PATH ?? path.join(__dirname, '../../../data/app.db')),
 	/** Browsers drop a `Secure` cookie over plain HTTP, so only a setup with no HTTPS turns this off. */
 	sessionCookieSecure: environment.SESSION_COOKIE_SECURE !== 'false',
-	tmdbToken: environment.TMDB_API_READ_ACCESS_TOKEN ?? '',
-	/** The library: scans read it, and transcodes cache under it. Always absolute. */
+	/** The library, which the worker scans, and transcodes cache under. Always absolute. */
 	mediaFolder: path.resolve(environment.MEDIA_FOLDER ?? path.join(__dirname, '../media')),
 };

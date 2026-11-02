@@ -14,7 +14,6 @@ services:
     build: *api-build
     environment:
       SESSION_COOKIE_SECURE: "false"
-      TMDB_API_READ_ACCESS_TOKEN: fake-token-for-browser-tests
     # The API starts first, so its image gives the new media volume to UID 1000.
     volumes:
       - sqlite-data:/data
@@ -40,9 +39,14 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    environment:
+      TMDB_API_READ_ACCESS_TOKEN: fake-token-for-browser-tests
+      NODE_OPTIONS: --import=/fixtures/fake-tmdb.mjs
     volumes:
       - sqlite-data:/data
       - media:/media
+      - backups:/backups
+      - ./fixtures/fake-tmdb.mjs:/fixtures/fake-tmdb.mjs:ro
       - type: bind
         source: ./fixtures/clip.mp4
         target: /media/movies/Demo Movie (2024)/clip.mp4
@@ -50,6 +54,15 @@ services:
       - type: bind
         source: ./fixtures/corrupt.mp4
         target: /media/movies/Corrupt Movie (2024)/corrupt.mp4
+        read_only: true
+      # Folders only a scan finds. The seed adds neither.
+      - type: bind
+        source: ./fixtures/clip.mp4
+        target: /media/movies/Scanned Movie (2024)/clip.mp4
+        read_only: true
+      - type: bind
+        source: ./fixtures/clip.mp4
+        target: /media/movies/Unknown Film (2024)/clip.mp4
         read_only: true
 
   # Runs once the API has migrated the new volume, from the API image so that it can load
@@ -98,3 +111,4 @@ services:
 volumes:
   sqlite-data:
   media:
+  backups:

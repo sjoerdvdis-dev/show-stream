@@ -12,10 +12,13 @@ const workerFolder = path.resolve(apiFolder, '../worker');
 const ffmpegShimFolder = path.join(import.meta.dirname, 'ffmpeg-shim');
 
 // Fake values only. The API starts in a folder with no .env, so it reads nothing else.
-const offlineEnvironment = {
+const apiEnvironment = {
 	PATH: process.env.PATH,
 	NODE_ENV: 'test',
-	// Sends TMDB calls to a closed port, so that they fail at once and offline.
+};
+
+/** Sends TMDB calls from the worker to a closed port, so that they fail at once and offline. */
+const offlineWorkerEnvironment = {
 	NODE_USE_ENV_PROXY: '1',
 	HTTPS_PROXY: 'http://127.0.0.1:9',
 };
@@ -45,8 +48,10 @@ export type ApiOptions = {
 	envFile?: string;
 	/** Written to `.env.development`, which the API reads after `.env`. */
 	developmentEnvFile?: string;
-	/** Answers TMDB calls with a fake movie, so that a scan can identify a title. */
+	/** Answers the worker's TMDB calls, so that a scan can identify a title. See `support/fake-tmdb.mjs`. */
 	fakeTmdb?: boolean;
+	/** Sets TMDB_API_READ_ACCESS_TOKEN for the worker. By default it has a fake one. */
+	tmdbToken?: string;
 	/** Builds the SQLite file before the API first opens it, as an older version left it. */
 	prepareDatabase?: (databasePath: string) => Promise<void>;
 	/** Sets JOB_CONCURRENCY for the worker. */
@@ -81,6 +86,8 @@ export type TestApi = Requests & {
 	output: () => string;
 	/** This server's own SQLite file. */
 	databasePath: string;
+	/** Where the worker writes daily backups. */
+	backupFolder: string;
 	/** Runs first-run setup, and returns a client with the owner's session. */
 	createOwner: () => Promise<TestClient>;
 	/** Logs in, and returns a client with the new session. */
@@ -118,6 +125,7 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 	}
 
 	const databasePath = path.join(root, 'app.db');
+	const backupFolder = path.join(root, 'backups');
 	await options.prepareDatabase?.(databasePath);
 	const port = await findFreePort();
 	const url = `http://127.0.0.1:${port}`;
@@ -130,20 +138,14 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 
 	const launch = () => {
 		output = '';
-		const preload = options.fakeTmdb ? ['--import', path.join(import.meta.dirname, 'fake-tmdb.mjs')] : [];
-		child = spawn(process.execPath, [...preload, ...launchArguments], {
+		child = spawn(process.execPath, launchArguments, {
 			cwd: root,
 			stdio: ['ignore', 'pipe', 'pipe'],
 			env: {
-				...offlineEnvironment,
+				...apiEnvironment,
 				PORT: String(port),
 				DATABASE_PATH: databasePath,
-				...(options.envFile
-					? {}
-					: {
-							NEXT_CLIENT_URL: 'http://localhost:3000',
-							TMDB_API_READ_ACCESS_TOKEN: 'fake-token-for-api-tests',
-						}),
+				...(options.envFile ? {} : { NEXT_CLIENT_URL: 'http://localhost:3000' }),
 				...(options.mediaFolder ? { MEDIA_FOLDER: options.mediaFolder } : {}),
 			},
 		});
@@ -236,14 +238,18 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 	};
 
 	const startWorker = async () => {
-		const worker = spawn(process.execPath, launchArguments, {
+		const preload = options.fakeTmdb ? ['--import', path.join(import.meta.dirname, 'fake-tmdb.mjs')] : [];
+		const worker = spawn(process.execPath, [...preload, ...launchArguments], {
 			cwd: workerRoot,
 			stdio: ['ignore', 'pipe', 'pipe'],
 			env: {
+				...offlineWorkerEnvironment,
 				PATH: `${ffmpegShimFolder}${path.delimiter}${process.env.PATH}`,
 				NODE_ENV: 'test',
 				DATABASE_PATH: databasePath,
 				MEDIA_FOLDER: mediaFolder,
+				BACKUP_FOLDER: backupFolder,
+				TMDB_API_READ_ACCESS_TOKEN: options.tmdbToken ?? 'fake-token-for-api-tests',
 				...(options.jobConcurrency ? { JOB_CONCURRENCY: String(options.jobConcurrency) } : {}),
 			},
 		});
@@ -286,6 +292,7 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 		url,
 		output: () => output,
 		databasePath,
+		backupFolder,
 		...requests,
 		createOwner: async () => clientOf(await requests.post('/auth/setup', ownerCredentials)),
 		logIn: async (username, password) => clientOf(await requests.post('/auth/login', { username, password })),
@@ -319,7 +326,7 @@ export const runApiUntilExit = async (environment: Record<string, string>) => {
 		const child = spawn(process.execPath, launchArguments, {
 			cwd: root,
 			stdio: ['ignore', 'pipe', 'pipe'],
-			env: { ...offlineEnvironment, ...environment },
+			env: { ...apiEnvironment, ...environment },
 		});
 		let output = '';
 		child.stdout.on('data', (data) => (output += data));

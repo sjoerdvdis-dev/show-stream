@@ -46,7 +46,8 @@ describe('the job loop', () => {
 	};
 
 	const start = (handler: JobHandler, concurrency = 1) => {
-		const loop = createJobLoop(db, { transcode: handler }, concurrency);
+		const notUsed = () => Promise.reject(new Error('These tests queue only transcodes.'));
+		const loop = createJobLoop(db, { transcode: handler, scan: notUsed, backup: notUsed }, concurrency);
 		stop = loop.stop;
 		loop.start();
 	};

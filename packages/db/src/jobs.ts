@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Database } from './connection.js';
-import { jobs, media, type Job, type JobPayload } from './schema.js';
+import { jobs, media, settings, type Job, type JobPayload, type ScanResult } from './schema.js';
 
 /**
  * The job queue. SQLite is the only link between the API and the worker, so these functions
@@ -76,6 +76,72 @@ export const retryTranscode = (db: Database, mediaId: number, { userId, video, o
 		.where(and(transcodeJob(mediaId), eq(jobs.status, 'failed')))
 		.returning({ id: jobs.id })
 		.all().length > 0;
+
+/**
+ * Queues a job with no title, unless one of its type is active. Older jobs of the type have
+ * finished by then, and only the latest is ever read, so they go. Nobody waits to hear of
+ * these jobs, so they start out as announced.
+ */
+const queueJobWithoutTitle = (
+	db: Pick<Database, 'insert' | 'delete'>,
+	type: 'scan' | 'backup',
+	payload: JobPayload,
+): Job | undefined => {
+	const job = db
+		.insert(jobs)
+		.values({ type, status: 'queued', payload, announced: true })
+		.onConflictDoNothing()
+		.returning()
+		.all()[0];
+	if (job) {
+		db.delete(jobs)
+			.where(and(eq(jobs.type, type), lt(jobs.id, job.id)))
+			.run();
+	}
+	return job;
+};
+
+/** @returns The new job, or undefined if a scan is already queued or running. */
+export const queueScan = (db: Database, date: Date): Job | undefined =>
+	db.transaction((tx) => queueJobWithoutTitle(tx, 'scan', { requestedAt: date.toISOString() }), {
+		behavior: 'immediate',
+	});
+
+export const findLatestScan = (db: Database): Job | undefined =>
+	db.select().from(jobs).where(eq(jobs.type, 'scan')).orderBy(desc(jobs.id)).limit(1).get();
+
+export const recordScanResult = (db: Database, id: number, scanResult: ScanResult): void => {
+	db.update(jobs)
+		.set({ payload: sql`json_patch(${jobs.payload}, ${JSON.stringify({ scanResult })})` })
+		.where(eq(jobs.id, id))
+		.run();
+};
+
+const lastBackupDay = 'lastBackupDay';
+
+/**
+ * Queues the backup for `day`, once. The day and the job are written together, so that
+ * no restart can repeat or lose it: the setting stops a second job, and recovery looks after
+ * the first. A backup that fails waits for the next day, rather than failing all day.
+ *
+ * @param day `YYYY-MM-DD`. Later days sort higher, so a clock that moves back repeats nothing.
+ * @returns false if `day` is already covered, or if a backup is still queued or running.
+ */
+export const queueDailyBackup = (db: Database, day: string): boolean =>
+	db.transaction(
+		(tx) => {
+			const last = tx.select().from(settings).where(eq(settings.key, lastBackupDay)).get();
+			if ((last && last.value >= day) || !queueJobWithoutTitle(tx, 'backup', {})) {
+				return false;
+			}
+			tx.insert(settings)
+				.values({ key: lastBackupDay, value: day })
+				.onConflictDoUpdate({ target: settings.key, set: { value: day } })
+				.run();
+			return true;
+		},
+		{ behavior: 'immediate' },
+	);
 
 /**
  * Takes the oldest queued job for this caller, and counts a run. One statement holds the

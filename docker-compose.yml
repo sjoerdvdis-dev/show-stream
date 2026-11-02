@@ -18,7 +18,8 @@ services:
       - sqlite-data:/data
     networks:
       - show_stream_network
-  # Runs ffmpeg jobs. It publishes no ports, and reaches the API only through the database.
+  # Runs ffmpeg, scan and backup jobs. It publishes no ports, and reaches the API only through
+  # the database.
   worker:
     container_name: worker
     build:
@@ -27,12 +28,23 @@ services:
     restart: always
     depends_on:
       - api
+    # Library scans need the TMDB token from this file. It stays out of the worker's image.
+    env_file:
+      - path: ./apps/api/.env
+        required: false
+    # These win over that file, whose paths are for pnpm dev.
     environment:
       JOB_CONCURRENCY: ${JOB_CONCURRENCY:-1}
+      DATABASE_PATH: /data/app.db
+      MEDIA_FOLDER: /media
+      BACKUP_FOLDER: /backups
     volumes:
       - type: bind
         source: ./media
         target: /media
+      - type: bind
+        source: ./backups
+        target: /backups
       - sqlite-data:/data
     networks:
       - show_stream_network

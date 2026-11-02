@@ -3,6 +3,7 @@ import {
 	logoutResponseSchema,
 	movieResponseSchema,
 	moviesResponseSchema,
+	scanResponseSchema,
 	sessionResponseSchema,
 	setupStatusResponseSchema,
 	showsResponseSchema,
@@ -78,7 +79,8 @@ export const endpoints = {
 	},
 	logout: { method: 'POST', path: '/auth/logout', response: logoutResponseSchema },
 	me: { method: 'GET', path: '/auth/me', response: sessionResponseSchema },
-	scan: { method: 'POST', path: '/scan', access: 'admin', format: 'text', response: z.string() },
+	scan: { method: 'POST', path: '/scan', access: 'admin', status: 202, response: scanResponseSchema },
+	scanStatus: { method: 'GET', path: '/scan', access: 'admin', response: scanResponseSchema },
 	transcodeRequest: {
 		method: 'GET',
 		path: '/transcode/request/:id',

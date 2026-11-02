@@ -81,8 +81,11 @@ describe('the typed client against the real API', () => {
 		expect(error).toMatchObject({ status: 401, code: 'unauthorized', message: 'You are not logged in' });
 	});
 
-	it('scans', async () => {
-		expect(await client.scan()).toBe('Successfully scanned media folder');
+	it('starts a scan, and reads it back', async () => {
+		const { scan } = await client.scan();
+
+		expect(scan?.status).toBe('queued');
+		expect((await client.scanStatus()).scan?.time).toBe(scan?.time);
 	});
 
 	it('has no playlist for a movie that is not ready', async () => {

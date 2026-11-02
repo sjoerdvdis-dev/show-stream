@@ -17,4 +17,4 @@ The only code that touches Drizzle or `better-sqlite3`. Apps call the functions 
 - End an insert with `RETURNING` in `.all()`, not `.get()`. `.get()` stops at the first row, so SQLite commits without running the WAL checkpoint, and a connection doing only those writes grows the WAL for ever.
 - Only the API runs `migrateDatabase`. Anything else that opens the file waits for `isDatabaseMigrated`.
 - The API and the worker write to one file. A write is one statement, or a transaction with `{ behavior: 'immediate' }`. A deferred transaction that reads before it writes fails at once if the other process wrote in between, and the busy timeout does not help it.
-- Keep the file on a local disk, never NFS or SMB. Copying a live WAL database is not a backup.
+- Keep the file on a local disk, never NFS or SMB. Copying a live WAL database is not a backup: use `backupDatabase`.

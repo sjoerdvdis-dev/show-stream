@@ -14,12 +14,12 @@
 | Step | What it does |
 |---|---|
 | Tools | Installs pnpm, dependencies, ffmpeg, and the Chromium that Playwright MCP needs |
-| Folders | Creates the media folders and `data`, and the `show_stream_network` Docker network if Docker is running |
+| Folders | Creates the media folders, `data` and `backups`, and the `show_stream_network` Docker network if Docker is running |
 | `apps/api/.env` | Creates it from `.env.example`. An existing file is never changed |
 
 ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries, the script stops and prints the command that installs them.
 
-**One manual step:** set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api/.env`. Create a free token at [TMDB](https://developer.themoviedb.org/docs/getting-started). Only library scans need it.
+**One manual step:** set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api/.env`. Create a free token at [TMDB](https://developer.themoviedb.org/docs/getting-started). Only library scans need it, and they run in the worker, so restart it after setting the token.
 
 ## Run the apps
 
@@ -37,7 +37,7 @@ Open <http://localhost:3000>. A new database takes you to `/setup`, where you cr
 
 The API creates its database at `data/app.db` on first start, and applies any new migration each time it starts. To start over, stop the API and delete `data/app.db*`.
 
-The worker runs ffmpeg from the host, on the same database and media. It prints `Waiting for the API to migrate the database` until the API has started, which is normal. `JOB_CONCURRENCY` sets how many jobs run at once, and the worker reads `apps/api/.env` as well as your environment.
+The worker runs ffmpeg from the host, on the same database and media, and takes library scans and backups. It prints `Waiting for the API to migrate the database` until the API has started, which is normal. `JOB_CONCURRENCY` sets how many jobs run at once, and the worker reads `apps/api/.env` as well as your environment.
 
 ## Change the database
 
@@ -88,27 +88,21 @@ pnpm turbo check-types lint build test
 | `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, and database tests in `packages/db/test` | Nothing beyond setup. No Docker |
 | `pnpm test:browser` | Chromium tests in `apps/e2e` | Docker |
 
-**API tests** start the real API and a real worker as child processes, from temporary copies of their source, and speak HTTP to the API. Each suite gets its own pair and its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media. TMDB calls go to a closed port, so nothing leaves your machine.
+**API tests** start the real API and a real worker as child processes, from temporary copies of their source, and speak HTTP to the API. Each suite gets its own pair and its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media or backups. The worker's TMDB calls go to a closed port, so nothing leaves your machine, unless a test passes `fakeTmdb`, which answers them from `test/support/fake-tmdb.mjs`.
 
 Tests that run a real ffmpeg job skip with a message if `ffmpeg` is missing. In CI, the missing `ffmpeg` fails the run instead.
 
 To catch a job partway, a test calls `holdFfmpeg` from `test/support/ffmpeg.ts`. In these tests the worker's `ffmpeg` is the script in `test/support/ffmpeg-shim`, which writes partial output and waits for a held title, and otherwise runs the real one. The harness can then kill the worker, or ask it to stop, at a known point.
 
-**Worker tests** call the ffmpeg wrapper and the job loop directly, with a fake `ffmpeg` on the `PATH` or a fake job handler.
+**Worker tests** call the ffmpeg wrapper, the job loop, the scan and the backup directly, with a fake `ffmpeg` on the `PATH`, a fake job handler or a fake TMDB lookup.
 
-**Database tests** call `packages/db` directly on a temporary file, for what HTTP cannot see: migrations from empty, the pragmas, a shared TMDB ID, a title with no TMDB ID and a single settings row.
+**Database tests** call `packages/db` directly on a temporary file, for what HTTP cannot see: migrations from empty, the pragmas, a shared TMDB ID, a title with no TMDB ID, a single settings row, and when a scan or a backup can be queued.
 
 Almost every route needs a session, so a test starts with `api.createOwner()` and makes its requests through the client that returns.
 
-**Known failures** in `apps/api/test/known-failures` state the correct behaviour for an audit crash, marked `it.fails`. They pass while the bug exists and fail the run once it is fixed. The step that fixes one deletes its marker. `it.fails` accepts any failure, so after changing one, run it without the marker and confirm that it fails on its bug and not on a 401. Each title names the finding and the roadmap item expected to fix it:
-
-```bash
-grep -rn "it.fails" apps/api/test
-```
-
 **Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 
-After a failure, screenshots and traces are in `apps/e2e/test-results`. The movies come from `apps/e2e/fixtures/seed.mjs`, which the one-shot `seed` service runs after the API has migrated a new volume. `clip.mp4` beside it is a generated 30-second H.264 and AAC clip, and `corrupt.mp4` is a text file that the worker fails on.
+After a failure, screenshots and traces are in `apps/e2e/test-results`. The movies come from `apps/e2e/fixtures/seed.mjs`, which the one-shot `seed` service runs after the API has migrated a new volume. `clip.mp4` beside it is a generated 30-second H.264 and AAC clip, and `corrupt.mp4` is a text file that the worker fails on. The worker preloads `fake-tmdb.mjs` beside them, so that a scan needs no network.
 
 CI does not build images in the required check. If you change a Dockerfile, build it yourself or read the `browser` job's result.
 
@@ -120,7 +114,7 @@ bash build-docker.sh
 
 This uses `./media` and the `sqlite-data` volume, and builds your `.env` into the API image until audit finding 5 is fixed. The database is at `/data/app.db` in the volume, which must stay on a local disk, never NFS or SMB.
 
-The `worker` service shares that volume and `./media`, which it sees at `/media`, and publishes no ports. It has no copy of `apps/api/.env`, so to change `JOB_CONCURRENCY`, set it in a `.env` at the repository root. Only one worker may run per database.
+The `worker` service shares that volume and `./media`, which it sees at `/media`, and publishes no ports. It gets `apps/api/.env` at runtime, for the TMDB token, and writes backups to `./backups`. To change `JOB_CONCURRENCY`, set it in a `.env` at the repository root. Only one worker may run per database.
 
 ## Failed videos
 
@@ -130,11 +124,40 @@ To test without touching your images or data, export the repo, use fake secrets,
 
 ## Scanning the library
 
-There is no scan button yet, and a scan is admin-only. Log in as the owner, then run this in the browser console:
+An owner or admin starts a scan with **Scan library** in Settings, which shows the latest result. The worker runs it, so the API stays free, and a second scan is refused until the first ends. With a long transcode running and `JOB_CONCURRENCY` at 1, the scan waits for its turn.
 
-```js
-await fetch('/api/scan', { method: 'POST' });
+| Result | Means |
+|---|---|
+| Finished | Titles were identified, or the library has no `Title (Year)` folders. Unmatched and failed folders are listed, up to 20, and the counts stay true |
+| Failed | No TMDB token is set, the `movies` folder could not be read, or folders were found and none were identified. Look at the reason, which shows a bad token as TMDB's own message |
+
+Only folders in `media/movies` named `Title (Year)` count. A scan has only been tested against a fake TMDB, so tell us how a real one goes.
+
+## Back up and restore
+
+The worker writes `show-stream-YYYY-MM-DD.db` to the backup folder once each UTC day, the first time it runs that day, and keeps the last 7. The folder is `./backups` under Compose and `pnpm dev`, and `BACKUP_FOLDER` moves it under `pnpm dev`. Unlike the database, it can be on a NAS, but only local disks have been tested. It holds your accounts and password hashes, so keep it private.
+
+A backup that fails is logged by the worker and tried again the next day. A backup holds the library, accounts and job states, not your media or transcodes.
+
+To restore under Compose, stop everything that opens the database, replace it, and start again. Pick a file from `./backups`:
+
+```bash
+docker compose stop api worker
+docker compose run --rm --no-deps worker \
+  sh -c 'rm -f /data/app.db /data/app.db-wal /data/app.db-shm && cp /backups/show-stream-YYYY-MM-DD.db /data/app.db'
+docker compose start api worker
 ```
+
+Under `pnpm dev`, stop it, then:
+
+```bash
+rm -f data/app.db data/app.db-wal data/app.db-shm
+cp backups/show-stream-YYYY-MM-DD.db data/app.db
+```
+
+Delete the `-wal` and `-shm` files too, because SQLite would otherwise apply them to the restored file. The API applies any newer migration when it starts. Sessions come back as they were in the backup, so anyone who logged in since then logs in again. Today's backup file stays as it is, so a restored older database cannot overwrite it. A backup is taken while its own job runs, so the worker prints `Recovered backup job` after a restore, which is normal.
+
+The Compose steps were tested once by hand on 2026-11-02, with fake secrets: a lost database asked for setup again, and after the restore the owner logged in. The `pnpm dev` steps were not run.
 
 ## Environment files
 
@@ -146,7 +169,7 @@ await fetch('/api/scan', { method: 'POST' });
 
 Variables already set in the environment win over all of these. An empty value counts as unset.
 
-`apps/api/src/config.ts` validates them once at startup. If anything is wrong, the API prints every bad variable, without its value, and exits with code 1.
+`apps/api/src/config.ts` validates them once at startup, and `apps/worker/src/config.ts` does the same for the worker's. If anything is wrong, either one prints every bad variable, without its value, and exits with code 1.
 
 Never commit real values.
 
@@ -161,7 +184,7 @@ Never commit real values.
 - **pnpm refuses very new releases.** Its minimum release age rejected a package published the same day. Wait, or use the previous version. Do not add an exclusion.
 - **Playwright MCP needs a matching browser.** When its pin in `.mcp.json` changes, run setup again.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
-- **Containers run as UID 1000.** `./media` must be writable by that user. On Linux with another UID, `chown` it to 1000 until audit finding 44 is fixed. The image prepares the `sqlite-data` volume itself.
+- **Containers run as UID 1000.** `./media` and `./backups` must be writable by that user. On Linux with another UID, `chown` them to 1000 until audit finding 44 is fixed. The image prepares the `sqlite-data` volume itself. If `./backups` is missing, Docker creates it as root and backups fail, so run setup first.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **Port 3000 is published on all interfaces** until Caddy arrives in Phase 1.
 - **`Too many attempts`** after 10 failed logins or setups from one address in 15 minutes. The count lives in memory, so restarting the API clears it.

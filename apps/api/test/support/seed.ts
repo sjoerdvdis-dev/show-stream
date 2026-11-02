@@ -9,9 +9,11 @@ import {
 	createUser,
 	extendSession,
 	findSession,
+	findUserByUsername,
 	migrateDatabase,
 	openDatabase,
 	saveMovie,
+	setSetting,
 	type Database,
 	type UserRole,
 } from '@workspace/db';
@@ -138,6 +140,30 @@ export const jobRow = (api: TestApi, movie: SeededMovie) =>
 			)
 			.get(movie.id),
 	);
+
+/** The stored row of the latest backup job. Nothing shows backups through the API. */
+export const backupJobRow = (api: TestApi) =>
+	withDatabase(api.databasePath, (db) =>
+		db.$client
+			.prepare<[], JobRow & { id: number }>(
+				`SELECT id, status, attempts, error FROM jobs WHERE type = 'backup' ORDER BY id DESC`,
+			)
+			.get(),
+	);
+
+/** Stands for a worker that last queued a backup on this day. */
+export const setLastBackupDay = (api: TestApi, day: string) => {
+	withDatabase(api.databasePath, (db) => setSetting(db, 'lastBackupDay', day));
+};
+
+/** Reads a user from a backup file, which proves that the file opens and holds the data. */
+export const findUserInBackup = (file: string, username: string) =>
+	withDatabase(file, (db) => findUserByUsername(db, username));
+
+/** Removes every title, so that each test of a shared server starts with an empty library. */
+export const clearLibrary = (api: TestApi) => {
+	withDatabase(api.databasePath, (db) => db.$client.prepare('DELETE FROM media').run());
+};
 
 /** Writes a file that has a video extension but is not a video. */
 export const addCorruptVideo = async (api: TestApi, movie: SeededMovie) => {
