@@ -125,10 +125,10 @@ describe('login with a session', () => {
 
 describe('a redirect value that leaves the app', () => {
 	it.each([
-		['another site', 'https://evil.example/'],
-		['a network path', '//evil.example/'],
-		['a backslash', '/\\evil.example/'],
-		['a hidden tab', '/\t/evil.example/'],
+		['another site', 'https://evil.example/watch/7'],
+		['a network path', '//evil.example/watch/7'],
+		['a backslash', '/\\evil.example/watch/7'],
+		['a hidden tab', '/\t/evil.example/watch/7'],
 		['a script', 'javascript:alert(1)'],
 		['an API route', '/api/auth/logout'],
 		['a stream', '/streams/1/playlist.m3u8'],

@@ -23,15 +23,22 @@ ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries
 
 ## Run the apps
 
-Start the API on port 5000, the worker and the client on port 3000:
+Start the API on port 5000, the worker, the Next client on port 3000 and the new web client on port 5173:
 
 ```bash
 pnpm dev
 ```
 
-Open <http://localhost:3000>. A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
+| Client | Open | Notes |
+|---|---|---|
+| `apps/next-client` | <http://localhost:3000> | What Compose serves today |
+| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Thin library and player so far, and it prepares no titles |
 
-`pnpm dev` builds `packages/contract`, `packages/db` and `packages/api-client` first, and the API runs that build. After changing one of them, restart `pnpm dev`.
+A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
+
+Vite binds to `127.0.0.1`, and proxies `/api`, with the prefix removed, `/socket` and `/streams` to the API, which is what Caddy does in production. The proxy keeps the browser's `Host`, so the API's `Origin` check passes, and it does not reach the build. `API_SERVER_URL` moves its target, which defaults to `http://localhost:5000`.
+
+`pnpm dev` builds `packages/contract`, `packages/db` and `packages/api-client` first, and the API and `apps/web` run that build. After changing one of them, restart `pnpm dev`.
 
 `pnpm dev` reads media from `apps/api/media`, and Docker reads it from `./media`.
 
@@ -85,7 +92,7 @@ pnpm turbo check-types lint build test
 
 | Command | Runs | Needs |
 |---|---|---|
-| `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, and database tests in `packages/db/test` | Nothing beyond setup. No Docker |
+| `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, database tests in `packages/db/test`, and client tests in `apps/web/test` | Nothing beyond setup. No Docker |
 | `pnpm test:browser` | Chromium tests in `apps/e2e` | Docker |
 
 **API tests** start the real API and a real worker as child processes, from temporary copies of their source, and speak HTTP to the API. Each suite gets its own pair and its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media or backups. The worker's TMDB calls go to a closed port, so nothing leaves your machine, unless a test passes `fakeTmdb`, which answers them from `test/support/fake-tmdb.mjs`.
@@ -99,6 +106,8 @@ To catch a job partway, a test calls `holdFfmpeg` from `test/support/ffmpeg.ts`.
 **Database tests** call `packages/db` directly on a temporary file, for what HTTP cannot see: migrations from empty, the pragmas, a shared TMDB ID, a title with no TMDB ID, a single settings row, and when a scan or a backup can be queued.
 
 Almost every route needs a session, so a test starts with `api.createOwner()` and makes its requests through the client that returns.
+
+**Client tests** run the real router and query client of `apps/web` in `jsdom`, against a small fake API in `msw`, from `test/support/fake-api.ts`. `hls.js` and Socket.IO are fakes there, because they need a real browser and a real server, so check those by hand in Chromium. `apps/e2e` stays on the Next client until Phase 2 item 7.
 
 **Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 
@@ -195,6 +204,6 @@ Never commit real values.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **`Too many attempts`** after 10 failed logins or setups from one address in 15 minutes. The count lives in memory, so restarting the API clears it.
-- **`pnpm dev` is not the shipped path.** It has no Caddy, so `next.config.mjs` rewrites `/api` and `/socket` to the API, and a built client has neither rewrite. Next passes on a client's own `X-Forwarded-For` there, so the rate limit proves nothing under `pnpm dev`, and Next answers `/socket/` with a 308 first. Test those through `pnpm test:browser`.
+- **`pnpm dev` is not the shipped path.** It has no Caddy, so `next.config.mjs` rewrites `/api` and `/socket` to the API, as the proxy in `apps/web/vite.config.ts` does for the new client, and a built client has neither. Next passes on a client's own `X-Forwarded-For` there, so the rate limit proves nothing under `pnpm dev`, and Next answers `/socket/` with a 308 first. Test those through `pnpm test:browser`.
 - **`vitest` alone needs the packages built.** `pnpm test` builds them first. If you run `vitest` directly in `apps/api`, run `pnpm turbo build --filter=api^...` once.
 - **ffmpeg cannot write to a `MEDIA_FOLDER` containing `%d` or a form like `%03d`.** It reads that as part of the segment pattern, and `%%` does not escape it. Rename the folder.

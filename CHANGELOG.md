@@ -24,6 +24,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `PUID` and `PGID` set who owns the database, the cache and the backups, and default to 1000.
 - Health checks on the API, the worker, the Next client and Caddy. Services start in order, with no crash loops.
 - `LOG_LEVEL` sets how much the API and the worker log, and defaults to `info`.
+- `apps/web`, the static React client that replaces Next in Phase 2. `pnpm dev` serves it at <http://127.0.0.1:5173> beside Next, with setup, login, logout, notifications, and a thin library and player. Compose and Caddy do not serve it yet.
 - Caddy as the only published service, on ports 80 and 443, with HTTPS by default. `TLS_MODE` selects `internal`, `public` or `tailscale`, and `SITE_ADDRESS` names the server, in an optional `.env` at the root. `docs/guides/self-hosting.md` explains them. `public` and `tailscale` pass `caddy validate`, but have not been run.
 
 ### Changed

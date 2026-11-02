@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started, and `apps/web` exists with login working end to end. Next:
 
-1. **Start Phase 2, the design system and frontend rebuild** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 2 at item 2, tokens and fonts** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -53,7 +53,8 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db` and `packages/logger` written; the rest arrive with their apps and packages |
+| `apps/web` | Done for Phase 2 item 1. A static Vite SPA with setup, login, sessions, the 401 path, an authenticated socket, and a thin library and player. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db` and `packages/logger` written; the rest arrive with their apps and packages |
 
 **Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
 
@@ -96,20 +97,20 @@ The client is almost entirely client-rendered, and Next's server side was two se
 
 ### 4.3 Libraries
 
-**Tested** means it is in the 2026-11-01 stack spike. Versions are current latest and get pinned when installed.
+**Tested** means it is in the 2026-11-01 stack spike. **In use** means an app runs it. Versions are the latest that pnpm's minimum release age allowed when each was installed.
 
 | Purpose | Library | Version | Status |
 |---|---|---|---|
-| UI runtime | `react`, `react-dom` | 19.3.1 | Tested |
-| Build | `vite`, `@vitejs/plugin-react` | 8.3.5, 6.1.2 | Tested |
-| Routing | `@tanstack/react-router`, `@tanstack/router-plugin` | 1.170.46, 1.168.48 | Tested |
-| Server state | `@tanstack/react-query` | 5.105.1 | Tested |
-| Styling | `tailwindcss`, `@tailwindcss/vite` | 4.3.3 | Tested |
+| UI runtime | `react`, `react-dom` | 19.3.1 | In use |
+| Build | `vite`, `@vitejs/plugin-react` | 8.3.5, 6.1.2 | In use in `apps/web` |
+| Routing | `@tanstack/react-router`, `@tanstack/router-plugin` | 1.170.46, 1.168.48 | In use in `apps/web` |
+| Server state | `@tanstack/react-query` | 5.105.1 | In use in `apps/web` |
+| Styling | `tailwindcss`, `@tailwindcss/vite` | 4.3.3 | In use in `apps/web` |
 | Primitives | `@base-ui/react` through shadcn | 1.9.0 | Tested, one component |
 | Animation | `tw-animate-css` | 1.4.0 | Planned |
 | Icons | `lucide-react` | 1.66.0 | Installed in spike |
-| Forms | `react-hook-form`, `@hookform/resolvers` | 7.91.0, 7.0.1 | Installed in spike |
-| Validation | `zod`, shared through `packages/contract` | 4.6.7 | Tested |
+| Forms | `react-hook-form`, `@hookform/resolvers` | 7.91.0, 7.0.1 | In use in `apps/web` |
+| Validation | `zod`, shared through `packages/contract` | 4.6.7 | In use |
 | Large lists | `@tanstack/react-virtual` | 3.14.25 | Installed in spike |
 | Video | `hls.js` | 1.7.4 | In use today |
 | Player controls | `media-chrome` | 4.19.4 | Planned; confirm when building S8 |
@@ -122,9 +123,9 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Fonts | `@fontsource-variable/geist` | 5.3.0 | Tested |
 | PWA | `vite-plugin-pwa` | 2.0.0 | Tested, service worker generated |
 | Desktop | `electron`, `electron-builder` | 45.2.1, 26.18.0 | Planned |
-| Unit tests | `vitest` | 5.0.5 | In use for the API |
-| Component tests | `@testing-library/react` | 16.3.3 | Planned |
-| API mocks | `msw` | 3.0.3 | Planned |
+| Unit tests | `vitest`, with `jsdom` 30.1.3 in `apps/web` | 5.0.5 | In use |
+| Component tests | `@testing-library/react`, `@testing-library/user-event` | 16.3.3, 14.6.8 | In use in `apps/web` |
+| API mocks | `msw` | 3.0.3 | In use in `apps/web` |
 | Browser tests | `@playwright/test` | 1.64.1 | In use in `apps/e2e` |
 
 **Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), and the Next ESLint rules.
@@ -140,7 +141,17 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Typecheck | Pass |
 | Invalid search param value (`sort: 'rating'`) | **Rejected at compile time** |
 
-Not tested: a full app, Base UI beyond a dialog, or browser behavior of auth guards.
+The spike did not test a full app, Base UI beyond a dialog, or browser behavior of auth guards. `apps/web` has since tested these in Chromium on 2026-11-02, against `pnpm dev` with a fresh database and fake values:
+
+| Check | Result |
+|---|---|
+| Static build on the stack, with route splitting | Pass. `dist` holds only static files, and `hls.js` stays in the player's chunk |
+| Auth guards in a real browser | Pass: `/setup`, `/login`, the return path, a reload, logout |
+| Session removed from the database during playback | Pass. The next segment's 401 returns to login with the return path |
+| Vite proxy with `Host` kept | Pass. Login, the `Origin` check and the socket's WebSocket upgrade all work through it |
+| `hls.js` debug | Pass. Off in a build, on under `pnpm dev` |
+
+Still not tested: Base UI beyond a dialog, the PWA build of a full app, and `apps/web` behind Caddy, which is item 7.
 
 ### 4.5 App structure
 
@@ -379,7 +390,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 30 | "Popularity" sorts by vote count | Server-side sort on the correct field | 2 |
 | 31 | `.sort()` mutates shared arrays | Sorting moves to the server | 2 |
 | 32 | Empty library gives `-Infinity` | Facets come from the API | 2 |
-| 33 | hls.js debug on in production | Dev only | 2 |
+| 33 | hls.js debug on in production | Dev only. Done in `apps/web`, and Next keeps it until item 8 deletes it | 2 |
 | 34 | Socket 308 on each request | Direct `/socket` route through Caddy. `pnpm dev` keeps the 308 | Done |
 
 ### Tooling and repo
@@ -430,7 +441,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | Everything else in `pnpm outdated` | Various | Latest | Done | Except rows below, which are removed or replaced later |
 | dotenv | 16.6.1 | Removed | Done | `process.loadEnvFile` in the config module replaces it, with the same order and non-override behaviour |
 | lucide-react | 0.477.0 | 1.66.0 | 2 | Major jump; check icon renames |
-| @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | With the form rebuild |
+| @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | `apps/web` is on 7.0.1, and the Next client keeps 5.9.2 until it is deleted |
 | react-day-picker | 9.14.0 | 10.0.2 | 2 | With the shadcn update |
 | mongoose | 8.24.7 | Removed | Done | With `mongodb-memory-server` |
 | fluent-ffmpeg | 2.1.3 | Removed | Done | Replaced by a `spawn` wrapper in `apps/worker` |
@@ -732,11 +743,13 @@ Checked on 2026-11-02:
    - The return to login on any 401, from a data call or `hls.js`.
    - Connecting the notification socket at `/socket`, the path Caddy routes to the API, only once there is a session, and disconnecting it on leaving.
    - Asking for streams at `/streams` rather than `/api/streams`, which Caddy serves too.
+
+   **Status:** done. `apps/web` covers all of the above, with a thin `/movies` and `/watch/$id` that item 6 replaces. `apps/e2e` stays on Next until item 7 moves it.
 2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
 3. Update shadcn and migrate primitives to Base UI.
 4. Build the patterns and `/dev/components`.
 5. Add the API image cache and server-side library queries.
-6. Rebuild Movies, Movie detail, Player and Settings on the patterns, including everything item 8 added to the Next client:
+6. Rebuild Login, Setup, Movies, Movie detail, Player and Settings on the patterns, including everything item 8 added to the Next client:
    - The `failed` status, with its icon, tooltip and an option in the status filter.
    - The reason for a failure on the movie's detail page, with a Retry button in place of Play.
    - A failure toast with the reason and a Retry action when a failed title is played from a card.
