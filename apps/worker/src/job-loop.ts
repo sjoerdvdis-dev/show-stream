@@ -1,4 +1,5 @@
 import { claimNextJob, failJob, finishJob, requeueJob, type Database, type Job } from '@workspace/db';
+import type { Logger } from '@workspace/logger';
 
 const pollIntervalMs = 250;
 
@@ -8,30 +9,43 @@ export type JobHandler = (job: Job, signal: AbortSignal) => Promise<void>;
 /** One handler per job type. The compiler rejects a missing one. */
 export type JobHandlers = Record<Job['type'], JobHandler>;
 
+export type JobLoopOptions = {
+	logger: Pick<Logger, 'info' | 'error'>;
+	/** Called after each turn in which the queue could be read, so never by a loop that is stuck. */
+	onTurn: () => void;
+};
+
 const reasonOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+const fieldsOf = (job: Job) => ({ jobId: job.id, jobType: job.type });
 
 /**
  * Runs queued jobs, up to `concurrency` at a time. Every job it claims ends as done or failed,
  * unless `stop` interrupts it, which puts it back in the queue.
  */
-export const createJobLoop = (db: Database, handlers: JobHandlers, concurrency: number) => {
+export const createJobLoop = (
+	db: Database,
+	handlers: JobHandlers,
+	concurrency: number,
+	{ logger, onTurn }: JobLoopOptions,
+) => {
 	const running = new Set<Promise<void>>();
 	const stopping = new AbortController();
 	let timer: NodeJS.Timeout | undefined;
 
 	const run = async (job: Job) => {
-		console.log(`Started ${job.type} job ${job.id}, attempt ${job.attempts}`);
+		logger.info('Started job', { ...fieldsOf(job), attempt: job.attempts });
 		try {
 			await handlers[job.type](job, stopping.signal);
 			finishJob(db, job.id);
-			console.log(`Finished ${job.type} job ${job.id}`);
+			logger.info('Finished job', fieldsOf(job));
 		} catch (error) {
 			if (stopping.signal.aborted) {
 				requeueJob(db, job.id);
-				console.log(`Requeued ${job.type} job ${job.id} for the next start`);
+				logger.info('Requeued job for the next start', fieldsOf(job));
 			} else {
 				failJob(db, job.id, reasonOf(error));
-				console.error(`Failed ${job.type} job ${job.id}: ${reasonOf(error)}`);
+				logger.error('Failed job', { ...fieldsOf(job), reason: reasonOf(error) });
 			}
 		}
 	};
@@ -44,7 +58,9 @@ export const createJobLoop = (db: Database, handlers: JobHandlers, concurrency: 
 			}
 			const jobRun: Promise<void> = run(job)
 				// A job left `running` here is recovered at the next start.
-				.catch((error) => console.error(`Could not record the end of job ${job.id}:`, error))
+				.catch((error) => {
+					logger.error('Could not record the end of a job', { ...fieldsOf(job), error });
+				})
 				.finally(() => running.delete(jobRun));
 			running.add(jobRun);
 		}
@@ -53,9 +69,10 @@ export const createJobLoop = (db: Database, handlers: JobHandlers, concurrency: 
 	const tick = () => {
 		try {
 			claimJobs();
+			onTurn();
 		} catch (error) {
 			// Most likely a busy database, and the next tick can try again.
-			console.error('Could not claim a job:', error);
+			logger.error('A turn of the job loop failed', { error });
 		}
 	};
 

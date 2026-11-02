@@ -8,7 +8,7 @@ import { createLoggerMiddleware } from './log';
 import { config } from './config';
 import { ApiFailure, createErrorHandler, unknownRouteHandler } from './errors';
 import { bindRoutes, type Handlers } from './routes';
-import type { Logger } from 'winston';
+import type { Logger } from '@workspace/logger';
 
 const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
 

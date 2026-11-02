@@ -1,5 +1,5 @@
 import { config } from './config';
-import { createLogger } from './log';
+import { logger } from './log';
 import { createServer } from './server';
 import {
 	announceFinishedTranscodes,
@@ -13,8 +13,6 @@ import { setupNotifications } from './notification';
 import { login, logout, me, removeExpiredSessions, setup, setupStatus } from './auth';
 
 const announceIntervalMs = 500;
-
-const logger = createLogger();
 
 // API Routes
 

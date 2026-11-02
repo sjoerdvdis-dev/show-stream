@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication and the worker are done. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Next:
 
-1. **Finish Phase 1 with the rest of item 9: health checks, secrets, logs and `PUID`** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)). Caddy and HTTPS are done.
+1. **Start Phase 2, the design system and frontend rebuild** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -43,15 +43,19 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | Authentication | Done. The API owns sessions and first-run setup, every route needs a session unless the contract marks it public, and sockets are authenticated with per-user rooms |
 | Worker | Done. `apps/worker` runs transcodes, library scans and daily backups from a job queue in SQLite, with recovery, retry and failure reasons. An admin starts a scan and reads its result in Settings. A real TMDB token has not been tried ([section 15](#15-risks-and-unknowns)) |
 | Caddy and HTTPS | Done. Caddy is the only published service, `TLS_MODE` selects `internal`, `public` or `tailscale`, and the browser tests run through it over HTTPS. Only `internal` has been run: the other two pass `caddy validate`, and the maintainer must try them ([section 15](#15-risks-and-unknowns)) |
+| Runtime secrets | Done. One optional `.env` at the root reaches the worker at runtime, and `.dockerignore` excludes every env file except the tracked `.env.production` files. `pnpm test:browser` plants fake ones and reads every built image for them |
+| Health checks | Done. All four services have one, and `depends_on` uses `service_healthy`. The API's uses `GET /auth/setup`, so the public route list stays at three |
+| Structured logs | Done. `packages/logger` gives the API and the worker JSON on stdout, `LOG_LEVEL` sets the level, no file is written, and Compose keeps three files of 10 MB per service |
+| `PUID` and `PGID` | Done. Both default to 1000. Tested on fresh volumes with other IDs on the database, cache and backups. An NFS share that refuses the change is not tested |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Port 5000 closed to the host | Committed and tested |
-| Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data. A clean clone reaches `/setup` over HTTPS with no prior step |
+| Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data. A clean copy with no `.env`, no setup script and no network of its own reaches `/setup` in Chromium over HTTPS |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client` and `packages/db` written; the rest arrive with their apps and packages |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db` and `packages/logger` written; the rest arrive with their apps and packages |
 
-**Not yet safe for the internet.** Secrets are baked into the image. The rest of item 9 fixes that.
+**Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
 
 ## 3. Decisions
 
@@ -250,9 +254,12 @@ show-stream/
 │   ├── contract/       Zod schemas and inferred types
 │   ├── api-client/     Typed client used by every app
 │   ├── db/             Drizzle schema, migrations, queries
+│   ├── logger/         JSON logs on stdout, for the API and the worker
 │   ├── eslint-config/
 │   └── typescript-config/
-├── infra/caddy/        Caddyfile
+├── infra/
+│   ├── caddy/          Caddyfile
+│   └── docker/         Entrypoint of the API and worker images
 ├── docs/
 ├── docker-compose.yml
 └── docker-compose.dev.yml
@@ -322,6 +329,8 @@ The API serves these at `/auth/*`, and clients reach them as `/api/auth/*`, beca
 | Scans | `POST /scan` queues a job and answers 202, or 409 if one is active. The worker saves each title as it goes, and keeps counts and up to 20 problems in the job's payload. `GET /scan` reads them |
 | Scan outcome | The job fails if there is no TMDB token, or if folders were found and none were identified. Partial success is `done`, with its failures listed. Nothing retries a scan, because an admin can start another |
 | Backups | The worker checks every minute. When a new UTC day has no backup, one transaction queues a `backup` job and stores the day in `settings`, so that a restart cannot repeat it, and recovery looks after the job. A missed day is taken at the next start. A failed backup waits for the next day |
+| Logs | One JSON object per line on stdout, through `packages/logger`, with `jobId` and `jobType` as fields |
+| Health | The loop writes a heartbeat file at most every 5 seconds, only after a turn that could read the queue. The Compose check fails when the file is over a minute old. A long job does not stop the loop, so it does not fail the check. Docker does not restart an unhealthy worker |
 | Backup files | `VACUUM INTO` writes `show-stream-YYYY-MM-DD.db.partial` in `BACKUP_FOLDER`, which is renamed when complete. A day with a file keeps it, so that a restore cannot be overwritten by the older database. The last 7 stay |
 
 There is one worker per database. Claims are safe with two, but a worker starting up treats every `running` job as dead, so a second worker requeues what the first is running.
@@ -338,7 +347,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 2 | API has no authentication | Port closed. Auth required by default ([section 5.6](#56-authentication)) | Done |
 | 3 | Default `admin`/`admin` | First-run setup screen creates the owner, and a migration deletes the old account | Done |
 | 4 | MongoDB `root`/`root` | Gone with SQLite, which has no password or server | Done |
-| 5 | Secrets in the API image | Exclude `.env`; pass with `env_file` | 1 |
+| 5 | Secrets in the API image | `.dockerignore` excludes every env file; the worker gets `.env` through `env_file` | Done |
 | 9 | Operator injection at login | Zod validation in the contract, and Drizzle parameters | Done |
 | 10 | Sessions expire mid-film | Sliding 30-day sessions | Done |
 | 39 | Cookie not `Secure` | `Secure` by default, and only `pnpm dev` turns it off | Done |
@@ -356,8 +365,8 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 14 | Scan reports false success | Scan is a job with counts and errors | Done |
 | 15 | `lastScanTime` adds rows | Gone. A scan's job keeps its time | Done |
 | 16 | No limit on ffmpeg jobs | Queue with a concurrency limit | Done |
-| 36 | Startup relies on crash loops | Health checks and `depends_on` | 1 |
-| 37 | Logs unrotated, not on a volume | Structured logs to stdout | 1 |
+| 36 | Startup relies on crash loops | Health checks and `depends_on` with `service_healthy` | Done |
+| 37 | Logs unrotated, not on a volume | Structured logs to stdout, capped by Compose | Done |
 
 ### Frontend behavior
 
@@ -397,7 +406,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 41 | Client container crashed at startup; the old image needs internet at boot | Containers start with `node` | Done |
 | 42 | API could not write `media/` | API runs as UID 1000 | Done |
 | 43 | MongoDB could not start on a fresh `./data` | Gone with the MongoDB container. The image gives `/data` to UID 1000 | Done |
-| 44 | UID 1000 is hardcoded | Make `PUID`/`PGID` configurable and document it | 1 |
+| 44 | UID 1000 is hardcoded | `PUID` and `PGID`. The image starts as root, takes what the app writes, and drops with `su-exec` | Done |
 | 45 | Compose used to publish ports 5000 and 27017 | Closed; dev-only ports live in the dev file | Done |
 | 46 | `--font-sans` points at an undefined `--font-geist-sans`, and Zain loads but no class uses it | One font setup ([section 9.4](#94-typography)). Check the rendered font first | 2 |
 | 47 | `PlayButton` is duplicated in two files | One shared pattern | 2 |
@@ -666,6 +675,7 @@ Claude Code reads `AGENTS.md` natively as long as no `CLAUDE.md` exists, and nes
 | `packages/AGENTS.md` | Packages never import from apps; changes to shared packages need a check of their consumers |
 | `packages/ui/AGENTS.md` | The layers and rules from [section 9.2](#92-layers), how to add shadcn components |
 | `packages/db/AGENTS.md` | Schema changes through migrations only, never edit an applied migration |
+| `packages/logger/AGENTS.md` | One log format, facts as fields, no secrets in a log line |
 | `packages/contract/AGENTS.md` | Schemas are the source of truth; breaking changes need a version note |
 | `packages/api-client/AGENTS.md` | Calls come from the contract, with no per-endpoint code; every failure throws `ApiError` |
 | `docs/AGENTS.md` | What each document is for, keep `PLAN.md` current, record decisions as ADRs |
@@ -701,11 +711,17 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`. Remove `SESSION_COOKIE_SECURE` from `docker-compose.yml`, and test finding 52.
 
-**Status:** items 1 to 8 are done, and no `it.fails` marker remains. In item 9, Caddy, HTTPS and the removal of `SESSION_COOKIE_SECURE` from Compose are done, and finding 52 is tested. Health checks, secrets through `env_file`, structured logs and `PUID` are next.
+**Status:** done. All 9 items are finished, and no `it.fails` marker remains.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
 
 **Done when:** the audit crash cases have passing tests, only 80 and 443 are public, and a fresh `docker compose up` reaches a setup screen. **This is the earliest the app may go on the internet.**
+
+Checked on 2026-11-02:
+
+- [x] **Audit crash cases have passing tests.** A corrupt file and an interrupted job (findings 6, 7) in `apps/api/test/worker.test.ts`, and a malformed URL (finding 8) in `malformed-requests.test.ts`.
+- [x] **Only 80 and 443 are public.** `apps/api/test/public-entry.test.ts`, in the required check.
+- [x] **A fresh `docker compose up` reaches a setup screen.** Run by hand from a clean copy, with no `.env`, no setup script and no network made for it: Chromium reached `https://localhost/setup`.
 
 ### Phase 2: Design system and frontend rebuild
 
@@ -806,13 +822,13 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Test stack and CI | Phase 1 |
 | Backups for SQLite | Done. Daily, in [section 5.7](#57-worker-and-jobs) and section 8 |
 | Automated dependency updates | Phase 1, with CI, through Renovate |
-| Config validation and structured logs | Config validation is done; structured logs arrive in Phase 1 item 9 |
+| Config validation and structured logs | Done. `packages/logger` |
 | Trusted HTTPS for LAN-only installs | Section 5.2 |
 | Shared API contract and typed client | Done, in `packages/contract` and `packages/api-client` |
 | Background job handling without Redis | Done. [Section 5.7](#57-worker-and-jobs) |
 | Image caching | Phase 2 |
 | Keyboard and TV navigation | Section 9.2 |
-| `PUID`/`PGID` for other hosts | Section 6, item 44 |
+| `PUID`/`PGID` for other hosts | Done. Section 6, item 44 |
 | Release flow, image registry, changelog | Before first public release |
 | Project licence | Apache-2.0, in `LICENSE` and `NOTICE` |
 

@@ -1,5 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
-import type { Logger } from 'winston';
+import type { Logger } from '@workspace/logger';
 import type { ApiErrorBody, ApiErrorCode, ApiErrorDetail } from '@workspace/contract/errors';
 
 const statusOfCode: Record<ApiErrorCode, number> = {

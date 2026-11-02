@@ -1,12 +1,14 @@
 # Security Policy
 
-## Not safe for the internet yet
+## Going on the internet
 
-ShowStream is in early development. Do not expose it to the internet until Phase 1 of [the plan](./docs/PLAN.md) is finished. These problems are known and planned:
+ShowStream is in early development. Phase 1 of [the plan](./docs/PLAN.md) is finished, which is the earliest it may go on the internet. Expose it only with care, and know what has not been tried:
 
-- Secrets are built into the API image.
+- The `public` and `tailscale` HTTPS modes pass `caddy validate`, but have not been run.
+- Real TMDB responses have not been tried.
+- There is no HSTS, because it would lock out devices that do not trust the internal CA yet.
 
-Compose serves HTTPS through Caddy, with a `Secure` session cookie, and Caddy replaces a client's own `X-Forwarded-For`. See the [self-hosting guide](./docs/guides/self-hosting.md). The `public` and `tailscale` HTTPS modes pass `caddy validate`, but have not been run.
+Compose serves HTTPS through Caddy, with a `Secure` session cookie, and Caddy replaces a client's own `X-Forwarded-For`. Only ports 80 and 443 are published. Every route needs a session unless it is one of the three public ones. Secrets reach containers at runtime through an optional `.env`, and `.dockerignore` keeps them out of images. The API and the worker drop root before the app starts. See the [self-hosting guide](./docs/guides/self-hosting.md).
 
 ## Supported versions
 

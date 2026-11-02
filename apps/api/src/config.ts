@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { logLevels } from '@workspace/logger';
 import { z } from 'zod';
 
 /**
@@ -39,6 +40,7 @@ const environmentSchema = z.object({
 	DATABASE_PATH: optional(z.string()),
 	SESSION_COOKIE_SECURE: optional(z.enum(['true', 'false'], { error: 'must be true or false' })),
 	MEDIA_FOLDER: optional(z.string().refine(isFolder, 'must be an existing folder')),
+	LOG_LEVEL: optional(z.enum(logLevels, { error: `must be one of ${logLevels.join(', ')}` })),
 });
 
 const parseEnvironment = () => {
@@ -62,4 +64,5 @@ export const config = {
 	sessionCookieSecure: environment.SESSION_COOKIE_SECURE !== 'false',
 	/** The library, which the worker scans, and transcodes cache under. Always absolute. */
 	mediaFolder: path.resolve(environment.MEDIA_FOLDER ?? path.join(__dirname, '../media')),
+	logLevel: environment.LOG_LEVEL ?? 'info',
 };

@@ -56,6 +56,8 @@ export type ApiOptions = {
 	prepareDatabase?: (databasePath: string) => Promise<void>;
 	/** Sets JOB_CONCURRENCY for the worker. */
 	jobConcurrency?: number;
+	/** Sets LOG_LEVEL for the API and the worker. */
+	logLevel?: string;
 };
 
 type Headers = Record<string, string>;
@@ -82,8 +84,12 @@ export type TestApi = Requests & {
 	mediaFolder: string;
 	/** The API's base URL. */
 	url: string;
+	/** This server's temporary folder, where it and its worker run. */
+	folder: string;
 	/** Everything the API has printed since it last started. */
 	output: () => string;
+	/** What the API has written to stdout since it last started. */
+	stdout: () => string;
 	/** This server's own SQLite file. */
 	databasePath: string;
 	/** Where the worker writes daily backups. */
@@ -98,6 +104,8 @@ export type TestApi = Requests & {
 	restart: () => Promise<void>;
 	/** Everything the workers have printed. */
 	workerOutput: () => string;
+	/** What the workers have written to stdout. */
+	workerStdout: () => string;
 	/** Starts one more worker, and resolves once it is taking jobs. */
 	startWorker: () => Promise<void>;
 	/** Kills every worker with no warning, as a crash or a power cut would. */
@@ -110,8 +118,8 @@ export type TestApi = Requests & {
 /**
  * Starts the real API and a real worker as child processes, with their own database and folders.
  *
- * The API finds its media and log folders relative to its own source, so it runs from a
- * temporary copy of `src`. Started in place, it would write to the developer's `media`.
+ * The API finds its media folder relative to its own source, so it runs from a temporary
+ * copy of `src`. Started in place, it would write to the developer's `media`.
  */
 export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 	const root = await prepareFolder();
@@ -133,11 +141,15 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 
 	let child: ChildProcess;
 	let output = '';
+	let stdout = '';
 	let workerOutput = '';
+	let workerStdout = '';
+	const logLevel = options.logLevel ? { LOG_LEVEL: options.logLevel } : {};
 	const workers: ChildProcess[] = [];
 
 	const launch = () => {
 		output = '';
+		stdout = '';
 		child = spawn(process.execPath, launchArguments, {
 			cwd: root,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -147,9 +159,13 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 				DATABASE_PATH: databasePath,
 				...(options.envFile ? {} : { NEXT_CLIENT_URL: 'http://localhost:3000' }),
 				...(options.mediaFolder ? { MEDIA_FOLDER: options.mediaFolder } : {}),
+				...logLevel,
 			},
 		});
-		child.stdout?.on('data', (data) => (output += data));
+		child.stdout?.on('data', (data) => {
+			output += data;
+			stdout += data;
+		});
 		child.stderr?.on('data', (data) => (output += data));
 	};
 
@@ -251,6 +267,7 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 				BACKUP_FOLDER: backupFolder,
 				TMDB_API_READ_ACCESS_TOKEN: options.tmdbToken ?? 'fake-token-for-api-tests',
 				...(options.jobConcurrency ? { JOB_CONCURRENCY: String(options.jobConcurrency) } : {}),
+				...logLevel,
 			},
 		});
 		let thisWorkerOutput = '';
@@ -258,12 +275,17 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 			thisWorkerOutput += data;
 			workerOutput += data;
 		};
-		worker.stdout.on('data', collect);
+		worker.stdout.on('data', (data) => {
+			collect(data);
+			workerStdout += data;
+		});
 		worker.stderr.on('data', collect);
 		workers.push(worker);
 
+		// At this level the worker never says that it is running.
+		const isQuiet = options.logLevel === 'error';
 		const deadline = Date.now() + 20_000;
-		while (!thisWorkerOutput.includes('Worker is running')) {
+		while (!isQuiet && !thisWorkerOutput.includes('Worker is running')) {
 			if (worker.exitCode !== null || Date.now() > deadline) {
 				throw new Error(`The worker did not start. Last output:\n${thisWorkerOutput.slice(-2000)}`);
 			}
@@ -290,7 +312,9 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 	return {
 		mediaFolder,
 		url,
+		folder: root,
 		output: () => output,
+		stdout: () => stdout,
 		databasePath,
 		backupFolder,
 		...requests,
@@ -303,6 +327,7 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 			await waitUntilReady();
 		},
 		workerOutput: () => workerOutput,
+		workerStdout: () => workerStdout,
 		startWorker,
 		killWorkers: async () => {
 			await endWorkers('SIGKILL');

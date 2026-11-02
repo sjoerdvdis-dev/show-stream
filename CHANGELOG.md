@@ -21,6 +21,9 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `JOB_CONCURRENCY` limits how many jobs run at once, and defaults to 1.
 - A Library section in Settings, where an owner or admin starts a scan and reads its result.
 - A daily database backup, written by the worker to `./backups` with `VACUUM INTO`, keeping the last 7. `BACKUP_FOLDER` moves it under `pnpm dev`. The guide explains how to restore one.
+- `PUID` and `PGID` set who owns the database, the cache and the backups, and default to 1000.
+- Health checks on the API, the worker, the Next client and Caddy. Services start in order, with no crash loops.
+- `LOG_LEVEL` sets how much the API and the worker log, and defaults to `info`.
 - Caddy as the only published service, on ports 80 and 443, with HTTPS by default. `TLS_MODE` selects `internal`, `public` or `tailscale`, and `SITE_ADDRESS` names the server, in an optional `.env` at the root. `docs/guides/self-hosting.md` explains them. `public` and `tailscale` pass `caddy validate`, but have not been run.
 
 ### Changed
@@ -43,6 +46,8 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - **Upgrading to scans in the worker:** rebuild with `bash build-docker.sh`. Under Compose the worker now reads `TMDB_API_READ_ACCESS_TOKEN` from `apps/api/.env`, and the API no longer does. Run `scripts/setup.sh`, or create `./backups` yourself, before starting, because Docker would otherwise create it as root and backups would fail.
 - **Breaking:** port 3000 is no longer published. Open <https://localhost>, or your `SITE_ADDRESS`, and port 80 redirects there. The session cookie is now `Secure` under Compose. `/api`, `/streams` and `/socket` go straight from Caddy to the API, and a built Next client no longer has a route to the API, so `API_SERVER_URL` applies only to `pnpm dev`. The API no longer sends HSTS, which would have locked out devices that do not trust the internal CA yet.
 - **Upgrading to Caddy:** rebuild with `bash build-docker.sh`. `docker compose up` no longer needs a prior step, and the old `show_stream_network` can be removed with `docker network rm show_stream_network`. Containers lose their fixed names, so they are named after the Compose project. Keep the new `caddy-data` volume, because it holds the internal CA.
+- **Breaking:** the API and the worker log JSON to stdout, one object per line, and `apps/api/logs` is gone. The worker's messages changed too, with `jobId` and `jobType` as fields. Compose keeps three files of 10 MB per service.
+- **Upgrading to runtime secrets:** Compose no longer reads `apps/api/.env`, which stays for `pnpm dev`. A TMDB token set there no longer reaches Compose, so move it to a `.env` at the repository root. Rebuild with `docker compose up -d --build`. An image built before this change may hold your `.env`, so delete it and any copy you shared, and replace the token if you shared one. The containers now start as root and drop to `PUID:PGID`, and the first start gives `./backups`, `./media/cache` and the database to that user, so set your IDs first if they are not 1000. Caddy now waits until the API and the Next client are healthy, which adds a few seconds to a start.
 - The API moved from `apps/api-server` to `apps/api`, and `packages/types` became `packages/contract`. In an existing clone, move your `.env` and any media from `apps/api-server` to `apps/api`. The Compose service and container are now `api`, so run `docker compose up -d --remove-orphans` to replace the old container.
 
 ### Fixed
@@ -57,6 +62,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - An interrupted transcode can no longer be served as ready, because output reaches the cache only on success.
 - Any number of simultaneous requests no longer starts as many ffmpeg processes.
 - A client can no longer escape the login rate limit by setting its own `X-Forwarded-For`, and the notification socket no longer takes a 308 on each request.
+- A real `.env` can no longer reach an image: `.dockerignore` excludes every one at any depth, except the tracked `.env.production` files.
 - A scan no longer reports success when it identified nothing. With no TMDB token, or with no folder identified, it fails with a reason. A partial scan finishes and lists its failures.
 
 ### Removed

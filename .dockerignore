@@ -3,12 +3,15 @@
 Dockerfile
 .git
 .gitignore
-dist
-.log
-.next
-.turbo
+**/dist
+**/.next
+**/.turbo
 data
 media
 backups
-.env.example
 *.md
+
+# Every env file at any depth, whatever its suffix, so that a secret cannot reach an image.
+# The exception is what the build and the API read in production. It is tracked, and holds no secrets.
+**/.env*
+!**/.env.production

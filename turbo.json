@@ -24,7 +24,7 @@
 			"persistent": true,
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.development", ".env.development.local"],
 			"env": ["NEXT_CLIENT_URL", "API_SERVER_URL"],
-			"passThroughEnv": ["DATABASE_PATH", "MEDIA_FOLDER", "JOB_CONCURRENCY", "BACKUP_FOLDER", "TMDB_API_READ_ACCESS_TOKEN"]
+			"passThroughEnv": ["DATABASE_PATH", "MEDIA_FOLDER", "JOB_CONCURRENCY", "BACKUP_FOLDER", "TMDB_API_READ_ACCESS_TOKEN", "LOG_LEVEL"]
 		}
 	}
 }

@@ -67,3 +67,77 @@ Fetching the root certificate and verifying `https://localhost` and an IP addres
 ## HSTS
 
 ShowStream sends no HSTS header. After HSTS a browser offers no way past a certificate it does not trust, which would lock out a device that has not trusted the internal CA yet.
+
+## Settings and secrets
+
+One optional `.env` at the root of the repository holds every setting, and [`.env.example`](../../.env.example) lists them. Compose starts without it. Only the worker gets the file, because only it needs the TMDB token for scans, and the API and the worker read the rest through `docker-compose.yml`.
+
+| Setting | Default | Does |
+|---|---|---|
+| `TLS_MODE`, `SITE_ADDRESS` | `internal`, `localhost` | [The HTTPS mode](#choose-an-https-mode) |
+| `TMDB_API_READ_ACCESS_TOKEN` | Empty | Library scans fail without it, and say so |
+| `PUID`, `PGID` | `1000` | [Who owns the data](#choose-who-owns-the-data) |
+| `LOG_LEVEL` | `info` | One of `error`, `warn`, `security`, `info`, `http` or `debug` |
+| `JOB_CONCURRENCY` | `1` | How many jobs the worker runs at once |
+
+Secrets arrive when a container starts, so sharing an image shares no secret. `.dockerignore` keeps every `.env` out of a build at any depth, whatever its suffix. Only the tracked `.env.production` files go in, and they hold no secrets.
+
+`apps/api/.env` is for `pnpm dev`, and Compose does not read it.
+
+## Choose who owns the data
+
+The API and the worker start as root, give the folders they write to `PUID:PGID`, then drop to that user. Set both in `.env` to your own IDs, from `id -u` and `id -g`, so that the files are yours on the host. On a NAS, use the user that owns the share.
+
+| Folder | Holds | Taken by |
+|---|---|---|
+| The `sqlite-data` volume | The database | The API and the worker |
+| `./backups` | Daily backups | The worker |
+| `./media/cache` | Transcodes | The worker, which creates it |
+| The rest of `./media` | Your videos | Nobody. They are only read, so this user must be able to read them |
+
+A start changes only files with another owner, so a normal start writes nothing, and changing `PUID` later takes what is there. If a share refuses the change, as NFS with root squash does, the container logs a warning and starts anyway, and the app may not be able to write there. `PUID` must not be 0. The Next client and Caddy own none of this, and keep their own users.
+
+After changing them, run `docker compose up -d` again.
+
+## Health and startup
+
+Every service has a health check, and `docker compose ps` shows the result.
+
+| Service | Healthy when | Waits for |
+|---|---|---|
+| `api` | `GET /auth/setup` answers | Nothing |
+| `worker` | Its job loop has turned in the last minute | `api` |
+| `next-client` | `/login` answers | Nothing |
+| `caddy` | Its admin endpoint answers | `api`, `next-client` |
+
+A service that is slow to start has 60 seconds before failures count. An unhealthy service is not restarted by Docker, so restart a stalled worker with `docker compose restart worker`.
+
+## Logs
+
+The API and the worker write JSON to stdout, one object per line, and write no log file. Docker keeps three files of 10 MB for each service.
+
+```bash
+docker compose logs -f api worker
+docker compose logs --no-log-prefix worker | jq 'select(.level == "error")'
+```
+
+Worker lines name their job with `jobId` and `jobType`. `LOG_LEVEL=http` adds each request, including the API's health check every 5 seconds.
+
+## Backups
+
+The worker writes `show-stream-YYYY-MM-DD.db` to `./backups` once each UTC day, and keeps the last 7. It holds your accounts and password hashes, so keep it private. It holds no media or transcodes. Copy the folder off the machine, because a backup on the same disk does not survive that disk. `./backups` can be on a NAS, though only a local disk has been tested. The database itself must stay on a local disk.
+
+To restore one, follow [the steps in the development guide](./local-development.md#back-up-and-restore).
+
+## Upgrades
+
+There are no releases yet, so an upgrade is a new `main`:
+
+```bash
+git pull
+docker compose up -d --build --remove-orphans
+```
+
+Read the [changelog](../../CHANGELOG.md) first, because it lists what each change needs. Take a copy of the newest backup before upgrading, because the API applies new migrations when it starts, and there is no way down. A failed migration stops the API, and the worker and Caddy then do not start.
+
+Keep the `sqlite-data` and `caddy-data` volumes. The first holds the database, and the second holds the CA that your devices trust. `docker compose down` keeps them, and `docker compose down --volumes` deletes them.

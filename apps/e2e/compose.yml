@@ -12,7 +12,6 @@ x-api-build: &api-build
 services:
   api:
     build: *api-build
-    # The API starts first, so its image gives the new media volume to UID 1000.
     volumes:
       - sqlite-data:/data
       - media:/app/apps/api/media
@@ -62,6 +61,12 @@ services:
         source: ./fixtures/clip.mp4
         target: /media/movies/Unknown Film (2024)/clip.mp4
         read_only: true
+    # The same check as docker-compose.yml.
+    healthcheck:
+      test: ["CMD-SHELL", "find /tmp/worker-heartbeat -mmin -1 | grep -q ."]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   # Runs once the API has migrated the new volume, from the API image so that it can load
   # packages/db.
@@ -84,7 +89,7 @@ services:
       seed:
         condition: service_completed_successfully
       worker:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
       interval: 2s
@@ -96,6 +101,8 @@ services:
   caddy:
     image: caddy:2.11.7-alpine
     depends_on:
+      api:
+        condition: service_healthy
       next-client:
         condition: service_healthy
     environment:

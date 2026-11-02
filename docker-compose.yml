@@ -1,11 +1,29 @@
+# Every setting comes from an optional .env beside this file. See .env.example.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+# A slow first start does not count against a service until start_period has passed.
+x-health-timing: &health-timing
+  interval: 5s
+  timeout: 5s
+  retries: 5
+  start_period: 60s
+
 services:
   # The only published service. Its data volume holds the certificates and the internal CA.
   caddy:
     image: caddy:2.11.7-alpine
     restart: always
+    logging: *logging
     depends_on:
-      - api
-      - next-client
+      api:
+        condition: service_healthy
+      next-client:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
@@ -16,19 +34,32 @@ services:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    healthcheck:
+      <<: *health-timing
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
   api:
     build:
       context: .
       dockerfile: ./apps/api/Dockerfile
     restart: always
+    logging: *logging
     expose:
       - "5000"
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     volumes:
       - type: bind
         source: ./media
         target: /app/apps/api/media
       # A named volume, so that the database stays on local disk even if ./media is on a NAS.
       - sqlite-data:/data
+    # One of the three public routes, so that a health check adds no route. Keep it in step with
+    # apps/e2e/compose.yml.
+    healthcheck:
+      <<: *health-timing
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5000/auth/setup"]
   # Runs ffmpeg, scan and backup jobs. It publishes no ports, and reaches the API only through
   # the database.
   worker:
@@ -36,15 +67,20 @@ services:
       context: .
       dockerfile: ./apps/worker/Dockerfile
     restart: always
+    logging: *logging
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     # Library scans need the TMDB token from this file. It stays out of the worker's image.
     env_file:
-      - path: ./apps/api/.env
+      - path: ./.env
         required: false
-    # These win over that file, whose paths are for pnpm dev.
+    # These win over that file.
     environment:
       JOB_CONCURRENCY: ${JOB_CONCURRENCY:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
       DATABASE_PATH: /data/app.db
       MEDIA_FOLDER: /media
       BACKUP_FOLDER: /backups
@@ -56,13 +92,22 @@ services:
         source: ./backups
         target: /backups
       - sqlite-data:/data
+    # The job loop keeps this file young, so an old one means that the loop has stalled. Keep it
+    # in step with apps/e2e/compose.yml.
+    healthcheck:
+      <<: *health-timing
+      test: ["CMD-SHELL", "find /tmp/worker-heartbeat -mmin -1 | grep -q ."]
   next-client:
     build:
       context: .
       dockerfile: ./apps/next-client/Dockerfile
     restart: always
+    logging: *logging
     expose:
       - "3000"
+    healthcheck:
+      <<: *health-timing
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
 
 volumes:
   sqlite-data:

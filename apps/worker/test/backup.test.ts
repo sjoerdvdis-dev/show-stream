@@ -135,6 +135,7 @@ describe('backup', () => {
 					},
 				},
 				1,
+				{ logger: { info: vi.fn(), error: vi.fn() }, onTurn: () => {} },
 			);
 			loop.start();
 			await vi.waitFor(() => expect(finished).toHaveLength(1));

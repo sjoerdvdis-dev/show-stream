@@ -19,7 +19,7 @@ import {
 	type Movie,
 } from '@workspace/db';
 import type { Response } from 'express';
-import type { Logger } from 'winston';
+import type { Logger } from '@workspace/logger';
 import type {
 	APINotification,
 	TranscodePlaylistAPIData,

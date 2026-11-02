@@ -101,7 +101,7 @@ create_folders() {
   mkdir -p media/movies media/shows apps/api/media/movies apps/api/media/shows data backups
   ok "Media, data and backup folders"
   if [ "$has_docker" = true ] && [ "$(id -u)" -ne 1000 ]; then
-    echo "! Containers run as UID 1000, so ./media and ./backups must be writable by that user."
+    echo "! Containers take ./backups and media/cache as UID 1000. To keep them yours, set PUID and PGID in a .env at the root."
   fi
 }
 
