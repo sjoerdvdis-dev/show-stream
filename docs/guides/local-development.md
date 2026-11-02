@@ -155,7 +155,9 @@ rm -f data/app.db data/app.db-wal data/app.db-shm
 cp backups/show-stream-YYYY-MM-DD.db data/app.db
 ```
 
-Delete the `-wal` and `-shm` files too, because SQLite would otherwise apply them to the restored file. The API applies any newer migration when it starts. Sessions come back as they were in the backup, so anyone who logged in since then logs in again. Today's backup file stays as it is, so a restored older database cannot overwrite it.
+Delete the `-wal` and `-shm` files too, because SQLite would otherwise apply them to the restored file. The API applies any newer migration when it starts. Sessions come back as they were in the backup, so anyone who logged in since then logs in again. Today's backup file stays as it is, so a restored older database cannot overwrite it. A backup is taken while its own job runs, so the worker prints `Recovered backup job` after a restore, which is normal.
+
+The Compose steps were tested once by hand on 2026-11-02, with fake secrets: a lost database asked for setup again, and after the restore the owner logged in. The `pnpm dev` steps were not run.
 
 ## Environment files
 

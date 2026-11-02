@@ -1,6 +1,6 @@
 # ShowStream Plan
 
-Last updated: 2026-11-01. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
+Last updated: 2026-11-02. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
 
 ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize and clean up, rebuild on a stable foundation, then add features one at a time.
 
@@ -458,7 +458,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 5. Run migrations at API startup.
 6. Add the read-only [DBHub](https://github.com/bytebase/dbhub) MCP for development ([section 10.3](#103-database-mcp-in-docker)), as soon as the SQLite volume exists.
 7. Remove Mongoose, `mongodb-memory-server`, the `mongodb` service and the `MONGO_DB_*` variables.
-8. Add scheduled `VACUUM INTO` backups ([section 5.7](#57-worker-and-jobs)). Restoring one is in the [guide](./guides/local-development.md#back-up-and-restore).
+8. Add scheduled `VACUUM INTO` backups ([section 5.7](#57-worker-and-jobs)). Restoring one is in the [guide](./guides/local-development.md#back-up-and-restore), and was tested once by hand under Compose on 2026-11-02. A backup folder on a NAS is not tested.
 
 No data migration: `data/` in this repo was empty, and no deployment held data. A library comes back with a rescan. Users do not, and the changelog says so.
 
