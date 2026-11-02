@@ -1,27 +1,37 @@
 services:
+  # The only published service. Its data volume holds the certificates and the internal CA.
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: always
+    depends_on:
+      - api
+      - next-client
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      TLS_MODE: ${TLS_MODE:-internal}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
   api:
-    container_name: api
     build:
       context: .
       dockerfile: ./apps/api/Dockerfile
     restart: always
     expose:
       - "5000"
-    environment:
-      # Browsers drop a Secure cookie over plain HTTP. Phase 1 item 9 adds HTTPS and removes this.
-      SESSION_COOKIE_SECURE: "false"
     volumes:
       - type: bind
         source: ./media
         target: /app/apps/api/media
       # A named volume, so that the database stays on local disk even if ./media is on a NAS.
       - sqlite-data:/data
-    networks:
-      - show_stream_network
   # Runs ffmpeg, scan and backup jobs. It publishes no ports, and reaches the API only through
   # the database.
   worker:
-    container_name: worker
     build:
       context: .
       dockerfile: ./apps/worker/Dockerfile
@@ -46,22 +56,15 @@ services:
         source: ./backups
         target: /backups
       - sqlite-data:/data
-    networks:
-      - show_stream_network
   next-client:
-    container_name: next-client
     build:
       context: .
       dockerfile: ./apps/next-client/Dockerfile
     restart: always
-    ports:
-      - "3000:3000"
-    networks:
-      - show_stream_network
+    expose:
+      - "3000"
 
 volumes:
   sqlite-data:
-
-networks:
-  show_stream_network:
-    external: true
+  caddy-data:
+  caddy-config:

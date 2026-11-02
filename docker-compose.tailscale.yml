@@ -1,0 +1,8 @@
+# For TLS_MODE=tailscale only. It gives Caddy the host's tailscaled socket, and is an override
+# so that docker-compose.yml works on a host with no Tailscale.
+#
+# docker compose -f docker-compose.yml -f docker-compose.tailscale.yml up
+services:
+  caddy:
+    volumes:
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock

@@ -12,8 +12,6 @@ x-api-build: &api-build
 services:
   api:
     build: *api-build
-    environment:
-      SESSION_COOKIE_SECURE: "false"
     # The API starts first, so its image gives the new media volume to UID 1000.
     volumes:
       - sqlite-data:/data
@@ -93,11 +91,28 @@ services:
       timeout: 5s
       retries: 30
 
+  # The Caddyfile that ships, in its default mode, under the name the tests address. Keep this
+  # tag equal to the one in docker-compose.yml.
+  caddy:
+    image: caddy:2.11.7-alpine
+    depends_on:
+      next-client:
+        condition: service_healthy
+    environment:
+      SITE_ADDRESS: caddy
+    volumes:
+      - ../../infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
   # Keep this tag equal to @playwright/test in package.json.
   playwright:
     image: mcr.microsoft.com/playwright:v1.64.1-noble
     depends_on:
-      next-client:
+      caddy:
         condition: service_healthy
     user: ${E2E_USER:?Run this with pnpm test:browser}
     environment:

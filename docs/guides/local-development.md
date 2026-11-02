@@ -14,7 +14,7 @@
 | Step | What it does |
 |---|---|
 | Tools | Installs pnpm, dependencies, ffmpeg, and the Chromium that Playwright MCP needs |
-| Folders | Creates the media folders, `data` and `backups`, and the `show_stream_network` Docker network if Docker is running |
+| Folders | Creates the media folders, `data` and `backups` |
 | `apps/api/.env` | Creates it from `.env.example`. An existing file is never changed |
 
 ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries, the script stops and prints the command that installs them.
@@ -106,11 +106,15 @@ After a failure, screenshots and traces are in `apps/e2e/test-results`. The movi
 
 CI does not build images in the required check. If you change a Dockerfile, build it yourself or read the `browser` job's result.
 
+`apps/api/test/public-entry.test.ts` fails if Compose publishes anything but ports 80 and 443 from Caddy, and validates all three HTTPS modes with `caddy validate`. It is the one part of `pnpm test` that uses Docker: it skips with a warning when Docker is not running, and fails in CI.
+
 ## Full stack in Docker
 
 ```bash
 bash build-docker.sh
 ```
+
+Then open <https://localhost>. Caddy is the only published service, and the [self-hosting guide](./self-hosting.md) explains its HTTPS modes and how to trust its CA.
 
 This uses `./media` and the `sqlite-data` volume, and builds your `.env` into the API image until audit finding 5 is fixed. The database is at `/data/app.db` in the volume, which must stay on a local disk, never NFS or SMB.
 
@@ -120,7 +124,7 @@ The `worker` service shares that volume and `./media`, which it sees at `/media`
 
 A video that ffmpeg cannot read shows as failed, with ffmpeg's last lines as the reason, and the movie's page has a Retry button. Replace the file first if it is corrupt, since a retry looks for the video again. If the worker dies three times during one job, that job fails too, so that it cannot keep taking the worker down.
 
-To test without touching your images or data, export the repo, use fake secrets, and pass a separate project name with `-p`. `docker-compose.yml` sets fixed container names, so stop your own stack first.
+To test without touching your images or data, export the repo, use fake secrets, and pass a separate project name with `-p`. Only one stack at a time can hold ports 80 and 443, so stop your own first.
 
 ## Scanning the library
 
@@ -173,7 +177,7 @@ Variables already set in the environment win over all of these. An empty value c
 
 Never commit real values.
 
-`SESSION_COOKIE_SECURE` defaults to true. Browsers drop a `Secure` cookie over plain HTTP, so `.env.development`, `docker-compose.yml` and the browser tests set it to false until Caddy adds HTTPS. If you run the API yourself over HTTP and login seems to do nothing, this is why.
+`SESSION_COOKIE_SECURE` defaults to true. Browsers drop a `Secure` cookie over plain HTTP, so only `.env.development` sets it to false, for `pnpm dev`. Compose and the browser tests run over HTTPS and leave it alone. If you run the API yourself over HTTP and login seems to do nothing, this is why.
 
 ## Known problems
 
@@ -184,10 +188,9 @@ Never commit real values.
 - **pnpm refuses very new releases.** Its minimum release age rejected a package published the same day. Wait, or use the previous version. Do not add an exclusion.
 - **Playwright MCP needs a matching browser.** When its pin in `.mcp.json` changes, run setup again.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
-- **Containers run as UID 1000.** `./media` and `./backups` must be writable by that user. On Linux with another UID, `chown` them to 1000 until audit finding 44 is fixed. The image prepares the `sqlite-data` volume itself. If `./backups` is missing, Docker creates it as root and backups fail, so run setup first.
+- **Containers run as UID 1000.** `./media` and `./backups` must be writable by that user. On Linux with another UID, `chown` them to 1000 until audit finding 44 is fixed. The image prepares the `sqlite-data` volume itself.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
-- **Port 3000 is published on all interfaces** until Caddy arrives in Phase 1.
 - **`Too many attempts`** after 10 failed logins or setups from one address in 15 minutes. The count lives in memory, so restarting the API clears it.
-- **The rate limit trusts `X-Forwarded-For` from Next.** Next forwards a client's own header, so until Caddy replaces it as the proxy, a client that sets this header escapes the limit.
+- **`pnpm dev` is not the shipped path.** It has no Caddy, so `next.config.mjs` rewrites `/api` and `/socket` to the API, and a built client has neither rewrite. Next passes on a client's own `X-Forwarded-For` there, so the rate limit proves nothing under `pnpm dev`, and Next answers `/socket/` with a 308 first. Test those through `pnpm test:browser`.
 - **`vitest` alone needs the packages built.** `pnpm test` builds them first. If you run `vitest` directly in `apps/api`, run `pnpm turbo build --filter=api^...` once.
 - **ffmpeg cannot write to a `MEDIA_FOLDER` containing `%d` or a form like `%03d`.** It reads that as part of the segment pattern, and `%%` does not escape it. Rename the folder.

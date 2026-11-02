@@ -8,7 +8,7 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 The foundation decisions are made, and the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication and the worker are done. Next:
 
-1. **Finish Phase 1 with item 9: Caddy, HTTPS, health checks and secrets** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Finish Phase 1 with the rest of item 9: health checks, secrets, logs and `PUID`** ([section 12](#12-roadmap)) using the engineering skills ([section 10.5](#105-how-we-develop)). Caddy and HTTPS are done.
 
 | Your question | Answer |
 |---|---|
@@ -42,15 +42,16 @@ The foundation decisions are made, and the toolchain, CI, contributor setup, rep
 | SQLite and Drizzle | Done. `packages/db` owns the schema and queries, and migrations run at API startup. `pnpm dev` and `pnpm test` need no Docker |
 | Authentication | Done. The API owns sessions and first-run setup, every route needs a session unless the contract marks it public, and sockets are authenticated with per-user rooms |
 | Worker | Done. `apps/worker` runs transcodes, library scans and daily backups from a job queue in SQLite, with recovery, retry and failure reasons. An admin starts a scan and reads its result in Settings. A real TMDB token has not been tried ([section 15](#15-risks-and-unknowns)) |
+| Caddy and HTTPS | Done. Caddy is the only published service, `TLS_MODE` selects `internal`, `public` or `tailscale`, and the browser tests run through it over HTTPS. Only `internal` has been run: the other two pass `caddy validate`, and the maintainer must try them ([section 15](#15-risks-and-unknowns)) |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
 | Port 5000 closed to the host | Committed and tested |
-| Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data |
+| Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data. A clean clone reaches `/setup` over HTTPS with no prior step |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client` and `packages/db` written; the rest arrive with their apps and packages |
 
-**Not yet safe for the internet.** Secrets are baked into the image, there is no HTTPS, the session cookie is not `Secure` under Compose, and Next forwards a client's own `X-Forwarded-For`, so the login rate limit can be dodged. Item 9 fixes all four.
+**Not yet safe for the internet.** Secrets are baked into the image. The rest of item 9 fixes that.
 
 ## 3. Decisions
 
@@ -213,16 +214,18 @@ flowchart LR
     K --> T
 ```
 
-Only ports 80 and 443 are public. Port 80 only redirects to HTTPS. Port 3000 is no longer published.
+Only ports 80 and 443 are public, over TCP. Port 80 only redirects to HTTPS. HTTP/3 is off, because it needs UDP 443. Port 3000 is no longer published. `infra/caddy/Caddyfile` holds this, and a test in the required check fails on any other published port.
 
 | Path | Goes to | Notes |
 |---|---|---|
-| `/api/*` | API | JSON API |
+| `/api/*` | API | JSON API, with the prefix removed, because the API serves its routes at the root |
 | `/socket/*` | API | Socket.IO, authenticated at the handshake |
-| `/streams/*` | API | HLS, session checked by the API; no response compression |
-| Everything else | Static web app | SPA fallback to `index.html` |
+| `/streams/*` | API | HLS, session checked by the API; no response compression. The Next client still asks for `/api/streams/*`, which is not compressed either |
+| Everything else | Static web app | SPA fallback to `index.html`. The Next client until Phase 2 item 7 |
 
-**HTTPS on a home network:** a public domain gets certificates automatically. A LAN-only install needs Caddy's internal CA trusted on each device, or a Tailscale certificate. Plain HTTP will not support a PWA.
+A built Next client has no rewrites, so nothing it serves can reach the API. They exist only under `pnpm dev`, which has no Caddy.
+
+**HTTPS on a home network:** `TLS_MODE` selects the mode, and hosts never edit the Caddyfile. `internal`, the default, needs Caddy's CA trusted on each device. `public` gets certificates automatically for a public domain. `tailscale` fetches a certificate from `tailscaled`, whose socket comes from `docker-compose.tailscale.yml`. Plain HTTP will not support a PWA. See the [self-hosting guide](./guides/self-hosting.md).
 
 ### 5.3 Rules the architecture must keep
 
@@ -272,7 +275,8 @@ The API owns authentication. Next's `proxy.ts`, `lib/login.ts`, `lib/jwt.ts`, th
 | Topic | Design |
 |---|---|
 | Sessions | Random 256-bit token; only its SHA-256 hash is stored in `sessions` |
-| Cookie | `session`: `httpOnly`, `Secure`, `SameSite=Lax`, sent to all routes. `SESSION_COOKIE_SECURE=false` turns `Secure` off for plain HTTP, which development and Compose set until item 9 |
+| Cookie | `session`: `httpOnly`, `Secure`, `SameSite=Lax`, sent to all routes. `SESSION_COOKIE_SECURE=false` turns `Secure` off for plain HTTP, which only `pnpm dev` sets |
+| HSTS | Not sent, because a browser that has seen it offers no way past an untrusted certificate, which an internal CA install needs |
 | Lifetime | Sliding 30-day idle expiry, so a film never logs you out. Extended at most once an hour, so that segments cost no writes |
 | Passwords | `bcryptjs`, already in use |
 | Default rule | Every route requires auth through shared middleware; public routes are an explicit allowlist |
@@ -285,7 +289,7 @@ The API owns authentication. Next's `proxy.ts`, `lib/login.ts`, `lib/jwt.ts`, th
 | Behind Caddy | Express `trust proxy` set to the one proxy hop |
 | Client | `GET /api/auth/me` fills router context; `beforeLoad` redirects; any 401 returns to login |
 
-The API serves these at `/auth/*`, and clients reach them as `/api/auth/*` through the Next rewrite. Item 9 decides how Caddy maps `/api`.
+The API serves these at `/auth/*`, and clients reach them as `/api/auth/*`, because Caddy removes the prefix.
 
 | Endpoint | Purpose |
 |---|---|
@@ -337,7 +341,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 5 | Secrets in the API image | Exclude `.env`; pass with `env_file` | 1 |
 | 9 | Operator injection at login | Zod validation in the contract, and Drizzle parameters | Done |
 | 10 | Sessions expire mid-film | Sliding 30-day sessions | Done |
-| 39 | Cookie not `Secure` | `Secure` by default. Item 9 removes the Compose override behind HTTPS | Partly done; 1 |
+| 39 | Cookie not `Secure` | `Secure` by default, and only `pnpm dev` turns it off | Done |
 
 ### Stability
 
@@ -367,7 +371,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 31 | `.sort()` mutates shared arrays | Sorting moves to the server | 2 |
 | 32 | Empty library gives `-Infinity` | Facets come from the API | 2 |
 | 33 | hls.js debug on in production | Dev only | 2 |
-| 34 | Socket 308 on each request | Direct `/socket` route through Caddy | 1 |
+| 34 | Socket 308 on each request | Direct `/socket` route through Caddy. `pnpm dev` keeps the 308 | Done |
 
 ### Tooling and repo
 
@@ -401,7 +405,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | [Section 9.6](#96-updating-shadcn) | 2 |
 | 50 | No project licence | Apache-2.0, with a `NOTICE` that requires attribution | Done |
 | 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Add `.next/**` to the ignores | Done |
-| 52 | Next forwards a client's own `X-Forwarded-For`, so a client that sets it escapes the login rate limit | Caddy replaces the header. Item 9 must test this | 1 |
+| 52 | Next forwards a client's own `X-Forwarded-For`, so a client that sets it escapes the login rate limit | Caddy replaces the header, and a browser test proves that the spoof reaches the limit | Done |
 
 ## 7. Version upgrades
 
@@ -697,7 +701,7 @@ Each phase ends with a working app.
 8. Worker with the job table and ffmpeg wrapper.
 9. Caddy, HTTPS, health checks, secrets through `env_file`. Remove `SESSION_COOKIE_SECURE` from `docker-compose.yml`, and test finding 52.
 
-**Status:** items 1 to 8 are done, and no `it.fails` marker remains. Item 9 is next.
+**Status:** items 1 to 8 are done, and no `it.fails` marker remains. In item 9, Caddy, HTTPS and the removal of `SESSION_COOKIE_SECURE` from Compose are done, and finding 52 is tested. Health checks, secrets through `env_file`, structured logs and `PUID` are next.
 
 The Next client stays running behind Caddy until Phase 2 replaces it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
 
@@ -710,7 +714,8 @@ The Next client stays running behind Caddy until Phase 2 replaces it. It may cha
    - Logout, which the Next client has on the settings page.
    - The session guard on `GET /auth/me`, on the library and on the player.
    - The return to login on any 401, from a data call or `hls.js`.
-   - Connecting the notification socket only once there is a session, and disconnecting it on leaving.
+   - Connecting the notification socket at `/socket`, the path Caddy routes to the API, only once there is a session, and disconnecting it on leaving.
+   - Asking for streams at `/streams` rather than `/api/streams`, which Caddy serves too.
 2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
 3. Update shadcn and migrate primitives to Base UI.
 4. Build the patterns and `/dev/components`.
@@ -821,6 +826,7 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Real TMDB responses have never been verified | Test with a real token in Phase 1. Only the maintainer can, because agents do not read real `.env` values |
 | Drizzle is pre-1.0 | Pin versions; keep queries behind `packages/db` |
 | Only Chromium is tested | Add Firefox and WebKit in Playwright; test real Safari in Phase 3 |
-| Caddy, Electron and full-app PWA behavior are planned, not prototyped | Each gets a test in its phase |
-| Moving auth while the Next client still runs | Done in item 7, with browser tests over the Next rewrite |
+| The `public` and `tailscale` HTTPS modes have only passed `caddy validate` | Run each once. Only the maintainer can, because they need a real domain or tailnet |
+| Electron and full-app PWA behavior are planned, not prototyped | Each gets a test in its phase |
+| Moving auth while the Next client still runs | Done in item 7. The browser tests now run through Caddy |
 | `media-chrome` may not suit the player | Confirm in S8; fall back to custom controls on `hls.js` |

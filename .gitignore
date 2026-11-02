@@ -29,8 +29,9 @@ build
 dist
 
 
-# Database backups
-backups
+# Database backups. The folder stays, because Compose binds it.
+backups/*
+!backups/.gitkeep
 
 # Debug
 npm-debug.log*

@@ -1,0 +1,55 @@
+# The only public entry to ShowStream. Hosts never edit this file: docker-compose.yml passes
+# SITE_ADDRESS and TLS_MODE from the environment. See docs/guides/self-hosting.md.
+{
+	# The CA belongs on the devices that visit, not inside this container.
+	skip_install_trust
+
+	# Browsers send no name when they visit an IP address, and Caddy in a container cannot see
+	# which address of the host was asked for.
+	default_sni {$SITE_ADDRESS:localhost}
+
+	servers {
+		# HTTP/3 needs UDP 443, which is not published.
+		protocols h1 h2
+	}
+}
+
+(tls-internal) {
+	tls internal
+}
+
+# Caddy gets a certificate for a public name by itself. The name must reach ports 80 and 443.
+(tls-public) {
+}
+
+# Needs docker-compose.tailscale.yml, and a *.ts.net address.
+(tls-tailscale) {
+	tls {
+		get_certificate tailscale
+	}
+}
+
+{$SITE_ADDRESS:localhost} {
+	import tls-{$TLS_MODE:internal}
+
+	# Video does not compress, and every segment would pay for trying. The Next client asks for
+	# streams under /api.
+	@compressible not path /streams/* /api/streams/*
+	encode @compressible zstd gzip
+
+	# The API serves its routes at the root.
+	handle_path /api/* {
+		reverse_proxy api:5000
+	}
+
+	# Socket.IO asks for /socket/, and only the API answers there.
+	@api path /streams/* /socket /socket/*
+	handle @api {
+		reverse_proxy api:5000
+	}
+
+	# apps/web replaces this with static files in Phase 2.
+	handle {
+		reverse_proxy next-client:3000
+	}
+}

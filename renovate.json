@@ -20,6 +20,11 @@
 			"groupName": "playwright"
 		},
 		{
+			"description": "Caddy is the public entry, so it gets its own pull request, across docker-compose.yml and apps/e2e/compose.yml",
+			"matchPackageNames": ["caddy"],
+			"groupName": "caddy"
+		},
+		{
 			"description": "Drizzle is pre-1.0, and its ORM and kit must move together",
 			"matchPackageNames": ["drizzle-orm", "drizzle-kit"],
 			"groupName": "drizzle"

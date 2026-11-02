@@ -211,4 +211,12 @@ describe('session startup', () => {
 		expect(cookie).toContain('SameSite=Lax');
 		expect(cookie).not.toContain('Secure');
 	});
+
+	it('does not send HSTS, which would leave no way past an untrusted certificate', async () => {
+		api = await startApi();
+
+		const response = await api.get('/auth/setup');
+
+		expect(response.headers.get('strict-transport-security')).toBeNull();
+	});
 });

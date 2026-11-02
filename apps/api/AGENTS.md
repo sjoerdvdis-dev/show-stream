@@ -18,4 +18,5 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - `api.createOwner()` runs setup and returns a client with a session. Everything on `api` itself has no session.
 - Each request from the harness looks like a new address, so that failures do not reach the rate limit. A test of the limit passes its own `x-forwarded-for`.
 - Direct database access lives in `test/support/seed.ts` and nowhere else.
+- `test/public-entry.test.ts` is the exception to using only HTTP. It lives here so that it runs in the required check, and reads what Compose publishes and validates the Caddyfile. It skips without Docker, and fails in CI.
 - The worker's TMDB calls go to a closed port. To identify a title, pass `fakeTmdb` to `startApi`, and see `test/support/fake-tmdb.mjs` for the folder names it answers.

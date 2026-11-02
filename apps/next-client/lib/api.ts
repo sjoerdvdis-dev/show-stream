@@ -1,6 +1,6 @@
 import { ApiError, createApiClient } from '@workspace/api-client';
 
-/** Next rewrites `/api` to the API, so that the session cookie is first-party. */
+/** Caddy sends `/api` to the API, as a rewrite does under `pnpm dev`, so that the session cookie is first-party. */
 export const api = createApiClient('/api');
 
 /** A full page load, so that nothing from the ended session stays in memory. */

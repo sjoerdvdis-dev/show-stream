@@ -37,7 +37,8 @@ export const createServer = (handlers: Handlers, logger: Logger): { httpServer: 
 			}),
 		)
 		.use(createLoggerMiddleware(logger))
-		.use(helmet())
+		// After HSTS a browser offers no way past an untrusted certificate, which an internal CA install needs.
+		.use(helmet({ strictTransportSecurity: false }))
 		.use(refuseCrossSiteRequests)
 		.use(express.json())
 		.use(express.urlencoded({ extended: true }));

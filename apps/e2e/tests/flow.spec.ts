@@ -67,6 +67,7 @@ test('logging in sets a session cookie that scripts cannot read', async ({ page,
 	const cookie = (await context.cookies()).find(({ name }) => name === 'session');
 	expect(cookie?.httpOnly).toBe(true);
 	expect(cookie?.sameSite).toBe('Lax');
+	expect(cookie?.secure).toBe(true);
 });
 
 test('logging out ends the session at once', async ({ page, context }) => {
@@ -166,6 +167,7 @@ test('the notification socket upgrades to a WebSocket', async ({ page }) => {
 	});
 	await page.goto(`/dashboard/movies/${movieId}`);
 
+	expect((await socket).url()).toMatch(/^wss:\/\/caddy\/socket\//);
 	expect((await socket).isClosed()).toBe(false);
 });
 
