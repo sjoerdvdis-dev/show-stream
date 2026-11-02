@@ -1,0 +1,26 @@
+{
+	"name": "@workspace/logger",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"check-types": "tsc --noEmit && tsc -p test",
+		"test": "vitest run"
+	},
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"dependencies": {
+		"winston": "^3.19.0"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.6",
+		"@workspace/typescript-config": "workspace:*",
+		"typescript": "7.0.2",
+		"vitest": "^5.0.5"
+	}
+}

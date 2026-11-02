@@ -9,7 +9,9 @@ import {
 } from '@workspace/db';
 import { backup, dayOf } from './backup';
 import { config } from './config';
+import { createHeartbeat } from './heartbeat';
 import { createJobLoop, type JobHandlers } from './job-loop';
+import { logger } from './log';
 import { scanLibrary } from './scan';
 import { createMovieLookup } from './tmdb';
 import { removePartialOutput, transcode } from './transcode';
@@ -40,8 +42,8 @@ const stopRequested = new Promise<void>((resolve) => {
 });
 
 /**
- * Only the API migrates, and Compose health checks arrive later, so the worker may start
- * first. Until then, opening the file can fail too, while the API switches it to WAL.
+ * Only the API migrates. Compose waits for it, but `pnpm dev` starts both at once, and until
+ * the API is done, opening the file can fail too, while the API switches it to WAL.
  */
 const waitForDatabase = async (): Promise<Database | undefined> => {
 	while (!stopping) {
@@ -52,12 +54,12 @@ const waitForDatabase = async (): Promise<Database | undefined> => {
 				return db;
 			}
 		} catch (error) {
-			console.error('Could not open the database yet:', error);
+			logger.warn('Could not open the database yet', { error });
 		}
 		if (db) {
 			closeDatabase(db);
 		}
-		console.log('Waiting for the API to migrate the database');
+		logger.info('Waiting for the API to migrate the database');
 		await sleep(schemaRetryMs);
 	}
 	return undefined;
@@ -67,18 +69,18 @@ const waitForDatabase = async (): Promise<Database | undefined> => {
 const recover = async (db: Database) => {
 	for (const job of recoverJobs(db, maxAttempts)) {
 		await removePartialOutput(config.mediaFolder, job);
-		console.log(`Recovered ${job.type} job ${job.id} after attempt ${job.attempts}`);
+		logger.info('Recovered job', { jobId: job.id, jobType: job.type, attempt: job.attempts });
 	}
 };
 
 const queueBackupIfDue = (db: Database) => {
 	try {
 		if (queueDailyBackup(db, dayOf(new Date()))) {
-			console.log('Queued the daily backup');
+			logger.info('Queued the daily backup');
 		}
 	} catch (error) {
 		// Most likely a busy database, and the next check can try again.
-		console.error('Could not queue the daily backup:', error);
+		logger.error('Could not queue the daily backup', { error });
 	}
 };
 
@@ -94,18 +96,21 @@ const main = async () => {
 	queueBackupIfDue(db);
 	const backupCheck = setInterval(() => queueBackupIfDue(db), backupCheckMs);
 
-	const loop = createJobLoop(db, createHandlers(db), config.jobConcurrency);
+	const loop = createJobLoop(db, createHandlers(db), config.jobConcurrency, {
+		logger,
+		onTurn: createHeartbeat(config.heartbeatFile),
+	});
 	loop.start();
-	console.log(`Worker is running, with a concurrency limit of ${config.jobConcurrency}`);
+	logger.info('Worker is running', { concurrency: config.jobConcurrency });
 
 	await stopRequested;
 	clearInterval(backupCheck);
 	await loop.stop();
 	closeDatabase(db);
-	console.log('Worker stopped');
+	logger.info('Worker stopped');
 };
 
 main().catch((error) => {
-	console.error('The worker stopped, because of an unexpected error:', error);
+	logger.error('The worker stopped, because of an unexpected error', { error });
 	process.exit(1);
 });

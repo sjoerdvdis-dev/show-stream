@@ -22,6 +22,7 @@ describe('configuration', () => {
 		['PORT', '70000'],
 		['PORT', '0'],
 		['SESSION_COOKIE_SECURE', 'no'],
+		['LOG_LEVEL', 'loud'],
 	])('rejects %s=%s', async (name, value) => {
 		const { code, output } = await runApiUntilExit({ [name]: value });
 

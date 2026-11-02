@@ -1,5 +1,6 @@
 import { migrateDatabase, openDatabase, type Database } from '@workspace/db';
 import { config } from './config';
+import { logger } from './log';
 
 /**
  * Database
@@ -13,7 +14,7 @@ const openMigratedDatabase = (): Database => {
 		migrateDatabase(db);
 		return db;
 	} catch (error) {
-		console.error('The API cannot start, because its database could not be opened or migrated:', error);
+		logger.error('The API cannot start, because its database could not be opened or migrated', { error });
 		process.exit(1);
 	}
 };

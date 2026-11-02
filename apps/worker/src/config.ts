@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { logLevels } from '@workspace/logger';
 import { z } from 'zod';
 
 /**
@@ -35,6 +36,8 @@ const environmentSchema = z.object({
 	BACKUP_FOLDER: optional(z.string()),
 	JOB_CONCURRENCY: optional(positiveNumber),
 	TMDB_API_READ_ACCESS_TOKEN: optional(z.string()),
+	LOG_LEVEL: optional(z.enum(logLevels, { error: `must be one of ${logLevels.join(', ')}` })),
+	HEARTBEAT_FILE: optional(z.string()),
 });
 
 const parseEnvironment = () => {
@@ -60,4 +63,7 @@ export const config = {
 	jobConcurrency: environment.JOB_CONCURRENCY ?? 1,
 	/** Empty when none is set. A scan then fails and says so. */
 	tmdbToken: environment.TMDB_API_READ_ACCESS_TOKEN ?? '',
+	logLevel: environment.LOG_LEVEL ?? 'info',
+	/** What the health check reads. The image sets it, and nothing else needs one. */
+	heartbeatFile: environment.HEARTBEAT_FILE,
 };

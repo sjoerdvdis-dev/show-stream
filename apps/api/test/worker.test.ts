@@ -319,6 +319,8 @@ describe.skipIf(!hasFfmpeg)('two workers on one database', () => {
 				movies.map(() => expect.objectContaining({ status: 'failed', attempts: 1 })),
 			);
 		}, 25_000);
-		expect(api.workerOutput().match(/Started transcode job/g)).toHaveLength(ids.length);
+		const lines = api.workerStdout().trimEnd().split('\n').map((line) => JSON.parse(line));
+		const starts = lines.filter(({ message, jobType }) => message === 'Started job' && jobType === 'transcode');
+		expect(starts).toHaveLength(ids.length);
 	});
 });

@@ -199,6 +199,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@workspace/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -220,9 +223,6 @@ importers:
       socket.io:
         specifier: ^4.8.4
         version: 4.8.4(supports-color@7.2.0)
-      winston:
-        specifier: ^3.19.0
-        version: 3.19.0
       zod:
         specifier: ^4.6.6
         version: 4.6.7
@@ -402,6 +402,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@workspace/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       tmdb-ts:
         specifier: ^2.3.0
         version: 2.3.0
@@ -535,6 +538,25 @@ importers:
       typescript-eslint:
         specifier: ^8.72.1
         version: 8.72.1(eslint@10.14.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
+
+  packages/logger:
+    dependencies:
+      winston:
+        specifier: ^3.19.0
+        version: 3.19.0
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      '@workspace/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   packages/typescript-config: {}
 

@@ -45,9 +45,13 @@ describe('the job loop', () => {
 		}
 	};
 
+	const logger = { info: vi.fn(), error: vi.fn() };
+	const onTurn = vi.fn();
+
 	const start = (handler: JobHandler, concurrency = 1) => {
 		const notUsed = () => Promise.reject(new Error('These tests queue only transcodes.'));
-		const loop = createJobLoop(db, { transcode: handler, scan: notUsed, backup: notUsed }, concurrency);
+		const handlers = { transcode: handler, scan: notUsed, backup: notUsed };
+		const loop = createJobLoop(db, handlers, concurrency, { logger, onTurn });
 		stop = loop.stop;
 		loop.start();
 	};
@@ -55,8 +59,7 @@ describe('the job loop', () => {
 	const statuses = () => listMovies(db).map(({ transcodeStatus }) => transcodeStatus);
 
 	beforeEach(async () => {
-		vi.spyOn(console, 'log').mockImplementation(() => {});
-		vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.clearAllMocks();
 		folder = await mkdtemp(path.join(tmpdir(), 'show-stream-worker-test-'));
 		db = openDatabase(path.join(folder, 'app.db'));
 		migrateDatabase(db);
@@ -65,7 +68,6 @@ describe('the job loop', () => {
 	afterEach(async () => {
 		await stop?.();
 		closeDatabase(db);
-		vi.restoreAllMocks();
 		await rm(folder, { recursive: true, force: true });
 	});
 
@@ -88,6 +90,48 @@ describe('the job loop', () => {
 
 		await eventually(() => expect(statuses()).toEqual(['failed', 'ready']));
 		expect(findMovie(db, 1)?.transcodeError).toBe('Bad file');
+	});
+
+	it('logs the id and type of each job', async () => {
+		addJobs(2);
+
+		start(async (job) => {
+			if (job.payload.output === 'cache/1') {
+				throw new Error('Bad file');
+			}
+		});
+
+		await eventually(() => expect(statuses()).toEqual(['failed', 'ready']));
+		expect(logger.info).toHaveBeenCalledWith('Started job', { jobId: 1, jobType: 'transcode', attempt: 1 });
+		expect(logger.error).toHaveBeenCalledWith('Failed job', { jobId: 1, jobType: 'transcode', reason: 'Bad file' });
+		expect(logger.info).toHaveBeenCalledWith('Finished job', { jobId: 2, jobType: 'transcode' });
+	});
+
+	it('reports each turn, while a long job runs too', async () => {
+		addJobs(1);
+		let finishJob = () => {};
+
+		start(() => new Promise<void>((resolve) => (finishJob = resolve)));
+		await eventually(() => expect(statuses()).toEqual(['in progress']));
+		onTurn.mockClear();
+
+		await eventually(() => expect(onTurn).toHaveBeenCalled());
+		finishJob();
+	});
+
+	it('reports no turn while it cannot read the queue', async () => {
+		start(async () => {});
+		await eventually(() => expect(onTurn).toHaveBeenCalled());
+
+		closeDatabase(db);
+		await eventually(() => expect(logger.error).toHaveBeenCalled());
+		onTurn.mockClear();
+		await sleep(600);
+
+		expect(onTurn).not.toHaveBeenCalled();
+		await stop?.();
+		stop = undefined;
+		db = openDatabase(path.join(folder, 'app.db'));
 	});
 
 	it('finds a job queued after it started', async () => {
