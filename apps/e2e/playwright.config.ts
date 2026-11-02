@@ -13,8 +13,9 @@ export default defineConfig({
 	timeout: 60_000,
 	reporter: 'list',
 	use: {
-		// The address the API's CORS setting and the client's image expect.
-		baseURL: 'http://next-client:3000',
+		// Through Caddy, as a browser reaches a real install. Its internal CA is not trusted here.
+		baseURL: 'https://caddy',
+		ignoreHTTPSErrors: true,
 		screenshot: 'only-on-failure',
 		trace: 'retain-on-failure',
 	},

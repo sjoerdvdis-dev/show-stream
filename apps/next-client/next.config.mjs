@@ -13,14 +13,18 @@ const nextConfig = {
 		remotePatterns: [new URL('https://image.tmdb.org/t/p/**')],
 	},
 	async rewrites() {
-		// Proxy to Backend API
+		// Only `pnpm dev`, which has no Caddy. A built client has no route to the API, so that nothing
+		// can pass on a client's own X-Forwarded-For.
+		if (process.env.NODE_ENV !== 'development') {
+			return [];
+		}
 		return [
 			{
 				source: '/api/:path*',
 				destination: `${process.env.API_SERVER_URL}/:path*`,
 			},
 			{
-				source: '/socket-api',
+				source: '/socket',
 				destination: `${process.env.API_SERVER_URL}/socket/socket-io`,
 			},
 		];

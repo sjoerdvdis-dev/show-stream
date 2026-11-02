@@ -100,12 +100,8 @@ create_folders() {
   # and both use ./backups, which Docker would otherwise create as root.
   mkdir -p media/movies media/shows apps/api/media/movies apps/api/media/shows data backups
   ok "Media, data and backup folders"
-  if [ "$has_docker" = true ]; then
-    docker network inspect show_stream_network >/dev/null 2>&1 || docker network create show_stream_network >/dev/null
-    ok "Docker network"
-    if [ "$(id -u)" -ne 1000 ]; then
-      echo "! Containers run as UID 1000, so ./media and ./backups must be writable by that user."
-    fi
+  if [ "$has_docker" = true ] && [ "$(id -u)" -ne 1000 ]; then
+    echo "! Containers run as UID 1000, so ./media and ./backups must be writable by that user."
   fi
 }
 
