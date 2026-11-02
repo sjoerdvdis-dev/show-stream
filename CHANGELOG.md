@@ -21,6 +21,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `JOB_CONCURRENCY` limits how many jobs run at once, and defaults to 1.
 - A Library section in Settings, where an owner or admin starts a scan and reads its result.
 - A daily database backup, written by the worker to `./backups` with `VACUUM INTO`, keeping the last 7. `BACKUP_FOLDER` moves it under `pnpm dev`. The guide explains how to restore one.
+- Caddy as the only published service, on ports 80 and 443, with HTTPS by default. `TLS_MODE` selects `internal`, `public` or `tailscale`, and `SITE_ADDRESS` names the server, in an optional `.env` at the root. `docs/guides/self-hosting.md` explains them. `public` and `tailscale` pass `caddy validate`, but have not been run.
 
 ### Changed
 
@@ -40,6 +41,8 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - **Upgrading to the worker:** Compose now has a `worker` service, so rebuild with `bash build-docker.sh`. A migration keeps finished transcodes and clears the ones that were in progress, which you start again by pressing Play. The API image no longer has ffmpeg. The API serves transcodes as soon as they finish, without the old 10-second delay.
 - **Breaking, contract:** `POST /scan` queues a scan in the worker and answers 202 with `{ scan }`, or 409 while one is queued or running, where it answered 200 with text once the scan had finished. It no longer answers 500 for a missing `movies` folder: the scan fails and says so. New: an admin-only `GET /scan`, which answers `{ scan }` with the latest status, time, counts, reason and up to 20 errors, or `{ scan: null }`.
 - **Upgrading to scans in the worker:** rebuild with `bash build-docker.sh`. Under Compose the worker now reads `TMDB_API_READ_ACCESS_TOKEN` from `apps/api/.env`, and the API no longer does. Run `scripts/setup.sh`, or create `./backups` yourself, before starting, because Docker would otherwise create it as root and backups would fail.
+- **Breaking:** port 3000 is no longer published. Open <https://localhost>, or your `SITE_ADDRESS`, and port 80 redirects there. The session cookie is now `Secure` under Compose. `/api`, `/streams` and `/socket` go straight from Caddy to the API, and a built Next client no longer has a route to the API, so `API_SERVER_URL` applies only to `pnpm dev`. The API no longer sends HSTS, which would have locked out devices that do not trust the internal CA yet.
+- **Upgrading to Caddy:** rebuild with `bash build-docker.sh`. `docker compose up` no longer needs a prior step, and the old `show_stream_network` can be removed with `docker network rm show_stream_network`. Containers lose their fixed names, so they are named after the Compose project. Keep the new `caddy-data` volume, because it holds the internal CA.
 - The API moved from `apps/api-server` to `apps/api`, and `packages/types` became `packages/contract`. In an existing clone, move your `.env` and any media from `apps/api-server` to `apps/api`. The Compose service and container are now `api`, so run `docker compose up -d --remove-orphans` to replace the old container.
 
 ### Fixed
@@ -53,6 +56,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - A title no longer stays `in progress` for ever after a restart. An interrupted job recovers when the worker starts, and fails after 3 attempts.
 - An interrupted transcode can no longer be served as ready, because output reaches the cache only on success.
 - Any number of simultaneous requests no longer starts as many ffmpeg processes.
+- A client can no longer escape the login rate limit by setting its own `X-Forwarded-For`, and the notification socket no longer takes a 308 on each request.
 - A scan no longer reports success when it identified nothing. With no TMDB token, or with no folder identified, it fails with a reason. A partial scan finishes and lists its failures.
 
 ### Removed

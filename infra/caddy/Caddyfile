@@ -4,6 +4,10 @@
 	# The CA belongs on the devices that visit, not inside this container.
 	skip_install_trust
 
+	# Browsers send no name when they visit an IP address, and Caddy in a container cannot see
+	# which address of the host was asked for.
+	default_sni {$SITE_ADDRESS:localhost}
+
 	servers {
 		# HTTP/3 needs UDP 443, which is not published.
 		protocols h1 h2

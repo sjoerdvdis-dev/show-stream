@@ -17,7 +17,7 @@ test('/api reaches the API with its prefix removed', async ({ request }) => {
 	const response = await request.get('/api/auth/setup');
 
 	expect(await response.json()).toEqual({ needed: false });
-	expect(response.headers()['content-security-policy']).toBeDefined();
+	expect(response.headers()['strict-transport-security']).toBeUndefined();
 });
 
 test('/socket reaches the API', async ({ request }) => {

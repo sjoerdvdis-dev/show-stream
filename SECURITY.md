@@ -5,8 +5,8 @@
 ShowStream is in early development. Do not expose it to the internet until Phase 1 of [the plan](./docs/PLAN.md) is finished. These problems are known and planned:
 
 - Secrets are built into the API image.
-- There is no HTTPS, so passwords and the session cookie travel in plain text. The cookie is `Secure` by default, and `docker-compose.yml` turns that off until HTTPS arrives.
-- Next.js passes a client's own `X-Forwarded-For` to the API, so a client can dodge the login rate limit until Caddy replaces it as the proxy.
+
+Compose serves HTTPS through Caddy, with a `Secure` session cookie, and Caddy replaces a client's own `X-Forwarded-For`. See the [self-hosting guide](./docs/guides/self-hosting.md). The `public` and `tailscale` HTTPS modes pass `caddy validate`, but have not been run.
 
 ## Supported versions
 

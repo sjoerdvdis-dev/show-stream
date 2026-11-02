@@ -41,7 +41,9 @@ You need Node.js 26, Docker with Compose for the full stack, and a free [TMDB re
    bash build-docker.sh
    ```
 
-Open <http://localhost:3000>. The first start takes you to a setup page, where you create the owner account. Then open Settings and press **Scan library**.
+Open <https://localhost>. Your browser warns about the certificate until you trust Caddy's CA, and the [self-hosting guide](./docs/guides/self-hosting.md) explains that and how to use a domain or Tailscale instead. The first start takes you to a setup page, where you create the owner account. Then open Settings and press **Scan library**.
+
+Only ports 80 and 443 are published, and port 80 redirects to HTTPS.
 
 The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS. Backups go to `./backups`, and the [guide](./docs/guides/local-development.md#back-up-and-restore) explains how to restore one.
 
