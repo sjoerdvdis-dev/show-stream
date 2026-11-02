@@ -106,7 +106,7 @@ describe('a scan with a fake TMDB', () => {
 		const scan = await scanLibrary(api, owner);
 
 		expect(scan.status).toBe('failed');
-		expect(scan.error).toContain('None of the 2 folders could be identified');
+		expect(scan.error).toContain('No folder could be identified, out of 2 found.');
 		expect(scan.counts).toEqual({ found: 2, added: 0, updated: 0, unmatched: 1, failed: 1 });
 		expect(scan.errors).toHaveLength(2);
 	});

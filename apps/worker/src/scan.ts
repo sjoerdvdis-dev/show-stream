@@ -83,6 +83,6 @@ export const scanLibrary = async (
 	});
 
 	if (counts.found > 0 && counts.added + counts.updated === 0) {
-		throw new Error(`None of the ${counts.found} folders could be identified. First problem: ${problems[0]}`);
+		throw new Error(`No folder could be identified, out of ${counts.found} found. First problem: ${problems[0]}`);
 	}
 };

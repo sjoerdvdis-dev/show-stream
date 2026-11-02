@@ -97,7 +97,7 @@ describe('scanLibrary', () => {
 	it(`keeps ${maxScanErrors} errors in its result`, async () => {
 		await addFolders(...Array.from({ length: maxScanErrors + 5 }, (_, index) => `Film (${2000 + index})`));
 
-		await expect(scan(async () => undefined)).rejects.toThrow('None of the 25 folders');
+		await expect(scan(async () => undefined)).rejects.toThrow('No folder could be identified, out of 25 found.');
 
 		expect(result()?.counts.unmatched).toBe(maxScanErrors + 5);
 		expect(result()?.errors).toHaveLength(maxScanErrors);
