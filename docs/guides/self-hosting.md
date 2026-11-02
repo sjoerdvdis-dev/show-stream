@@ -93,7 +93,7 @@ The API and the worker start as root, give the folders they write to `PUID:PGID`
 | The `sqlite-data` volume | The database | The API and the worker |
 | `./backups` | Daily backups | The worker |
 | `./media/cache` | Transcodes | The worker, which creates it |
-| `./media` and the library in it | Your videos | Nobody. They are only read, so they must be readable by this user |
+| The rest of `./media` | Your videos | Nobody. They are only read, so this user must be able to read them |
 
 A start changes only files with another owner, so a normal start writes nothing, and changing `PUID` later takes what is there. If a share refuses the change, as NFS with root squash does, the container logs a warning and starts anyway, and the app may not be able to write there. `PUID` must not be 0. The Next client and Caddy own none of this, and keep their own users.
 
@@ -138,6 +138,6 @@ git pull
 docker compose up -d --build --remove-orphans
 ```
 
-Read the [changelog](../../CHANGELOG.md) first, because it lists what each change needs. Take a copy of the newest backup before upgrading, because the API applies new migrations when it starts, and there is no way down. A failed migration stops the API, and the worker and Caddy keep waiting for it.
+Read the [changelog](../../CHANGELOG.md) first, because it lists what each change needs. Take a copy of the newest backup before upgrading, because the API applies new migrations when it starts, and there is no way down. A failed migration stops the API, and the worker and Caddy then do not start.
 
 Keep the `sqlite-data` and `caddy-data` volumes. The first holds the database, and the second holds the CA that your devices trust. `docker compose down` keeps them, and `docker compose down --volumes` deletes them.
