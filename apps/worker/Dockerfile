@@ -29,18 +29,23 @@ FROM base AS runner
 WORKDIR /app
 
 # The only image with ffmpeg. See the rules in AGENTS.md.
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg su-exec
 
 # New named volumes take these folders' owner, so that UID 1000 can write them on first start.
 RUN mkdir -p /data /media /backups && chown node:node /data /media /backups
 
-# node is UID 1000, which must be able to write the bind-mounted ./media
-USER node
 COPY --from=installer /app .
+
+# The container starts as root, and this drops to PUID:PGID before the app runs. Of the library,
+# the worker writes only to cache.
+COPY --chmod=755 infra/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+ENV OWNED_FOLDERS="/data /backups /media/cache"
 
 ENV NODE_ENV=production
 ENV DATABASE_PATH=/data/app.db
 ENV MEDIA_FOLDER=/media
 ENV BACKUP_FOLDER=/backups
+ENV HEARTBEAT_FILE=/tmp/worker-heartbeat
 WORKDIR /app/apps/worker
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["node", "dist/index.js"]

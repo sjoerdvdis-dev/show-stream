@@ -37,7 +37,7 @@ Open <http://localhost:3000>. A new database takes you to `/setup`, where you cr
 
 The API creates its database at `data/app.db` on first start, and applies any new migration each time it starts. To start over, stop the API and delete `data/app.db*`.
 
-The worker runs ffmpeg from the host, on the same database and media, and takes library scans and backups. It prints `Waiting for the API to migrate the database` until the API has started, which is normal. `JOB_CONCURRENCY` sets how many jobs run at once, and the worker reads `apps/api/.env` as well as your environment.
+The worker runs ffmpeg from the host, on the same database and media, and takes library scans and backups. It logs `Waiting for the API to migrate the database` until the API has started, which is normal. `JOB_CONCURRENCY` sets how many jobs run at once, and the worker reads `apps/api/.env` as well as your environment.
 
 ## Change the database
 
@@ -106,7 +106,9 @@ After a failure, screenshots and traces are in `apps/e2e/test-results`. The movi
 
 CI does not build images in the required check. If you change a Dockerfile, build it yourself or read the `browser` job's result.
 
-`apps/api/test/public-entry.test.ts` fails if Compose publishes anything but ports 80 and 443 from Caddy, and validates all three HTTPS modes with `caddy validate`. It is the one part of `pnpm test` that uses Docker: it skips with a warning when Docker is not running, and fails in CI.
+`pnpm test:browser` also plants fake env files in the build context, and afterwards reads every file of each built image for them.
+
+`apps/api/test/public-entry.test.ts` fails if Compose publishes anything but ports 80 and 443 from Caddy, if a service has no health check or log limit, if a `depends_on` is not `service_healthy`, or if `.dockerignore` lets an env file through, and validates all three HTTPS modes with `caddy validate`. It is the one part of `pnpm test` that uses Docker: it skips with a warning when Docker is not running, and fails in CI.
 
 ## Full stack in Docker
 
@@ -116,9 +118,11 @@ bash build-docker.sh
 
 Then open <https://localhost>. Caddy is the only published service, and the [self-hosting guide](./self-hosting.md) explains its HTTPS modes and how to trust its CA.
 
-This uses `./media` and the `sqlite-data` volume, and builds your `.env` into the API image until audit finding 5 is fixed. The database is at `/data/app.db` in the volume, which must stay on a local disk, never NFS or SMB.
+This uses `./media` and the `sqlite-data` volume. The database is at `/data/app.db` in the volume, which must stay on a local disk, never NFS or SMB.
 
-The `worker` service shares that volume and `./media`, which it sees at `/media`, and publishes no ports. It gets `apps/api/.env` at runtime, for the TMDB token, and writes backups to `./backups`. To change `JOB_CONCURRENCY`, set it in a `.env` at the repository root. Only one worker may run per database.
+The `worker` service shares that volume and `./media`, which it sees at `/media`, and publishes no ports. It writes backups to `./backups`, and gets the optional `.env` at the repository root at runtime, for the TMDB token. That file holds every Compose setting, and `apps/api/.env` does not reach Compose. Only one worker may run per database.
+
+The API and the worker start as root, take the folders they write for `PUID:PGID`, 1000 by default, and drop to that user, through `infra/docker/entrypoint.sh`. Services start in order through health checks, and logs are JSON on stdout. The [self-hosting guide](./self-hosting.md) covers all of these.
 
 ## Failed videos
 
@@ -159,7 +163,7 @@ rm -f data/app.db data/app.db-wal data/app.db-shm
 cp backups/show-stream-YYYY-MM-DD.db data/app.db
 ```
 
-Delete the `-wal` and `-shm` files too, because SQLite would otherwise apply them to the restored file. The API applies any newer migration when it starts. Sessions come back as they were in the backup, so anyone who logged in since then logs in again. Today's backup file stays as it is, so a restored older database cannot overwrite it. A backup is taken while its own job runs, so the worker prints `Recovered backup job` after a restore, which is normal.
+Delete the `-wal` and `-shm` files too, because SQLite would otherwise apply them to the restored file. The API applies any newer migration when it starts. Sessions come back as they were in the backup, so anyone who logged in since then logs in again. Today's backup file stays as it is, so a restored older database cannot overwrite it. A backup is taken while its own job runs, so the worker logs `Recovered job` for it after a restore, which is normal.
 
 The Compose steps were tested once by hand on 2026-11-02, with fake secrets: a lost database asked for setup again, and after the restore the owner logged in. The `pnpm dev` steps were not run.
 
@@ -169,7 +173,8 @@ The Compose steps were tested once by hand on 2026-11-02, with fake secrets: a l
 |---|---|---|
 | `.env.example` | Yes | Every variable, explained |
 | `.env.development`, `.env.production` | Yes | Defaults with no secrets |
-| `apps/api/.env` | No | Your secrets. Wins over the tracked files |
+| `apps/api/.env` | No | Your secrets, for `pnpm dev`. Wins over the tracked files |
+| `.env` at the root | No | Your settings and secrets, for Compose. See the [self-hosting guide](./self-hosting.md#settings-and-secrets) |
 
 Variables already set in the environment win over all of these. An empty value counts as unset.
 
@@ -188,7 +193,6 @@ Never commit real values.
 - **pnpm refuses very new releases.** Its minimum release age rejected a package published the same day. Wait, or use the previous version. Do not add an exclusion.
 - **Playwright MCP needs a matching browser.** When its pin in `.mcp.json` changes, run setup again.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
-- **Containers run as UID 1000.** `./media` and `./backups` must be writable by that user. On Linux with another UID, `chown` them to 1000 until audit finding 44 is fixed. The image prepares the `sqlite-data` volume itself.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **`Too many attempts`** after 10 failed logins or setups from one address in 15 minutes. The count lives in memory, so restarting the API clears it.
 - **`pnpm dev` is not the shipped path.** It has no Caddy, so `next.config.mjs` rewrites `/api` and `/socket` to the API, and a built client has neither rewrite. Next passes on a client's own `X-Forwarded-For` there, so the rate limit proves nothing under `pnpm dev`, and Next answers `/socket/` with a 308 first. Test those through `pnpm test:browser`.

@@ -28,14 +28,19 @@ RUN chown -R node:node /app/apps/api
 FROM base AS runner
 WORKDIR /app
 
+RUN apk add --no-cache su-exec
+
 # A new named volume takes this folder's owner, so the database is writable on first start.
 RUN mkdir /data && chown node:node /data
 
-# node is UID 1000, which must be able to write the bind-mounted ./media
-USER node
 COPY --from=installer /app .
+
+# The container starts as root, and this drops to PUID:PGID before the app runs.
+COPY --chmod=755 infra/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+ENV OWNED_FOLDERS=/data
 
 ENV NODE_ENV=production
 ENV DATABASE_PATH=/data/app.db
 WORKDIR /app/apps/api
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["node", "dist/index.js"]

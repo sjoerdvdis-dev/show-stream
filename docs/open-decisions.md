@@ -29,6 +29,5 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | # | Decision | Recommendation |
 |---|---|---|
 | F1 | Test stack | Vitest for logic and API, Playwright for browser flows |
-| F6 | Logging | Structured logs to stdout, with health endpoints for Compose |
 | F7 | Release flow | Versioned images in a registry, changelog, upgrade notes |
 | F10 | Image handling | API endpoint that caches TMDB images on disk |

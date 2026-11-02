@@ -6,6 +6,7 @@
 - `fixtures/fake-tmdb.mjs` loads into the worker through `NODE_OPTIONS`, and answers for the folders in `compose.yml`. A new folder a scan should find goes in both.
 - Tests run in file order on one server. The first goes through first-run setup, and the rest log in as the owner it creates.
 - Test what a user sees through the running system. Do not import from other apps.
+- `run.sh` plants fake env files in the build context and, after the tests, reads every file of each image for them. A file in that list must be one `.dockerignore` excludes, so never add a tracked default.
 - Fake secrets and throwaway data only. Never mount `./media`, `./data` or a real volume, or publish a port.
-- The Playwright image tag in `compose.yml` must equal `@playwright/test` in `package.json`, and the Caddy tag must equal the one in `docker-compose.yml`.
+- The Playwright image tag in `compose.yml` must equal `@playwright/test` in `package.json`, and the Caddy tag must equal the one in `docker-compose.yml`. So must the health check commands.
 - `turbo test` must not reach this folder, so it has no `test` script. Browser tests stay out of the required check.

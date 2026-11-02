@@ -3,7 +3,7 @@
 A self-hosted media server, built to replace Jellyfin. Early development.
 
 > [!WARNING]
-> **Do not expose ShowStream to the internet yet.** There is no HTTPS, so passwords and session cookies travel in plain text. See [SECURITY.md](./SECURITY.md).
+> **ShowStream is early software.** Phase 1 of [the plan](./docs/PLAN.md) is done, which is the earliest it may go on the internet, but the `public` HTTPS mode has not been run yet. See [SECURITY.md](./SECURITY.md).
 
 ## What works today
 
@@ -17,17 +17,11 @@ Filters exist, but scans have not been tested against real TMDB responses. TV sh
 
 ## Run it
 
-You need Node.js 26, Docker with Compose for the full stack, and a free [TMDB read access token](https://developer.themoviedb.org/docs/getting-started) for scans.
+You need Docker with Compose, and a free [TMDB read access token](https://developer.themoviedb.org/docs/getting-started) for scans.
 
-1. Prepare the clone. This also installs the development tools.
+1. Copy `.env.example` to `.env`, and set `TMDB_API_READ_ACCESS_TOKEN`. Set `PUID` and `PGID` too if your user is not 1000. Everything else has a default, and ShowStream starts with no `.env` at all.
 
-   ```bash
-   ./scripts/setup.sh
-   ```
-
-2. Set `TMDB_API_READ_ACCESS_TOKEN` in `apps/api/.env`.
-
-3. Put your movies in `media/movies`, one folder each, with the video named like its folder:
+2. Put your movies in `media/movies`, one folder each, with the video named like its folder:
 
    ```text
    media/movies/The Dark Knight (2008)/The Dark Knight (2008).mp4
@@ -35,17 +29,17 @@ You need Node.js 26, Docker with Compose for the full stack, and a free [TMDB re
 
    Only `.mp4` files are scanned for now.
 
-4. Build and start everything:
+3. Build and start everything:
 
    ```bash
-   bash build-docker.sh
+   docker compose up --build
    ```
 
 Open <https://localhost>. Your browser warns about the certificate until you trust Caddy's CA, and the [self-hosting guide](./docs/guides/self-hosting.md) explains that and how to use a domain or Tailscale instead. The first start takes you to a setup page, where you create the owner account. Then open Settings and press **Scan library**.
 
 Only ports 80 and 443 are published, and port 80 redirects to HTTPS.
 
-The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS. Backups go to `./backups`, and the [guide](./docs/guides/local-development.md#back-up-and-restore) explains how to restore one.
+The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS. Backups go to `./backups`. The [self-hosting guide](./docs/guides/self-hosting.md) covers settings, file ownership, logs, backups and upgrades.
 
 ## Develop
 

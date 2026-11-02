@@ -6,6 +6,8 @@ Runs jobs from the `jobs` table in SQLite. It publishes no ports, and SQLite is 
 |---|---|
 | `src/index.ts` | Startup: wait for the schema, recover, run the loop, shut down cleanly |
 | `src/job-loop.ts` | The one job loop, with a handler per job type |
+| `src/heartbeat.ts` | Keeps the file that the Compose health check reads young |
+| `src/log.ts` | The `logger` |
 | `src/ffmpeg.ts` | `runFfmpeg`, the one way to run ffmpeg |
 | `src/transcode.ts` | The `transcode` handler |
 | `src/scan.ts` | The `scan` handler, and what makes a scan fail |
@@ -22,6 +24,8 @@ Runs jobs from the `jobs` table in SQLite. It publishes no ports, and SQLite is 
 - Never run migrations. Only the API does (ADR 0008), so startup waits for `isDatabaseMigrated`.
 - The database is reached only through `@workspace/db`. Never import Drizzle or `better-sqlite3`.
 - This app cannot reach sockets. The API polls for finished jobs and announces them.
+- Log with `logger`, and name a job with `jobId` and `jobType` fields. `console` is only for a bad configuration, which comes before the logger.
+- The loop beats only after a turn that could read the queue, so a health check sees a loop that is stuck as well as a process that is. Nothing here may block the event loop for a minute, because that looks the same.
 - A job's reason can reach a browser, so it carries no paths or tokens from this machine.
 - `scan` jobs and `backup` jobs have no title, and `queueJobWithoutTitle` allows one active of each. The schedule for backups lives in `queueDailyBackup`, not in a timer's memory, so that a restart changes nothing.
 
