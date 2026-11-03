@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Link, Outlet, useRouter } from '@tanstack/react-router';
-import { Toaster } from 'sonner';
+import { Toaster } from '@workspace/ui/components/sonner';
 import { useTheme } from '@/lib/theme';
 
 export type RouterContext = {

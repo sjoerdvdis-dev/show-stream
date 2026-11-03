@@ -3,6 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useForm, type FieldError } from 'react-hook-form';
 import { ApiError } from '@workspace/api-client';
 import { endpoints } from '@workspace/contract/endpoints';
+import { Button } from '@workspace/ui/components/button';
+import { Input } from '@workspace/ui/components/input';
+import { Label } from '@workspace/ui/components/label';
 import type { z } from 'zod';
 import { sessionQuery } from '@/features/auth/queries';
 import { api } from '@/lib/api';
@@ -12,7 +15,6 @@ const modes = {
 	setup: { schema: endpoints.setup.body, submit: api.setup, label: 'Create account', password: 'new-password' },
 };
 
-const fieldClass = 'w-full rounded-md border border-input bg-transparent px-3 py-2 aria-invalid:border-destructive';
 const errorClass = 'text-sm text-destructive';
 
 const FieldMessage = ({ id, error }: { id: string; error?: FieldError }) =>
@@ -52,26 +54,24 @@ export const CredentialsForm = ({ mode, onDone }: { mode: keyof typeof modes; on
 	return (
 		<form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
 			<div className="flex flex-col gap-1">
-				<label htmlFor="username">Username</label>
-				<input
+				<Label htmlFor="username">Username</Label>
+				<Input
 					id="username"
 					autoComplete="username"
 					aria-invalid={Boolean(errors.username)}
 					aria-describedby={errors.username ? 'username-error' : undefined}
-					className={fieldClass}
 					{...register('username')}
 				/>
 				<FieldMessage id="username-error" error={errors.username} />
 			</div>
 			<div className="flex flex-col gap-1">
-				<label htmlFor="password">Password</label>
-				<input
+				<Label htmlFor="password">Password</Label>
+				<Input
 					id="password"
 					type="password"
 					autoComplete={password}
 					aria-invalid={Boolean(errors.password)}
 					aria-describedby={errors.password ? 'password-error' : undefined}
-					className={fieldClass}
 					{...register('password')}
 				/>
 				<FieldMessage id="password-error" error={errors.password} />
@@ -81,13 +81,9 @@ export const CredentialsForm = ({ mode, onDone }: { mode: keyof typeof modes; on
 					{errors.root.message}
 				</p>
 			) : null}
-			<button
-				type="submit"
-				disabled={isSubmitting}
-				className="rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-60"
-			>
+			<Button type="submit" size="lg" disabled={isSubmitting}>
 				{label}
-			</button>
+			</Button>
 		</form>
 	);
 };
