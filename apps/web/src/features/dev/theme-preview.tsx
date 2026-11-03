@@ -1,6 +1,6 @@
 import { useSyncExternalStore, type ReactNode } from 'react';
-import { useTheme, type Theme } from '@/lib/theme';
 import poster from './poster.svg';
+import { ThemeSwitch } from './theme-switch';
 
 /**
  * Every token from `@workspace/ui/tokens.css`, rendered for review. Dev only: the route at
@@ -68,12 +68,6 @@ const statuses = [
 	{ name: 'destructive', dot: 'bg-destructive', text: 'text-destructive', message: 'Transcode failed' },
 ];
 
-const themes: { value: Theme; label: string }[] = [
-	{ value: 'system', label: 'System' },
-	{ value: 'light', label: 'Light' },
-	{ value: 'dark', label: 'Dark' },
-];
-
 const buttonBase = 'rounded-md px-3 py-2 text-sm font-medium disabled:opacity-60';
 const buttons = {
 	primary: `${buttonBase} bg-primary text-primary-foreground`,
@@ -109,25 +103,6 @@ const Section = ({ title, description, children }: { title: string; description?
 		{children}
 	</section>
 );
-
-const ThemeSwitch = () => {
-	const { theme, setTheme } = useTheme();
-	return (
-		<div role="group" aria-label="Theme" className="flex w-fit gap-1 rounded-lg border border-border bg-card p-1">
-			{themes.map(({ value, label }) => (
-				<button
-					key={value}
-					type="button"
-					aria-pressed={theme === value}
-					onClick={() => setTheme(value)}
-					className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground aria-pressed:bg-primary aria-pressed:text-primary-foreground"
-				>
-					{label}
-				</button>
-			))}
-		</div>
-	);
-};
 
 const Swatches = ({ values }: { values: Record<string, string> }) => (
 	<div className="flex flex-col gap-6">
