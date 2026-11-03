@@ -1,19 +1,27 @@
-import { createFileRoute, lazyRouteComponent, notFound } from '@tanstack/react-router';
+import { createFileRoute, notFound } from '@tanstack/react-router';
+import { lazy, Suspense } from 'react';
 
 /* eslint-disable turbo/no-undeclared-env-vars -- Vite sets DEV, and it is false in a build. */
 
 /**
- * The primitives preview, for `pnpm dev` only. In a build `DEV` is false, so the page answers as
- * not found and nothing imports the preview. It is imported lazily, because Base UI has top-level
- * code that a static import would keep in the build even when nothing renders it.
+ * Imported lazily, because Base UI has top-level code that a static import would keep in the
+ * build even when nothing renders it. In a build `DEV` is false, so nothing imports it at all.
  */
+const PrimitivesPreview = import.meta.env.DEV
+	? lazy(() => import('@/features/dev/primitives-preview').then((module) => ({ default: module.PrimitivesPreview })))
+	: null;
+
+/** The primitives preview, for `pnpm dev` only. In a build the page answers as not found. */
 export const Route = createFileRoute('/dev/primitives')({
 	beforeLoad: () => {
 		if (!import.meta.env.DEV) {
 			throw notFound();
 		}
 	},
-	component: import.meta.env.DEV
-		? lazyRouteComponent(() => import('@/features/dev/primitives-preview'), 'PrimitivesPreview')
-		: () => null,
+	component: () =>
+		PrimitivesPreview ? (
+			<Suspense>
+				<PrimitivesPreview />
+			</Suspense>
+		) : null,
 });
