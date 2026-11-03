@@ -95,7 +95,9 @@ const libraryQueryShape = z
 		status: queryList(transcodeStatusSchema).optional(),
 		page: queryNumber(wholeNumber('Page').min(1, 'Pages start at 1')).default(1),
 		pageSize: queryNumber(
-			wholeNumber('Page size').min(1, 'Page size must be at least 1').max(maxPageSize, `Page size must be at most ${maxPageSize}`),
+			wholeNumber('Page size')
+				.min(1, 'Page size must be at least 1')
+				.max(maxPageSize, `Page size must be at most ${maxPageSize}`),
 		).default(defaultPageSize),
 	})
 	.superRefine((query, context) => {

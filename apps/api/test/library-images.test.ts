@@ -169,7 +169,9 @@ describe('an image download that is killed partway', () => {
 		});
 		await api.killWorkers();
 
-		expect((await readdir(folder)).filter((file) => file.startsWith('poster.') && file !== 'poster.partial')).toEqual([]);
+		expect((await readdir(folder)).filter((file) => file.startsWith('poster.') && file !== 'poster.partial')).toEqual(
+			[],
+		);
 		expect(await itemOf(owner, slowArt)).toMatchObject({ hasPoster: false });
 		expect((await owner.get(`/library/movies/${slowArt}/images/poster`)).status).toBe(404);
 	});

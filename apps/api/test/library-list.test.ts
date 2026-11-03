@@ -123,7 +123,11 @@ describe('the paged library list', () => {
 		it.each([
 			['a lowest year, which it includes', '?yearMin=2001', ['Alpha', 'Charlie']],
 			['a highest year, which it includes', '?yearMax=2001', ['Alpha', 'Bravo']],
-			['a release date range, which includes both ends', '?releaseDateFrom=2001-05-01&releaseDateTo=2010-01-15', ['Alpha', 'Charlie']],
+			[
+				'a release date range, which includes both ends',
+				'?releaseDateFrom=2001-05-01&releaseDateTo=2010-01-15',
+				['Alpha', 'Charlie'],
+			],
 			['a release date one day after a title', '?releaseDateFrom=2001-05-02', ['Charlie']],
 			['a release date one day before a title', '?releaseDateTo=2001-04-30', ['Bravo']],
 			['a runtime range', '?runtimeMin=90&runtimeMax=100', ['Alpha', 'Bravo']],
@@ -284,7 +288,12 @@ describe('the paged library list', () => {
 			['a page size over the cap', '?pageSize=101', 'pageSize', 'Page size must be at most 100'],
 			['a page of 0', '?page=0', 'page', 'Pages start at 1'],
 			['a page that is not a number', '?page=two', 'page', 'Page must be a number'],
-			['an unknown sort', '?sort=votes', 'sort', 'Sort by one of title, year, releaseDate, runtime, rating, popularity'],
+			[
+				'an unknown sort',
+				'?sort=votes',
+				'sort',
+				'Sort by one of title, year, releaseDate, runtime, rating, popularity',
+			],
 			['an unknown order', '?order=up', 'order', 'Order must be asc or desc'],
 			['a date that is not ISO', '?releaseDateFrom=01/02/2024', 'releaseDateFrom', 'Must be a date as YYYY-MM-DD'],
 			['a date that does not exist', '?releaseDateTo=2024-02-30', 'releaseDateTo', 'Must be a real date'],
