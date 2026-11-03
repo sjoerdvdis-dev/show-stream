@@ -195,6 +195,17 @@ describe('the paged library list', () => {
 			expect(await titles(`?q=${encodeURIComponent(q)}`)).toEqual(expected);
 		});
 
+		it.each([
+			['the hyphenated word', 'spider-man'],
+			['its parts as words', 'spider man'],
+			['the start of its first part', 'spid'],
+			['its parts in any order', 'man spider'],
+		])('finds a hyphenated title by %s', async (_case, q) => {
+			await seedMovie(api, 5, 'Spider-Man: No Way Home');
+
+			expect(await titles(`?q=${encodeURIComponent(q)}`)).toEqual(['Spider-Man: No Way Home']);
+		});
+
 		it('follows a title that changes', async () => {
 			await seedMovie(api, 4, 'Aliens');
 
