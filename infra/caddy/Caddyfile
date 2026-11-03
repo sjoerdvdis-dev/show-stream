@@ -75,10 +75,15 @@
 		}
 		header @unhashed Cache-Control no-cache
 
-		# A deep link, such as /movies/550001, loads the app, which shows the page. A missing asset
-		# stays a 404 rather than the app.
-		@page not path /assets/*
-		try_files @page {path} /index.html
-		file_server
+		# A missing asset stays a 404 rather than the app.
+		handle /assets/* {
+			file_server
+		}
+
+		# A deep link, such as /movies/550001, loads the app, which shows the page.
+		handle {
+			try_files {path} /index.html
+			file_server
+		}
 	}
 }
