@@ -78,7 +78,21 @@ describe('the appearance', () => {
 		expect(document.documentElement.classList.contains('dark')).toBe(true);
 	});
 
-	it('chooses by keyboard', async () => {
+	it('names and describes each theme in a group named Theme', async () => {
+		startFakeApi({ signedIn: true });
+
+		openApp('/settings');
+		const appearance = await findSection('Appearance');
+		const theme = within(appearance.getByRole('group', { name: 'Theme' }));
+
+		expect(
+			theme.getByRole('radio', { name: 'System', description: 'Follows this device, and changes when it does.' }),
+		).toBeTruthy();
+		expect(theme.getByRole('radio', { name: 'Dark', description: 'Dark at all times.' })).toBeTruthy();
+		expect(theme.getByRole('radio', { name: 'Light', description: 'Light at all times.' })).toBeTruthy();
+	});
+
+	it('chooses by keyboard, with the group as one tab stop', async () => {
 		startFakeApi({ signedIn: true });
 		const user = userEvent.setup();
 
@@ -87,8 +101,15 @@ describe('the appearance', () => {
 		appearance.getByRole('radio', { name: 'System' }).focus();
 		await user.keyboard('{ArrowDown}');
 
-		expect(appearance.getByRole('radio', { name: 'Dark' }).getAttribute('aria-checked')).toBe('true');
+		const dark = appearance.getByRole('radio', { name: 'Dark' });
+		expect(dark.getAttribute('aria-checked')).toBe('true');
+		expect(document.activeElement).toBe(dark);
 		expect(document.documentElement.classList.contains('dark')).toBe(true);
+
+		await user.tab();
+		expect(appearance.queryAllByRole('radio')).not.toContain(document.activeElement);
+		await user.tab({ shift: true });
+		expect(document.activeElement).toBe(dark);
 	});
 });
 

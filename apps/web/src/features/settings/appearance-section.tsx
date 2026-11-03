@@ -1,4 +1,11 @@
-import { Label } from '@workspace/ui/components/label';
+import {
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldLabel,
+	FieldLegend,
+	FieldSet,
+} from '@workspace/ui/components/field';
 import { RadioGroup, RadioGroupItem } from '@workspace/ui/components/radio-group';
 import { SettingsSection } from '@workspace/ui/patterns/settings';
 import { useId } from 'react';
@@ -13,38 +20,24 @@ const themes: { value: Theme; label: string; description: string }[] = [
 /** The theme, kept in this browser, so it shows from the first paint of the next visit. */
 export const AppearanceSection = () => {
 	const { theme, setTheme } = useTheme();
-	const legendId = useId();
+	const id = useId();
 
 	return (
 		<SettingsSection title="Appearance" description="Kept in this browser.">
-			<p id={legendId} className="font-medium">
-				Theme
-			</p>
-			<RadioGroup aria-labelledby={legendId} value={theme} onValueChange={(value) => setTheme(value as Theme)}>
-				{themes.map(({ value, label, description }) => {
-					// Named by its label alone, and described by the rest.
-					const labelId = `${legendId}-${value}`;
-					const descriptionId = `${labelId}-description`;
-					return (
-						<Label key={value} className="items-start gap-3 py-1 font-normal">
-							<RadioGroupItem
-								value={value}
-								aria-labelledby={labelId}
-								aria-describedby={descriptionId}
-								className="mt-0.5"
-							/>
-							<span className="flex flex-col gap-0.5">
-								<span id={labelId} className="font-medium">
-									{label}
-								</span>
-								<span id={descriptionId} className="text-muted-foreground">
-									{description}
-								</span>
-							</span>
-						</Label>
-					);
-				})}
-			</RadioGroup>
+			<FieldSet>
+				<FieldLegend variant="label">Theme</FieldLegend>
+				<RadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+					{themes.map(({ value, label, description }) => (
+						<Field key={value} orientation="horizontal">
+							<RadioGroupItem value={value} id={`${id}-${value}`} aria-describedby={`${id}-${value}-description`} />
+							<FieldContent>
+								<FieldLabel htmlFor={`${id}-${value}`}>{label}</FieldLabel>
+								<FieldDescription id={`${id}-${value}-description`}>{description}</FieldDescription>
+							</FieldContent>
+						</Field>
+					))}
+				</RadioGroup>
+			</FieldSet>
 		</SettingsSection>
 	);
 };
