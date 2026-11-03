@@ -51,7 +51,12 @@ export default defineConfig({
 	],
 	resolve: { tsconfigPaths: true },
 	// hls.js alone is this large, and only the player loads it.
-	build: { chunkSizeWarningLimit: 600 },
+	build: {
+		chunkSizeWarningLimit: 600,
+		// Runs modules in the order they are imported, as unbundled ES modules do, so that
+		// `src/lib/zod-without-eval.ts` runs before any shared chunk makes a schema.
+		rolldownOptions: { output: { strictExecutionOrder: true } },
+	},
 	server: {
 		host: '127.0.0.1',
 		// What Caddy does in production. `pnpm dev` is the only place this exists, and it does not

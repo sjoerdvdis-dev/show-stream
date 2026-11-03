@@ -7,10 +7,10 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 const owner = { username: 'owner', password: 'correct horse battery' };
 const movieId = 550001;
 
-/** The path of one of the app's hashed assets, from the page that loads it. */
-const assetPath = async (request: APIRequestContext) => {
+/** The path of the app's stylesheet, a hashed asset large enough to compress, from the page that loads it. */
+const stylesheetPath = async (request: APIRequestContext) => {
 	const html = await (await request.get('/')).text();
-	return /src="(\/assets\/[^"]+\.js)"/.exec(html)![1]!;
+	return /<link rel="stylesheet"[^>]* href="(\/assets\/[^"]+\.css)"/.exec(html)![1]!;
 };
 
 test('port 80 redirects to HTTPS', async ({ request }) => {
@@ -36,7 +36,7 @@ test('index.html is asked for again each time, and hashed assets are kept', asyn
 	const page = await request.get('/movies');
 	expect(page.headers()['cache-control']).toBe('no-cache');
 
-	const asset = await request.get(await assetPath(request), { headers: { 'Accept-Encoding': 'gzip, zstd' } });
+	const asset = await request.get(await stylesheetPath(request), { headers: { 'Accept-Encoding': 'gzip, zstd' } });
 	expect(asset.status()).toBe(200);
 	expect(asset.headers()['cache-control']).toBe('public, max-age=31536000, immutable');
 	expect(asset.headers()['content-encoding']).toBeDefined();
