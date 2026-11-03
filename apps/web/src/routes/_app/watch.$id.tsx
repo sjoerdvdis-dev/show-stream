@@ -1,6 +1,6 @@
-import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { createFileRoute, notFound } from '@tanstack/react-router';
 import { endpoints } from '@workspace/contract/endpoints';
-import { PageContainer } from '@workspace/ui/patterns/page';
+import { BackLink, PageContainer } from '@workspace/ui/patterns/page';
 import { Player } from '@/features/player/player';
 
 const WatchPage = () => {
@@ -8,9 +8,7 @@ const WatchPage = () => {
 
 	return (
 		<PageContainer>
-			<Link to="/movies" className="underline">
-				Back to Movies
-			</Link>
+			<BackLink href="/movies" label="Movies" />
 			<Player key={id} id={id} />
 		</PageContainer>
 	);
