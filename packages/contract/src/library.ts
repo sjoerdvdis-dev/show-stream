@@ -165,3 +165,7 @@ export const libraryFacetsSchema = z.object({
 	statuses: z.record(transcodeStatusSchema, z.number()),
 });
 export type LibraryFacets = z.infer<typeof libraryFacetsSchema>;
+
+/** The art a scan stores for each title. */
+export const imageKindSchema = z.enum(['poster', 'backdrop'], { error: 'The image must be poster or backdrop' });
+export type ImageKind = z.infer<typeof imageKindSchema>;

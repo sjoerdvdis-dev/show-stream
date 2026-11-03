@@ -1,4 +1,5 @@
 export * from './connection.js';
+export * from './images.js';
 export * from './jobs.js';
 export * from './library.js';
 export * from './media.js';

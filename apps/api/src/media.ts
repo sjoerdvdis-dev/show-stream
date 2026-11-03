@@ -2,8 +2,10 @@ import path from 'path';
 import fs from 'fs';
 import { db } from './db';
 import { ApiFailure, notFound } from './errors';
-import { findLatestScan, findMovie, libraryFacets, listLibrary, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
-import type { LibraryFacets, LibraryPage, LibraryQuery } from '@workspace/contract/library';
+import { findLatestScan, findMovie, findStoredImage, libraryFacets, listLibrary, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
+import type { ImageKind, LibraryFacets, LibraryPage, LibraryQuery } from '@workspace/contract/library';
+import type { Response } from 'express';
+import { config } from './config';
 import type {
 	MovieAPIData,
 	MovieMetadata,
@@ -36,6 +38,39 @@ export const getLibraryMovies = async (query: LibraryQuery): Promise<LibraryPage
 // GET /library/movies/facets
 // -> what the movie filters can offer
 export const getLibraryMovieFacets = async (): Promise<LibraryFacets> => libraryFacets(db, 'movie');
+
+/**
+ * Images do not change once stored, but a later version may replace one, so browsers keep them
+ * for a month and then check the ETag. `private`, because they need a session.
+ */
+const imageCacheControl = 'private, max-age=2592000';
+
+// GET /library/movies/:id/images/:kind
+// -> the stored poster or backdrop of a movie
+export const sendMovieImage = async ({ id, kind, res }: { id: number; kind: ImageKind; res: Response }) => {
+	// Built from the title and the kind alone, so no part of the path comes from the request.
+	const file = findStoredImage(db, 'movie', id, kind);
+	if (!file) {
+		throw notFound('Image');
+	}
+
+	await new Promise<void>((resolve, reject) => {
+		res.sendFile(
+			file,
+			// Headers given here are only sent with the file, so a 404 is never cached.
+			{ root: config.mediaFolder, cacheControl: false, headers: { 'Cache-Control': imageCacheControl } },
+			(error: (Error & { code?: string; status?: number }) | undefined) => {
+				if (!error || error.code === 'ECONNABORTED') {
+					resolve();
+				} else if (error.status === 404) {
+					reject(notFound('Image'));
+				} else {
+					reject(error);
+				}
+			},
+		);
+	});
+};
 
 // /movies
 // -> metadata of all movies

@@ -10,7 +10,7 @@ import {
 	transcodePlaylistResponseSchema,
 	transcodeRequestResponseSchema,
 } from './api-types.js';
-import { libraryFacetsSchema, libraryPageSchema, libraryQuerySchema } from './library.js';
+import { imageKindSchema, libraryFacetsSchema, libraryPageSchema, libraryQuerySchema } from './library.js';
 
 export type Endpoint = {
 	method: 'GET' | 'POST';
@@ -48,6 +48,8 @@ const streamParams = z.object({
 	id: idSchema,
 	file: z.string().regex(/^[\w-]+\.(m3u8|ts)$/, 'Must be an HLS file name'),
 });
+
+const imageParams = z.object({ id: idSchema, kind: imageKindSchema });
 
 const credentials = z.object({ username: nonEmptyText('Username'), password: nonEmptyText('Password') });
 
@@ -111,6 +113,14 @@ export const endpoints = {
 	},
 	libraryMovies: { method: 'GET', path: '/library/movies', query: libraryQuerySchema, response: libraryPageSchema },
 	libraryMovieFacets: { method: 'GET', path: '/library/movies/facets', response: libraryFacetsSchema },
+	/** A movie's stored poster or backdrop, which a browser may cache. */
+	libraryMovieImage: {
+		method: 'GET',
+		path: '/library/movies/:id/images/:kind',
+		params: imageParams,
+		format: 'file',
+		response: z.instanceof(Blob),
+	},
 	movies: { method: 'GET', path: '/movies', response: moviesResponseSchema },
 	shows: { method: 'GET', path: '/shows', response: showsResponseSchema },
 	movie: { method: 'GET', path: '/movie/:id', params: titleParams, response: movieResponseSchema },
