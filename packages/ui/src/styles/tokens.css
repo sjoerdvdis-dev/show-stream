@@ -22,6 +22,7 @@
 
 /* The primitives, so that an app that imports this file gets their classes. */
 @source '../components';
+@source '../patterns';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
