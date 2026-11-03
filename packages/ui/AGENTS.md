@@ -20,6 +20,7 @@ Screens      thin route files in apps/web
 - ShowStream's own colors, such as `success` and `overlay`, sit in their own `:root` and `.dark` blocks, as shadcn documents for new colors, and in `@theme inline`. A new one needs both themes, a contrast pair in the test, and a row in `DESIGN.md`.
 - The accent appears in `primary`, `ring`, `chart-1`, `sidebar-primary` and `sidebar-ring`. Change them together.
 - `DESIGN.md` names each color's role, and points here for the values, so a value change needs no edit there.
+- `tokens.css` keeps only base styles that use its variables. The primitives rely on the app's stylesheet to end animations at once under reduced motion, as `apps/web/src/index.css` does, so a new app must copy that rule.
 
 ## Primitives
 

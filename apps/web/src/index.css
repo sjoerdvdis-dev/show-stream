@@ -5,4 +5,25 @@
 	body {
 		@apply min-h-dvh antialiased;
 	}
+
+	button:not(:disabled),
+	[role='button']:not(:disabled) {
+		cursor: pointer;
+	}
+
+	/*
+	 * Reduced motion: the primitives' open and close animations and transitions end at once, so a
+	 * dialog, sheet or menu appears and leaves without moving. They still end, so Base UI still
+	 * unmounts what it closes.
+	 */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		::before,
+		::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
 }
