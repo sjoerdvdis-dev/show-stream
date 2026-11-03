@@ -23,10 +23,7 @@ const StateLayout = ({
 	children,
 	...props
 }: StateProps & { children?: ReactNode; role?: string }) => (
-	<div
-		className={cn('flex flex-col items-center justify-center gap-3 px-4 py-12 text-center', className)}
-		{...props}
-	>
+	<div className={cn('flex flex-col items-center justify-center gap-3 px-4 py-12 text-center', className)} {...props}>
 		{Icon ? <Icon aria-hidden="true" className="size-10 text-muted-foreground" /> : null}
 		<div className="flex max-w-prose flex-col gap-1">
 			<h2 className="text-lg font-semibold">{title}</h2>

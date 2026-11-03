@@ -19,7 +19,9 @@ describe('ErrorState', () => {
 	it('announces the error, and retries by keyboard', async () => {
 		const user = userEvent.setup();
 		const onRetry = vi.fn();
-		render(<ErrorState title="Could not load the library" description="The server did not answer." onRetry={onRetry} />);
+		render(
+			<ErrorState title="Could not load the library" description="The server did not answer." onRetry={onRetry} />,
+		);
 
 		expect(screen.getByRole('alert').textContent).toContain('Could not load the library');
 		await user.tab();
