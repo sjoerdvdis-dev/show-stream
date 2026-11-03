@@ -156,6 +156,63 @@ describe('the paged library list', () => {
 		});
 	});
 
+	describe('search', () => {
+		beforeEach(async () => {
+			await seedMovie(api, 1, 'The Dark Knight');
+			await seedMovie(api, 2, 'Knight and Day');
+			await seedMovie(api, 3, 'Amélie', { original_title: "Le Fabuleux Destin d'Amélie Poulain" });
+			await seedMovie(api, 4, 'Alien');
+		});
+
+		it.each([
+			['whole words', 'dark knight', ['The Dark Knight']],
+			['words in any order', 'knight dark', ['The Dark Knight']],
+			['the start of each word', 'dar kni', ['The Dark Knight']],
+			['one word in several titles', 'knight', ['Knight and Day', 'The Dark Knight']],
+			['any case', 'ALIEN', ['Alien']],
+			['no accents', 'amelie', ['Amélie']],
+			['the original title', 'fabuleux destin', ['Amélie']],
+			['a word that no title has', 'zebra', []],
+		])('matches %s', async (_case, q, expected) => {
+			expect(await titles(`?q=${encodeURIComponent(q)}`)).toEqual(expected);
+		});
+
+		it.each([
+			['a quote', 'dark"', ['The Dark Knight']],
+			['a quoted phrase', '"dark knight"', ['The Dark Knight']],
+			['OR, which stays a word', 'dark OR alien', []],
+			['NOT, which stays a word', 'knight NOT dark', []],
+			['a minus', 'knight -dark', ['The Dark Knight']],
+			['a column filter', 'title:alien', []],
+			['NEAR and brackets', 'NEAR(dark knight)', []],
+			['a star on its own', '*', []],
+			['only punctuation', '"" ( ) ^', []],
+			['a caret', '^alien', ['Alien']],
+		])('reads %s as text, not as search syntax', async (_case, q, expected) => {
+			expect(await titles(`?q=${encodeURIComponent(q)}`)).toEqual(expected);
+		});
+
+		it('follows a title that changes', async () => {
+			await seedMovie(api, 4, 'Aliens');
+
+			expect(await titles('?q=aliens')).toEqual(['Aliens']);
+			expect(await titles('?q=zebra')).toEqual([]);
+			await seedMovie(api, 4, 'Zebra');
+			expect(await titles('?q=aliens')).toEqual([]);
+			expect(await titles('?q=zebra')).toEqual(['Zebra']);
+		});
+
+		it('forgets a title that is removed', async () => {
+			clearLibrary(api);
+
+			expect(await titles('?q=dark')).toEqual([]);
+		});
+
+		it('combines with filters and sorting', async () => {
+			expect(await titles('?q=knight&sort=title&order=desc')).toEqual(['The Dark Knight', 'Knight and Day']);
+		});
+	});
+
 	describe('paging', () => {
 		const count = 30;
 
