@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { toReturnPath } from '@/features/auth/return-path';
 import { createQueryClient } from '@/lib/query-client';
+import { parseSearch, stringifySearch } from '@/lib/search-params';
 import { routeTree } from '@/routeTree.gen';
 import { ThemeProvider } from '@/lib/theme';
 
@@ -27,6 +28,8 @@ export const createApp = () => {
 	const queryClient = createQueryClient(onSessionLost);
 	const router = createRouter({
 		routeTree,
+		parseSearch,
+		stringifySearch,
 		context: { queryClient, onSessionLost, onLoggedOut: () => leaveForLogin() },
 	});
 

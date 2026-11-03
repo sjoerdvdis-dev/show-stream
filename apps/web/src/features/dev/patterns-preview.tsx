@@ -15,7 +15,8 @@ import { DateRangeFilter, FacetFilter, RangeFilter, type DateRange } from '@work
 import { MediaCard, MediaGrid, MediaRow } from '@workspace/ui/patterns/media-card';
 import { MediaHero } from '@workspace/ui/patterns/media-hero';
 import { MediaImage } from '@workspace/ui/patterns/media-image';
-import { PageHeader } from '@workspace/ui/patterns/page';
+import { BackLink, PageHeader } from '@workspace/ui/patterns/page';
+import { Pager } from '@workspace/ui/patterns/pager';
 import { ConfirmDialog, SettingsSection } from '@workspace/ui/patterns/settings';
 import { EmptyState, ErrorState, LoadingGrid } from '@workspace/ui/patterns/states';
 import { PlayButton, StatusBadge } from '@workspace/ui/patterns/status';
@@ -125,15 +126,25 @@ const renderCard = (movie: Movie) => (
 );
 
 const Headers = () => (
-	<div className="rounded-lg border border-border p-4">
+	<div className="flex flex-col gap-4 rounded-lg border border-border p-4">
 		<PageHeader
 			title="Settings"
 			description="Your account, the library and backups."
 			back={{ href: '#patterns', label: 'Back to Movies' }}
 			actions={<Button variant="outline">Log out</Button>}
 		/>
+		<BackLink href="#patterns" label="Movies" />
 	</div>
 );
+
+const Pages = () => {
+	const [page, setPage] = useState(2);
+	return (
+		<div className="rounded-lg border border-border p-4">
+			<Pager page={page} pageCount={5} onPageChange={setPage} label="Preview pages" />
+		</div>
+	);
+};
 
 const Status = () => (
 	<div className="flex flex-col gap-4">
@@ -518,7 +529,7 @@ export const PatternsSection = () => (
 			>
 				{null}
 			</Section>
-			<Section title="Page header">
+			<Section title="Page header" description="With a way back, and a way back on its own, as a title's page has.">
 				<Headers />
 			</Section>
 			<Section title="Status and Play" description="Each status, a failure with its reason, and Play in every state.">
@@ -532,6 +543,9 @@ export const PatternsSection = () => (
 			</Section>
 			<Section title="Media grid and cards">
 				<Grid />
+			</Section>
+			<Section title="Pager" description="Previous and Next for a list the server pages. It hides at one page.">
+				<Pages />
 			</Section>
 			<Section title="Media row" description="Scrolls sideways. Tab moves through the cards.">
 				<Row />

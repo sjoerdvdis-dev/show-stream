@@ -32,7 +32,7 @@ pnpm dev
 | Client | Open | Notes |
 |---|---|---|
 | `apps/next-client` | <http://localhost:3000> | What Compose serves today |
-| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Thin library and player so far, and it prepares no titles. <http://127.0.0.1:5173/dev/components> previews the design tokens, primitives and patterns in both themes |
+| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Movies, a movie's page and Play are on the patterns, and the player is still thin. <http://127.0.0.1:5173/dev/components> previews the design tokens, primitives and patterns in both themes |
 
 A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
 

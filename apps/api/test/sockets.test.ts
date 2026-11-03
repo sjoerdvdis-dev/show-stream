@@ -109,7 +109,7 @@ describe('sockets', () => {
 			await second.get(`/transcode/request/${movie.id}`);
 			await releaseFfmpeg(api, movie);
 
-			const ready = { type: 'transcode:ready', data: { title: 'Notified' } };
+			const ready = { type: 'transcode:ready', data: { id: movie.id, title: 'Notified' } };
 			await api.waitFor(async () => expect(ownerNotifications).toEqual([ready]));
 			await api.waitFor(async () => expect(secondNotifications).toEqual([ready]));
 			await sleep(announcePeriod);
@@ -129,7 +129,7 @@ describe('sockets', () => {
 			await api.waitFor(async () => expect(ownerNotifications).toHaveLength(1));
 			expect(ownerNotifications[0]).toEqual({
 				type: 'transcode:failed',
-				data: { title: 'Unwatchable', error: expect.stringContaining('Invalid data') },
+				data: { id: movie.id, title: 'Unwatchable', error: expect.stringContaining('Invalid data') },
 			});
 			await sleep(announcePeriod);
 			expect(ownerNotifications).toHaveLength(1);

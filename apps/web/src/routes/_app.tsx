@@ -2,13 +2,15 @@ import { createFileRoute, Outlet, redirect, useRouterState } from '@tanstack/rea
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@workspace/ui/components/sidebar';
 import { AppShell, type NavItem } from '@workspace/ui/patterns/app-shell';
 import { AppLink } from '@workspace/ui/patterns/link';
-import { PageContainer } from '@workspace/ui/patterns/page';
-import { Film, LogOut } from 'lucide-react';
+import { Film, LogOut, Settings } from 'lucide-react';
 import { sessionQuery } from '@/features/auth/queries';
 import { useLogout } from '@/features/auth/use-logout';
-import { useNotifications } from '@/lib/use-notifications';
+import { useNotifications } from '@/features/library/use-notifications';
 
-const navigation: Omit<NavItem, 'active'>[] = [{ href: '/movies', label: 'Movies', icon: Film }];
+const navigation: Omit<NavItem, 'active'>[] = [
+	{ href: '/movies', label: 'Movies', icon: Film },
+	{ href: '/settings', label: 'Settings', icon: Settings },
+];
 
 const SignedInLayout = () => {
 	const { user } = Route.useRouteContext();
@@ -45,9 +47,7 @@ const SignedInLayout = () => {
 				</SidebarMenu>
 			}
 		>
-			<PageContainer>
-				<Outlet />
-			</PageContainer>
+			<Outlet />
 		</AppShell>
 	);
 };

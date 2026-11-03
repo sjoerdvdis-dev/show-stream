@@ -196,7 +196,7 @@ Gently rounded corners from one radius, `0.6rem` (`--radius`). Steps derive from
 
 ## Components
 
-The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kept close to upstream, and `/dev/components` under `pnpm dev` shows each one, and every pattern, in both themes. They style through Tailwind utilities on the variables above, and merge classes with `cn()`. Upstream gives floating layers, such as menus, popovers, selects and sheets, a small shadow, which they keep for now against the Tonal Lift Rule above; the maintainer decides whether it stays. The patterns in `packages/ui/src/patterns` build on them, as the last part of this section describes. Until the screens move to the patterns in item 6, the descriptions of buttons, cards and fields below are of the plain elements `apps/web` uses.
+The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kept close to upstream, and `/dev/components` under `pnpm dev` shows each one, and every pattern, in both themes. They style through Tailwind utilities on the variables above, and merge classes with `cn()`. Upstream gives floating layers, such as menus, popovers, selects and sheets, a small shadow, which they keep for now against the Tonal Lift Rule above; the maintainer decides whether it stays. The patterns in `packages/ui/src/patterns` build on them, as the last part of this section describes. Movies and a movie's page are on the patterns now. Login, Setup, Settings and the player follow in the second ticket of item 6, and until then the descriptions of buttons, cards and fields below are of the plain elements those screens use.
 
 ### Buttons
 
@@ -231,6 +231,8 @@ The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kep
 - **Player**: controls sit on an `overlay` gradient from the bottom, in `overlay-foreground`, with the time in Geist Mono and `tabular-nums`. They hide after 3 seconds of playback.
 - **States**: empty and error states center an icon, a title and a short line, with one action. Loading keeps the layout with `muted` skeletons in the same grid.
 - **Navigation**: a sidebar that collapses to icons on a wide screen, and a bottom bar on a phone, with the current item in `primary`.
+- **Pager** (`Pager`): outline Previous and Next buttons around "Page 2 of 5" in `muted-foreground` with `tabular-nums`, centered below the grid. The ends disable their button, and one page hides it.
+- **Back link** (`BackLink`): a chevron and the name of the page above, such as Movies, in `muted-foreground` at small size, turning `foreground` on hover, above a page's title or hero.
 
 ### Focus ring
 

@@ -27,6 +27,20 @@ export const PageContainer = ({
 	</div>
 );
 
+/** A link to the page above, such as Movies from a title. `PageHeader` shows one, and a page without a header can too. */
+export const BackLink = ({ href, label, className }: { href: string; label: string; className?: string }) => (
+	<AppLink
+		href={href}
+		className={cn(
+			'-ml-1 flex w-fit items-center gap-1 rounded-md px-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
+			className,
+		)}
+	>
+		<ChevronLeft aria-hidden="true" className="size-4" />
+		{label}
+	</AppLink>
+);
+
 /** The page's title area: an optional way back, the `h1`, a description, and the page's actions. */
 export const PageHeader = ({
 	title,
@@ -43,15 +57,7 @@ export const PageHeader = ({
 	className?: string;
 }) => (
 	<header className={cn('flex flex-col gap-2', className)}>
-		{back ? (
-			<AppLink
-				href={back.href}
-				className="-ml-1 flex w-fit items-center gap-1 rounded-md px-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-			>
-				<ChevronLeft aria-hidden="true" className="size-4" />
-				{back.label}
-			</AppLink>
-		) : null}
+		{back ? <BackLink {...back} /> : null}
 		<div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
 			<div className="flex min-w-0 flex-col gap-1">
 				<h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>

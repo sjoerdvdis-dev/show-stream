@@ -434,7 +434,7 @@ describe('database', () => {
 					expect(job.attempts).toBe(1);
 					expect(job.payload).toMatchObject({ requestedBy: [2], video: 'movies/7/new.mp4' });
 					finishJob(db, job.id);
-					expect(takeFinishedTranscodes(db)).toEqual([{ status: 'done', title: 'Title 7', requestedBy: [2] }]);
+					expect(takeFinishedTranscodes(db)).toEqual([{ status: 'done', tmdbId: 7, title: 'Title 7', requestedBy: [2] }]);
 				});
 
 				it.each([
@@ -465,7 +465,7 @@ describe('database', () => {
 					addTranscodeRequester(db, movie.id, 1);
 					finishJob(db, claimNextJob(db)!.id);
 
-					expect(takeFinishedTranscodes(db)).toEqual([{ status: 'done', title: 'Title 7', requestedBy: [1, 2] }]);
+					expect(takeFinishedTranscodes(db)).toEqual([{ status: 'done', tmdbId: 7, title: 'Title 7', requestedBy: [1, 2] }]);
 					expect(takeFinishedTranscodes(db)).toEqual([]);
 				});
 
@@ -474,7 +474,7 @@ describe('database', () => {
 					failClaimedJob();
 
 					expect(takeFinishedTranscodes(db)).toEqual([
-						{ status: 'failed', error: 'Bad file', title: 'Title 7', requestedBy: [1] },
+						{ status: 'failed', error: 'Bad file', tmdbId: 7, title: 'Title 7', requestedBy: [1] },
 					]);
 				});
 
