@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@workspace/ui/components/button';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { LibraryScan } from '@/components/dashboard/library-scan';
 import { useUser } from '@/hooks/use-user';

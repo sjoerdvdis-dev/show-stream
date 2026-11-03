@@ -6,7 +6,6 @@ const __dirname = path.dirname(__filename); // get the name of the directory
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	transpilePackages: ['@workspace/ui'],
 	output: 'standalone',
 	outputFileTracingRoot: path.join(__dirname, '../../'),
 	images: {

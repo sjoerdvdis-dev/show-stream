@@ -7,7 +7,7 @@ import { PlayIcon } from 'lucide-react';
 import { useFetchTranscodeRequest } from '@/hooks/use-video-api';
 import MoreOptionsPopover from '@/components/media/more-options-popover';
 import TranscodeStatusIcon from '@/components/media/transcode-status-icon';
-import { Card, CardContent, CardFooter } from '@workspace/ui/components/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import type { MediaType, TranscodeStatus } from '@workspace/contract/api-types';
 
 export default function MediaCard(props: {

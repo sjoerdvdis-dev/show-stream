@@ -1,4 +1,4 @@
-import { buttonVariants } from '@workspace/ui/components/button';
+import { buttonVariants } from '@/components/ui/button';
 import { FilmIcon, HomeIcon, SearchIcon, SettingsIcon, TvIcon } from 'lucide-react';
 import Link from 'next/link';
 import { ModeToggle } from './mode-toggle';

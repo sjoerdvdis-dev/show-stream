@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { cn } from '@workspace/ui/lib/utils';
+import { cn } from '@/lib/utils';
 import { CalendarIcon, Check, ChevronsUpDown, FilterIcon, SortAscIcon, SortDescIcon, XIcon } from 'lucide-react';
 import { getTranscodeStatusIcon } from './transcode-status-icon';
 import {
@@ -20,8 +20,8 @@ import {
 	DrawerHeader,
 	DrawerTitle,
 	DrawerTrigger,
-} from '@workspace/ui/components/drawer';
-import { Input } from '@workspace/ui/components/input';
+} from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
 import {
 	Command,
 	CommandEmpty,
@@ -29,14 +29,14 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from '@workspace/ui/components/command';
-import { Button } from '@workspace/ui/components/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover';
-import { DualRangeSlider } from '@workspace/ui/components/dual-range-slider';
-import { Calendar } from '@workspace/ui/components/calendar';
-import { RadioGroup, RadioGroupItem } from '@workspace/ui/components/radio-group';
-import { Label } from '@workspace/ui/components/label';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from '@workspace/ui/components/select';
+} from '@/components/ui/command';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DualRangeSlider } from '@/components/ui/dual-range-slider';
+import { Calendar } from '@/components/ui/calendar';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { useDebouncedCallback } from 'use-debounce';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
 
