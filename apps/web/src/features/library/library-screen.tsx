@@ -1,7 +1,7 @@
 import { useRouteContext } from '@tanstack/react-router';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
 import type { LibraryItem } from '@workspace/contract/library';
-import { Button } from '@workspace/ui/components/button';
+import { Button, buttonVariants } from '@workspace/ui/components/button';
 import { FilterBar } from '@workspace/ui/patterns/filter-bar';
 import { DateRangeFilter, FacetFilter, RangeFilter, type IsoDate } from '@workspace/ui/patterns/filters';
 import { AppLink } from '@workspace/ui/patterns/link';
@@ -141,7 +141,11 @@ const useEmptyState = (list: List, noun: string): ComponentProps<typeof MediaGri
 		return {
 			title: `No ${noun} yet`,
 			description: `Scan the library in Settings to add the ${noun} in your media folder.`,
-			action: <Button render={<AppLink href="/settings" />}>Go to Settings</Button>,
+			action: (
+				<AppLink href="/settings" className={buttonVariants()}>
+					Go to Settings
+				</AppLink>
+			),
 		};
 	}
 	return { title: `No ${noun} yet`, description: `An admin can scan the library to add ${noun}.` };

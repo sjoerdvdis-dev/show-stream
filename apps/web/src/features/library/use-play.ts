@@ -6,6 +6,12 @@ import { api, isUnauthorized } from '@/lib/api';
 
 type Title = { id: number; title: string };
 
+/** How long a toast with an action stays, so there is time to read it and act. Hover and focus pause it. */
+export const actionToastMs = 10_000;
+
+/** A failure's reason can be a long ffmpeg message. The toast shows its start, and the title's page all of it. */
+export const reasonClassNames = { description: 'line-clamp-3' };
+
 /** A 401 already went to `onSessionLost`, through the query client, so it needs no toast. */
 const toastFailure = (message: string, error: Error) => {
 	if (!isUnauthorized(error)) toast.error(message, { description: error.message, closeButton: true });
@@ -47,7 +53,9 @@ export const usePlay = () => {
 			if (status === 'failed') {
 				toast.error(`Playback preparation for ${title.title} failed.`, {
 					description: error,
+					classNames: reasonClassNames,
 					closeButton: true,
+					duration: actionToastMs,
 					action: { label: 'Retry', onClick: () => retry(title) },
 				});
 				return;

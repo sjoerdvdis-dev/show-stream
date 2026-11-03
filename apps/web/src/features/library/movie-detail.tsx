@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@workspace/api-client';
 import type { MovieMetadata } from '@workspace/contract/api-types';
-import { Button } from '@workspace/ui/components/button';
+import { buttonVariants } from '@workspace/ui/components/button';
 import { AppLink } from '@workspace/ui/patterns/link';
 import { MediaHero } from '@workspace/ui/patterns/media-hero';
 import { BackLink, PageContainer } from '@workspace/ui/patterns/page';
@@ -38,7 +38,11 @@ export const MovieDetail = ({ id }: { id: number }) => {
 				<EmptyState
 					title="This movie is not in the library"
 					description="It may have been removed, or the link may be wrong."
-					action={<Button render={<AppLink href="/movies" />}>Browse movies</Button>}
+					action={
+						<AppLink href="/movies" className={buttonVariants()}>
+							Browse movies
+						</AppLink>
+					}
 				/>
 			</PageContainer>
 		);

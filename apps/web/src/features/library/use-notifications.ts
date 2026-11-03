@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { apiNotificationSchema, type APINotification } from '@workspace/contract/api-types';
 import { libraryKey } from '@/features/library/use-library-list';
-import { useRetry } from '@/features/library/use-play';
+import { actionToastMs, reasonClassNames, useRetry } from '@/features/library/use-play';
 import { openSocket } from '@/lib/socket';
 
 /**
@@ -29,6 +29,7 @@ export const useNotifications = () => {
 			if (notification.type === 'transcode:ready') {
 				toast.success(`Playback for ${title} is ready!`, {
 					closeButton: true,
+					duration: actionToastMs,
 					action:
 						id === null
 							? undefined
@@ -38,7 +39,9 @@ export const useNotifications = () => {
 			}
 			toast.error(`Playback preparation for ${title} failed.`, {
 				description: notification.data.error,
+				classNames: reasonClassNames,
 				closeButton: true,
+				duration: actionToastMs,
 				action: id === null ? undefined : { label: 'Retry', onClick: () => retry({ id, title }) },
 			});
 		};
