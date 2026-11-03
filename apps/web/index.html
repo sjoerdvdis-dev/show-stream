@@ -6,6 +6,22 @@
 		<meta name="color-scheme" content="light dark" />
 		<link rel="icon" href="/favicon.ico" />
 		<title>ShowStream</title>
+		<!-- Applies the theme before first paint. ThemeProvider in src/lib/theme.tsx keeps it after that, with the same key. -->
+		<script>
+			(function () {
+				var theme;
+				try {
+					theme = localStorage.getItem('theme');
+				} catch (error) {}
+				if (theme !== 'dark' && theme !== 'light') {
+					theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				}
+				var root = document.documentElement;
+				root.classList.toggle('dark', theme === 'dark');
+				// Paints the canvas in the theme before the stylesheet arrives.
+				root.style.colorScheme = theme;
+			})();
+		</script>
 	</head>
 	<body>
 		<div id="root"></div>

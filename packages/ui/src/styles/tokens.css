@@ -1,0 +1,161 @@
+/*
+ * ShowStream design tokens: colors in both themes, fonts and radius, mapped to Tailwind.
+ * DESIGN.md describes them, and test/tokens.test.ts checks their contrast and gamut.
+ *
+ * Import after Tailwind:
+ *   @import 'tailwindcss';
+ *   @import '@workspace/ui/tokens.css';
+ *
+ * The dark theme is the `dark` class on <html>. Use the semantic utilities, such as
+ * `bg-card` and `text-muted-foreground`, never raw colors.
+ */
+
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Light theme, and the values both themes share. */
+:root {
+	color-scheme: light;
+
+	--background: oklch(0.985 0.002 265);
+	--foreground: oklch(0.2 0.015 265);
+	--card: oklch(1 0 265);
+	--popover: oklch(1 0 265);
+	--muted: oklch(0.955 0.005 265);
+	--muted-foreground: oklch(0.47 0.016 265);
+	--secondary: oklch(0.945 0.005 265);
+	--border: oklch(0.895 0.007 265);
+
+	--destructive: oklch(0.52 0.19 27);
+	--destructive-foreground: oklch(0.985 0.005 27);
+	--success: oklch(0.47 0.105 155);
+	--warning: oklch(0.5 0.105 75);
+	--info: oklch(0.48 0.115 245);
+
+	/* A scrim over posters and video, dark in both themes. Use it with an opacity, as `bg-overlay/75`. */
+	--overlay: oklch(0.145 0.012 265);
+	--overlay-foreground: oklch(0.97 0.004 265);
+
+	--radius: 0.6rem;
+}
+
+.dark {
+	color-scheme: dark;
+
+	--background: oklch(0.145 0.012 265);
+	--foreground: oklch(0.97 0.004 265);
+	--card: oklch(0.185 0.014 265);
+	--popover: oklch(0.205 0.015 265);
+	--muted: oklch(0.225 0.015 265);
+	--muted-foreground: oklch(0.74 0.014 265);
+	--secondary: oklch(0.255 0.016 265);
+	--border: oklch(0.32 0.016 265);
+
+	--destructive: oklch(0.68 0.19 25);
+	--destructive-foreground: oklch(0.16 0.03 25);
+	--success: oklch(0.76 0.15 155);
+	--warning: oklch(0.84 0.15 90);
+	--info: oklch(0.74 0.12 240);
+}
+
+/*
+ * Tokens that follow others, in both themes. They are declared on `.dark` too, so that a `dark`
+ * element inside a light page resolves them against the dark values.
+ */
+:root,
+.dark {
+	--card-foreground: var(--foreground);
+	--popover-foreground: var(--foreground);
+	--secondary-foreground: var(--foreground);
+
+	/* shadcn names */
+	--accent: var(--secondary);
+	--accent-foreground: var(--secondary-foreground);
+	--input: var(--border);
+	--ring: var(--primary);
+}
+
+/*
+ * The accent: the one warm color, for the main action, links and focus rings. To change it,
+ * edit these four values. `ring` follows `primary`, and the contrast test checks the result.
+ */
+:root {
+	--primary: oklch(0.5 0.115 60);
+	--primary-foreground: oklch(0.985 0.01 70);
+}
+
+.dark {
+	--primary: oklch(0.8 0.145 70);
+	--primary-foreground: oklch(0.2 0.04 60);
+}
+
+@theme inline {
+	--font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-success: var(--success);
+	--color-warning: var(--warning);
+	--color-info: var(--info);
+	--color-overlay: var(--overlay);
+	--color-overlay-foreground: var(--overlay-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+	*,
+	::before,
+	::after {
+		border-color: var(--color-border);
+	}
+
+	html {
+		accent-color: var(--color-primary);
+		caret-color: var(--color-primary);
+		scrollbar-color: var(--color-border) transparent;
+	}
+
+	body {
+		background-color: var(--color-background);
+		color: var(--color-foreground);
+		font-family: var(--font-sans);
+	}
+
+	::selection {
+		background-color: color-mix(in oklab, var(--color-primary) 30%, transparent);
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-ring);
+		outline-offset: 2px;
+	}
+
+	button:not(:disabled),
+	[role='button']:not(:disabled) {
+		cursor: pointer;
+	}
+}

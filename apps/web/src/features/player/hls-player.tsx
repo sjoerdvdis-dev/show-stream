@@ -37,7 +37,7 @@ export const HlsPlayer = ({ playlistUrl, onSessionLost }: HlsPlayerProps) => {
 
 	return (
 		<>
-			<video ref={videoRef} controls className="aspect-video w-full bg-black" />
+			<video ref={videoRef} controls className="aspect-video w-full bg-overlay" />
 			{failed ? <p role="alert">This title could not be played.</p> : null}
 		</>
 	);

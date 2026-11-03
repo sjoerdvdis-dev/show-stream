@@ -32,7 +32,7 @@ pnpm dev
 | Client | Open | Notes |
 |---|---|---|
 | `apps/next-client` | <http://localhost:3000> | What Compose serves today |
-| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Thin library and player so far, and it prepares no titles |
+| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Thin library and player so far, and it prepares no titles. <http://127.0.0.1:5173/dev/theme> previews the design tokens in both themes |
 
 A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
 
@@ -92,7 +92,7 @@ pnpm turbo check-types lint build test
 
 | Command | Runs | Needs |
 |---|---|---|
-| `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, database tests in `packages/db/test`, and client tests in `apps/web/test` | Nothing beyond setup. No Docker |
+| `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, database tests in `packages/db/test`, client tests in `apps/web/test`, and design token tests in `packages/ui/test` | Nothing beyond setup. No Docker |
 | `pnpm test:browser` | Chromium tests in `apps/e2e` | Docker |
 
 **API tests** start the real API and a real worker as child processes, from temporary copies of their source, and speak HTTP to the API. Each suite gets its own pair and its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media or backups. The worker's TMDB calls go to a closed port, so nothing leaves your machine, unless a test passes `fakeTmdb`, which answers them from `test/support/fake-tmdb.mjs`.
@@ -108,6 +108,8 @@ To catch a job partway, a test calls `holdFfmpeg` from `test/support/ffmpeg.ts`.
 Almost every route needs a session, so a test starts with `api.createOwner()` and makes its requests through the client that returns.
 
 **Client tests** run the real router and query client of `apps/web` in `jsdom`, against a small fake API in `msw`, from `test/support/fake-api.ts`. `hls.js` and Socket.IO are fakes there, because they need a real browser and a real server, so check those by hand in Chromium. `apps/e2e` stays on the Next client until Phase 2 item 7.
+
+**Design token tests** read `packages/ui/src/styles/tokens.css` and check contrast and the sRGB gamut in both themes, and that `DESIGN.md` lists the same values.
 
 **Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 

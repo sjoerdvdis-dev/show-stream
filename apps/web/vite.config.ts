@@ -29,7 +29,7 @@ export default defineConfig({
 	test: {
 		environment: 'jsdom',
 		environmentOptions: { jsdom: { url: 'http://localhost:5173/' } },
-		include: ['test/**/*.test.tsx'],
+		include: ['test/**/*.test.{ts,tsx}'],
 		setupFiles: ['test/setup.ts'],
 		testTimeout: 30_000,
 	},

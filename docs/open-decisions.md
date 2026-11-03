@@ -19,7 +19,7 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 
 | # | Decision | Recommendation |
 |---|---|---|
-| E1 | Theme direction | Dark-first with light mode, cool neutral base, one amber accent. Tokens are in PLAN.md section 9.3, final after a visual preview |
+| E1 | Theme direction | Dark-first with light mode, cool neutral base, one amber accent. Tokens are in `DESIGN.md` and `packages/ui/src/styles/tokens.css`, final after a visual preview |
 | E2 | Component docs | A `/dev/components` route rather than Storybook |
 | E3 | Fonts | Geist Sans and Geist Mono; remove Zain and fix the font variable mismatch |
 | E4 | TV navigation | Keep components keyboard-navigable now, so TV remote support is possible later |

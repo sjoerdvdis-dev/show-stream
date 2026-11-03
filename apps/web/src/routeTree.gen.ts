@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login';
 import { Route as SetupRouteImport } from './routes/setup';
 import { Route as AppIndexRouteImport } from './routes/_app/index';
 import { Route as AppMoviesRouteImport } from './routes/_app/movies';
+import { Route as DevThemeRouteImport } from './routes/dev.theme';
 import { Route as AppWatchIdRouteImport } from './routes/_app/watch.$id';
 
 const AppRoute = AppRouteImport.update({
@@ -40,6 +41,11 @@ const AppMoviesRoute = AppMoviesRouteImport.update({
   path: '/movies',
   getParentRoute: () => AppRoute,
 } as any);
+const DevThemeRoute = DevThemeRouteImport.update({
+  id: '/dev/theme',
+  path: '/dev/theme',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const AppWatchIdRoute = AppWatchIdRouteImport.update({
   id: '/watch/$id',
   path: '/watch/$id',
@@ -51,12 +57,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute;
   '/setup': typeof SetupRoute;
   '/movies': typeof AppMoviesRoute;
+  '/dev/theme': typeof DevThemeRoute;
   '/watch/$id': typeof AppWatchIdRoute;
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute;
   '/setup': typeof SetupRoute;
   '/movies': typeof AppMoviesRoute;
+  '/dev/theme': typeof DevThemeRoute;
   '/': typeof AppIndexRoute;
   '/watch/$id': typeof AppWatchIdRoute;
 }
@@ -66,20 +74,23 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute;
   '/setup': typeof SetupRoute;
   '/_app/movies': typeof AppMoviesRoute;
+  '/dev/theme': typeof DevThemeRoute;
   '/_app/': typeof AppIndexRoute;
   '/_app/watch/$id': typeof AppWatchIdRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/login' | '/setup' | '/movies' | '/watch/$id';
+  fullPaths:
+    '/' | '/login' | '/setup' | '/movies' | '/dev/theme' | '/watch/$id';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/login' | '/setup' | '/movies' | '/' | '/watch/$id';
+  to: '/login' | '/setup' | '/movies' | '/dev/theme' | '/' | '/watch/$id';
   id:
     | '__root__'
     | '/_app'
     | '/login'
     | '/setup'
     | '/_app/movies'
+    | '/dev/theme'
     | '/_app/'
     | '/_app/watch/$id';
   fileRoutesById: FileRoutesById;
@@ -88,6 +99,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren;
   LoginRoute: typeof LoginRoute;
   SetupRoute: typeof SetupRoute;
+  DevThemeRoute: typeof DevThemeRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -127,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMoviesRouteImport;
       parentRoute: typeof AppRoute;
     };
+    '/dev/theme': {
+      id: '/dev/theme';
+      path: '/dev/theme';
+      fullPath: '/dev/theme';
+      preLoaderRoute: typeof DevThemeRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/_app/watch/$id': {
       id: '/_app/watch/$id';
       path: '/watch/$id';
@@ -155,6 +174,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,
+  DevThemeRoute: DevThemeRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

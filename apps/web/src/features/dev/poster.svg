@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+	<!-- A stand-in poster for the theme preview: a bright sky over dark hills, the hardest case for a scrim. -->
+	<defs>
+		<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#fdfbf3" />
+			<stop offset="0.45" stop-color="#ffd98a" />
+			<stop offset="0.75" stop-color="#f08a4b" />
+			<stop offset="1" stop-color="#5b2a4e" />
+		</linearGradient>
+	</defs>
+	<rect width="400" height="600" fill="url(#sky)" />
+	<circle cx="270" cy="250" r="70" fill="#fff6dc" />
+	<path d="M0 420 L90 360 L170 400 L260 330 L400 410 L400 600 L0 600 Z" fill="#2c1a3a" />
+	<path d="M0 480 L120 430 L230 470 L330 440 L400 460 L400 600 L0 600 Z" fill="#130c1c" />
+</svg>

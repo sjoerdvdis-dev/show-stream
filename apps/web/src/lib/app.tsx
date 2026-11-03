@@ -3,6 +3,7 @@ import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { toReturnPath } from '@/features/auth/return-path';
 import { createQueryClient } from '@/lib/query-client';
 import { routeTree } from '@/routeTree.gen';
+import { ThemeProvider } from '@/lib/theme';
 
 /**
  * The router and the query client, wired together. They need each other, because a 401 in a
@@ -41,7 +42,9 @@ declare module '@tanstack/react-router' {
 }
 
 export const App = ({ app: { queryClient, router } }: { app: App }) => (
-	<QueryClientProvider client={queryClient}>
-		<RouterProvider router={router} />
-	</QueryClientProvider>
+	<ThemeProvider>
+		<QueryClientProvider client={queryClient}>
+			<RouterProvider router={router} />
+		</QueryClientProvider>
+	</ThemeProvider>
 );

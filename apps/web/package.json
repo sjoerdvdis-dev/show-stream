@@ -16,6 +16,7 @@
 		"@tanstack/react-router": "^1.170.46",
 		"@workspace/api-client": "workspace:*",
 		"@workspace/contract": "workspace:*",
+		"@workspace/ui": "workspace:*",
 		"hls.js": "^1.7.4",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",

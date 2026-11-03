@@ -12,9 +12,8 @@ const modes = {
 	setup: { schema: endpoints.setup.body, submit: api.setup, label: 'Create account', password: 'new-password' },
 };
 
-const fieldClass =
-	'w-full rounded border border-neutral-400 bg-transparent px-3 py-2 dark:border-neutral-600 aria-invalid:border-red-700 dark:aria-invalid:border-red-400';
-const errorClass = 'text-sm text-red-700 dark:text-red-400';
+const fieldClass = 'w-full rounded-md border border-input bg-transparent px-3 py-2 aria-invalid:border-destructive';
+const errorClass = 'text-sm text-destructive';
 
 const FieldMessage = ({ id, error }: { id: string; error?: FieldError }) =>
 	error ? (
@@ -85,7 +84,7 @@ export const CredentialsForm = ({ mode, onDone }: { mode: keyof typeof modes; on
 			<button
 				type="submit"
 				disabled={isSubmitting}
-				className="rounded bg-neutral-900 px-3 py-2 text-white disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900"
+				className="rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground disabled:opacity-60"
 			>
 				{label}
 			</button>
