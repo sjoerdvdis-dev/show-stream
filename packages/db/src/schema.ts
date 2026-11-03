@@ -1,12 +1,21 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import type { MediaType, MovieMetadata, ScanCounts } from '@workspace/contract/api-types';
+import type { ImageKind } from '@workspace/contract/library';
+
+export type { ImageKind };
 
 export type ShowMetadata = Record<string, unknown>;
 
+/**
+ * Each kind of art in the contract, once. The contract is only a type dependency here, so
+ * `satisfies` checks the list against it: a kind added to or dropped from the contract fails to
+ * compile until this list follows.
+ */
+const everyImageKind = { poster: true, backdrop: true } as const satisfies Record<ImageKind, true>;
+
 /** The art a scan stores for each title. */
-export const imageKinds = ['poster', 'backdrop'] as const;
-export type ImageKind = (typeof imageKinds)[number];
+export const imageKinds = Object.keys(everyImageKind) as ImageKind[];
 
 /** The formats a stored image may have. Each is also the file's extension. */
 export const imageFormats = ['jpg', 'png', 'webp'] as const;
