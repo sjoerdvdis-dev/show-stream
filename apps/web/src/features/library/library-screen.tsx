@@ -156,7 +156,7 @@ type LibraryScreenProps = {
 export const LibraryScreen = ({ title, source, search, onSearchChange }: LibraryScreenProps) => {
 	const list = useLibraryList({ source, search, onSearchChange });
 	const play = usePlay();
-	const noun = title.toLowerCase();
+	const noun = source.noun.many;
 	const empty = useEmptyState(list, noun);
 	const { data, isPending, isError, error, refetch } = list.results;
 
@@ -164,9 +164,7 @@ export const LibraryScreen = ({ title, source, search, onSearchChange }: Library
 		<PageContainer>
 			<PageHeader
 				title={title}
-				description={
-					data && data.total > 0 ? `${data.total} ${data.total === 1 ? noun.replace(/s$/, '') : noun}` : null
-				}
+				description={data && data.total > 0 ? `${data.total} ${data.total === 1 ? source.noun.one : noun}` : null}
 			/>
 			<FilterBar
 				search={list.searchText}

@@ -10,6 +10,8 @@ export const libraryKey = ['library'] as const;
 export type LibrarySource = {
 	/** Tells this library's queries apart from another's, such as `movies`. */
 	key: string;
+	/** What one title and many are called, in lower case, as `movie` and `movies`. */
+	noun: { one: string; many: string };
 	list: (query: LibraryQueryInput) => Promise<LibraryPage>;
 	facets: () => Promise<LibraryFacets>;
 	/** A title's page in the app. */
