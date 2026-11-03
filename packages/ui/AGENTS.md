@@ -28,7 +28,7 @@ Screens      thin route files in apps/web
   - A registry dependency that is already here makes the CLI ask before overwriting it. Answer no, or pass `--overwrite` and restore the customized files listed below with `git checkout`.
   - With `rsc: false` it should drop `"use client"`, but it adds it back when it updates a dependency. Leave it out.
   - Check the file for raw colors and for ESLint rules it breaks, and add a keyboard test in `test/components` for anything interactive.
-- Primitives stay close to upstream. `pnpm dlx shadcn@latest add <name> --diff` shows the differences. The only intended ones are:
+- Primitives stay close to upstream, and the root `.prettierignore` keeps Prettier off `src/components` and `src/hooks`. `pnpm dlx shadcn@latest add <name> --diff` shows the differences. The only intended ones are:
   - `cn` from `@workspace/ui/lib/utils`, in every file.
   - `bg-overlay/10` for `bg-black/10` in `dialog`, `alert-dialog`, `sheet` and `drawer`, and `bg-background` for `bg-white` in `slider`.
   - `calendar` passes `ref` to its day button, which upstream base-nova drops, so focus follows the arrow keys.

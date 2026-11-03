@@ -33,7 +33,9 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body className={`${fontSans.variable} ${fontMono.variable} ${fontZain.variable} font-sans antialiased w-screen h-screen`}>
+			<body
+				className={`${fontSans.variable} ${fontMono.variable} ${fontZain.variable} font-sans antialiased w-screen h-screen`}
+			>
 				<Providers>{children}</Providers>
 			</body>
 		</html>

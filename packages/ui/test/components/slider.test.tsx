@@ -7,9 +7,7 @@ describe('slider', () => {
 	it('changes by a step with the arrow keys, and jumps with Home and End', async () => {
 		const user = userEvent.setup();
 		const onValueChange = vi.fn();
-		render(
-			<Slider aria-label="Volume" defaultValue={[50]} min={0} max={100} step={5} onValueChange={onValueChange} />,
-		);
+		render(<Slider aria-label="Volume" defaultValue={[50]} min={0} max={100} step={5} onValueChange={onValueChange} />);
 		const thumb = await screen.findByRole('slider');
 
 		await user.tab();

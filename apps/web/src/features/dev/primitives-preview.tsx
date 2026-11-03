@@ -16,7 +16,15 @@ import { Avatar, AvatarFallback } from '@workspace/ui/components/avatar';
 import { Badge } from '@workspace/ui/components/badge';
 import { Button } from '@workspace/ui/components/button';
 import { Calendar } from '@workspace/ui/components/calendar';
-import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@workspace/ui/components/card';
+import {
+	Card,
+	CardAction,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from '@workspace/ui/components/card';
 import { Checkbox } from '@workspace/ui/components/checkbox';
 import {
 	Command,
@@ -105,7 +113,15 @@ import {
 import { Skeleton } from '@workspace/ui/components/skeleton';
 import { Slider } from '@workspace/ui/components/slider';
 import { Switch } from '@workspace/ui/components/switch';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@workspace/ui/components/table';
+import {
+	Table,
+	TableBody,
+	TableCaption,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@workspace/ui/components/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/tabs';
 import { Textarea } from '@workspace/ui/components/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@workspace/ui/components/tooltip';
@@ -140,7 +156,9 @@ const Section = ({ title, children }: { title: string; children: ReactNode }) =>
 	</section>
 );
 
-const Row = ({ children }: { children: ReactNode }) => <div className="flex flex-wrap items-center gap-3">{children}</div>;
+const Row = ({ children }: { children: ReactNode }) => (
+	<div className="flex flex-wrap items-center gap-3">{children}</div>
+);
 
 const Buttons = () => (
 	<div className="flex flex-col gap-3">
@@ -326,7 +344,10 @@ const Overlays = () => (
 			<TooltipTrigger render={<Button variant="outline" />}>Tooltip</TooltipTrigger>
 			<TooltipContent>Transcoding failed. Retry from the detail page</TooltipContent>
 		</Tooltip>
-		<Button variant="outline" onClick={() => toast.success('The library scan finished', { description: '12 new movies' })}>
+		<Button
+			variant="outline"
+			onClick={() => toast.success('The library scan finished', { description: '12 new movies' })}
+		>
 			Toast
 		</Button>
 	</Row>
