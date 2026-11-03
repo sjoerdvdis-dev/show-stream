@@ -158,7 +158,8 @@ describe('database', () => {
 
 			expect(statSync(wal).size).toBeLessThan(5_000_000);
 			expect(statSync(file).size).toBeGreaterThan(1_000_000);
-		});
+			// 3,000 writes take longer than the default 5 seconds on a slow CI runner.
+		}, 30_000);
 
 		describe('media', () => {
 			it('lets a movie and a show share a TMDB ID', () => {
