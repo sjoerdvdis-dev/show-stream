@@ -55,9 +55,7 @@ export const StatusBadge = ({ status = 'not ready', failureReason, className }: 
 	return (
 		<Tooltip>
 			<TooltipTrigger
-				render={
-					<Badge variant="outline" tabIndex={reason ? 0 : undefined} className={cn('bg-card', className)} />
-				}
+				render={<Badge variant="outline" tabIndex={reason ? 0 : undefined} className={cn('bg-card', className)} />}
 			>
 				<Icon
 					aria-hidden="true"
