@@ -147,8 +147,7 @@ describe('database', () => {
 		});
 
 		// An insert that stops at its RETURNING row commits without running the WAL hook.
-		// 3,000 writes take about 5 s on a CI runner that runs other packages' tests at the same time.
-		it('checkpoints as it writes, so that the WAL stops growing', { timeout: 30_000 }, () => {
+		it('checkpoints as it writes, so that the WAL stops growing', () => {
 			const passwordHash = 'x'.repeat(2_000);
 			const wal = `${file}-wal`;
 
