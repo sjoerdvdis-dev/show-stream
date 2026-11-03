@@ -107,7 +107,7 @@ const LibraryFilters = ({ list }: { list: List }) => {
 /** What an empty grid says: no titles at all, none that match, or a page past the end. */
 const useEmptyState = (list: List, noun: string): ComponentProps<typeof MediaGrid>['empty'] => {
 	const { user } = useRouteContext({ from: '/_app' });
-	const total = list.list.data?.total ?? 0;
+	const total = list.results.data?.total ?? 0;
 
 	if (total > 0) {
 		return {
@@ -158,7 +158,7 @@ export const LibraryScreen = ({ title, source, search, onSearchChange }: Library
 	const play = usePlay();
 	const noun = title.toLowerCase();
 	const empty = useEmptyState(list, noun);
-	const { data, isPending, isError, error, refetch } = list.list;
+	const { data, isPending, isError, error, refetch } = list.results;
 
 	return (
 		<PageContainer>
@@ -174,7 +174,7 @@ export const LibraryScreen = ({ title, source, search, onSearchChange }: Library
 				searchLabel={`Search ${noun}`}
 				sort={toSortChoice(list.search)}
 				sortOptions={sortChoices}
-				onSortChange={(choice) => list.setSort(fromSortChoice(choice))}
+				onSortChange={(choice) => list.setFilters(fromSortChoice(choice))}
 				filters={<LibraryFilters list={list} />}
 				activeFilterCount={list.activeFilterCount}
 				onClearFilters={list.activeFilterCount > 0 ? list.clearFilters : undefined}

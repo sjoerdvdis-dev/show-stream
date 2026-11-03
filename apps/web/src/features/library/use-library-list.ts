@@ -39,6 +39,13 @@ const useSettled = <T>(value: T | undefined, commit: (value: T) => void) => {
 	}, [value]);
 };
 
+/** Lays a change of filters or sort over the search, and goes back to the first page. */
+const applyFilters = (patch: LibrarySearch) => (previous: LibrarySearch) => ({
+	...previous,
+	...patch,
+	page: undefined,
+});
+
 const withoutFilters = (search: LibrarySearch) => {
 	const rest = { ...search };
 	for (const key of filterKeys) delete rest[key];
@@ -60,7 +67,7 @@ export const useLibraryList = ({
 	search: LibrarySearch;
 	onSearchChange: SearchUpdater;
 }) => {
-	const list = useQuery({
+	const results = useQuery({
 		queryKey: [...libraryKey, source.key, 'list', search],
 		queryFn: () => source.list(search),
 		// The last page stays on screen while the next one loads, so the grid does not flash.
@@ -93,20 +100,21 @@ export const useLibraryList = ({
 	const [pendingFilters, setPendingFilters] = useState<LibrarySearch>();
 	useSettled(pendingFilters, (patch) => {
 		setPendingFilters(undefined);
-		onSearchChange((previous) => ({ ...previous, ...patch, page: undefined }));
+		onSearchChange(applyFilters(patch));
 	});
 
 	const shown = { ...search, ...pendingFilters };
 	const page = search.page ?? libraryDefaults.page;
-	const pageSize = list.data?.pageSize ?? search.pageSize ?? libraryDefaults.pageSize;
+	const pageSize = results.data?.pageSize ?? search.pageSize ?? libraryDefaults.pageSize;
 
 	return {
 		/** The search as the controls show it, including a slider still moving. */
 		search: shown,
-		list,
+		/** The page of titles. */
+		results,
 		facets,
 		page,
-		pageCount: list.data ? Math.max(1, Math.ceil(list.data.total / pageSize)) : 1,
+		pageCount: results.data ? Math.max(1, Math.ceil(results.data.total / pageSize)) : 1,
 		activeFilterCount: countActiveFilters(shown),
 		/** Whether anything narrows the list, so that an empty list means no match rather than no titles. */
 		isNarrowed: Boolean(search.q) || countActiveFilters(search) > 0,
@@ -115,15 +123,14 @@ export const useLibraryList = ({
 			setSearchText(text);
 			setPendingText(text);
 		},
-		setFilters: (patch: LibrarySearch) => onSearchChange((previous) => ({ ...previous, ...patch, page: undefined })),
+		/** Changes filters or sort, and goes back to the first page. */
+		setFilters: (patch: LibrarySearch) => onSearchChange(applyFilters(patch)),
 		/** For a control that changes many times a second, such as a slider. */
 		setFiltersSoon: (patch: LibrarySearch) => setPendingFilters((previous) => ({ ...previous, ...patch })),
 		clearFilters: () => {
 			setPendingFilters(undefined);
 			onSearchChange((previous) => ({ ...withoutFilters(previous), page: undefined }));
 		},
-		setSort: (patch: Pick<LibrarySearch, 'sort' | 'order'>) =>
-			onSearchChange((previous) => ({ ...previous, ...patch, page: undefined })),
 		setPage: (next: number) => onSearchChange((previous) => ({ ...previous, page: next })),
 	};
 };
