@@ -8,7 +8,7 @@ import {
 	transcodeRequest,
 	transcodeRetry,
 } from './video';
-import { getMovie, getMovies, getScan, getShows, startScan } from './media';
+import { getLibraryMovieFacets, getLibraryMovies, getMovie, sendMovieImage, getMovies, getScan, getShows, startScan } from './media';
 import { setupNotifications } from './notification';
 import { login, logout, me, removeExpiredSessions, setup, setupStatus } from './auth';
 
@@ -29,6 +29,9 @@ const { httpServer, io } = createServer(
 		transcodeRetry: ({ params, session }) => transcodeRetry({ id: params.id, userId: session.user.id }),
 		transcodePlaylist: ({ params }) => transcodePlaylist({ id: params.id, logger }),
 		stream: ({ params }, res) => streamVideoFile({ ...params, res }),
+		libraryMovies: ({ query }) => getLibraryMovies(query),
+		libraryMovieFacets: () => getLibraryMovieFacets(),
+		libraryMovieImage: ({ params }, res) => sendMovieImage({ ...params, res }),
 		movies: () => getMovies(),
 		shows: () => getShows(),
 		movie: ({ params }) => getMovie({ id: params.id }),

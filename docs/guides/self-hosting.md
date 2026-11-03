@@ -92,7 +92,7 @@ The API and the worker start as root, give the folders they write to `PUID:PGID`
 |---|---|---|
 | The `sqlite-data` volume | The database | The API and the worker |
 | `./backups` | Daily backups | The worker |
-| `./media/cache` | Transcodes | The worker, which creates it |
+| `./media/cache` | Transcodes, and posters and backdrops in `./media/cache/images` | The worker, which creates it |
 | The rest of `./media` | Your videos | Nobody. They are only read, so this user must be able to read them |
 
 A start changes only files with another owner, so a normal start writes nothing, and changing `PUID` later takes what is there. If a share refuses the change, as NFS with root squash does, the container logs a warning and starts anyway, and the app may not be able to write there. `PUID` must not be 0. The Next client and Caddy own none of this, and keep their own users.
@@ -122,6 +122,12 @@ docker compose logs --no-log-prefix worker | jq 'select(.level == "error")'
 ```
 
 Worker lines name their job with `jobId` and `jobType`. `LOG_LEVEL=http` adds each request, including the API's health check every 5 seconds.
+
+## Posters and backdrops
+
+A scan stores each title's poster and backdrop in `./media/cache/images`, in TMDB's `w500` and `w1280` sizes, and the API serves them to signed-in users. Once `apps/web` replaces the Next client in Phase 2, browsers will never ask TMDB, so viewing the library tells nobody what you watch, and stored art keeps working without internet. Today's Next client still loads art from TMDB. A scan fetches only what is missing, so a rescan fills gaps, and a failed download is listed as a problem of that scan without losing the title. Nothing removes old art yet.
+
+Expect a few hundred kilobytes per title, so a few hundred megabytes for a thousand. That is an estimate from TMDB's sizes: no real TMDB image has been downloaded yet. Backups hold no art, and the next scan fetches it again if `./media/cache` is lost.
 
 ## Backups
 

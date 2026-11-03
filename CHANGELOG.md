@@ -30,6 +30,9 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - A theme preview at <http://127.0.0.1:5173/dev/theme>, under `pnpm dev` only.
 - shadcn's primitives on Base UI in `packages/ui`, for `apps/web`: buttons, fields, dialogs, sheets, drawers, menus, selects, popovers, tooltips, tabs, switches, checkboxes, radios, sliders, a calendar, a command list, a sidebar, tables and more. They work by keyboard, which tests check, and settle at once under reduced motion. `apps/web`'s login form and toasts use them, and <http://127.0.0.1:5173/dev/primitives> shows them all under `pnpm dev`.
 - Caddy as the only published service, on ports 80 and 443, with HTTPS by default. `TLS_MODE` selects `internal`, `public` or `tailscale`, and `SITE_ADDRESS` names the server, in an optional `.env` at the root. `docs/guides/self-hosting.md` explains them. `public` and `tailscale` pass `caddy validate`, but have not been run.
+- A paged library in the API: `GET /api/library/movies` searches titles as you type, by the start of each word in any order, and sorts by title, year, release date, runtime, rating or popularity. It filters by year, release date, runtime and rating ranges, genres and playback status, and `GET /api/library/movies/facets` gives the ranges and counts those filters need. `apps/web` uses them from Phase 2 item 6.
+- Scans store each title's poster and backdrop in `media/cache/images`, and the API serves them to signed-in users, so that `apps/web` need not send browsers to TMDB. The Next client still loads art from TMDB. The next scan fills in art for titles already in the library, and fetches nothing it already has.
+- Endpoints in `packages/contract` can declare a query schema, which the API validates with a 400 and the typed client sends.
 
 ### Changed
 

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { MovieMetadata } from '@workspace/contract/api-types';
@@ -6,6 +6,7 @@ import {
 	closeDatabase,
 	findLatestScan,
 	findMovie,
+	listLibrary,
 	migrateDatabase,
 	openDatabase,
 	queueScan,
@@ -14,7 +15,7 @@ import {
 } from '@workspace/db';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { maxScanErrors, scanLibrary } from '../src/scan';
-import type { MovieLookup } from '../src/tmdb';
+import type { ImageDownload, MovieLookup } from '../src/tmdb';
 
 const metadataFor = (id: number, title: string) =>
 	({ details: { id, title }, credits: { cast: [], crew: [] }, images: {} }) as unknown as MovieMetadata;
@@ -28,7 +29,11 @@ describe('scanLibrary', () => {
 	const addFolders = (...names: string[]) =>
 		Promise.all(names.map((name) => mkdir(path.join(folder, 'movies', name), { recursive: true })));
 
-	const scan = (lookup: MovieLookup | undefined, signal = running) => scanLibrary(db, folder, lookup, job, signal);
+	/** These titles have no art, so a scan downloads nothing. */
+	const noDownloads: ImageDownload = () => Promise.reject(new Error('Nothing should be downloaded'));
+
+	const scan = (lookup: MovieLookup | undefined, signal = running) =>
+		scanLibrary(db, folder, lookup && { lookup, downloadImage: noDownloads }, job, signal);
 
 	const result = () => findLatestScan(db)?.payload.scanResult;
 
@@ -111,5 +116,51 @@ describe('scanLibrary', () => {
 		await scan(async () => undefined);
 
 		expect(result()?.counts.found).toBe(0);
+	});
+
+	describe('images', () => {
+		const withArt = (id: number, title: string) => {
+			const metadata = metadataFor(id, title);
+			Object.assign(metadata.details, { poster_path: '/poster.jpg', backdrop_path: '/backdrop.png' });
+			return metadata;
+		};
+
+		const downloads: string[] = [];
+		const download: ImageDownload = async (kind, source, file) => {
+			downloads.push(`${kind} ${source}`);
+			await writeFile(file, `the ${kind}`);
+			return kind === 'poster' ? 'jpg' : 'png';
+		};
+
+		const scanWithArt = () =>
+			scanLibrary(db, folder, { lookup: async ({ name }) => withArt(1, name), downloadImage: download }, job, running);
+
+		const listed = () => listLibrary(db, 'movie', { sort: 'title', order: 'asc', page: 1, pageSize: 10 }).items[0];
+
+		beforeEach(() => {
+			downloads.length = 0;
+		});
+
+		it('stores each kind once, in the format TMDB sent', async () => {
+			await addFolders('First (2020)');
+
+			await scanWithArt();
+			await scanWithArt();
+
+			expect(downloads).toEqual(['poster /poster.jpg', 'backdrop /backdrop.png']);
+			expect(listed()).toMatchObject({ hasPoster: true, hasBackdrop: true });
+		});
+
+		it('finds images already on disk when the database was rebuilt, and fetches nothing', async () => {
+			await addFolders('First (2020)');
+			await scanWithArt();
+			db.$client.prepare('UPDATE media SET poster_format = NULL, backdrop_format = NULL').run();
+			downloads.length = 0;
+
+			await scanWithArt();
+
+			expect(downloads).toEqual([]);
+			expect(listed()).toMatchObject({ hasPoster: true, hasBackdrop: true });
+		});
 	});
 });

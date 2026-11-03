@@ -50,17 +50,20 @@ const selectMovies = (db: Database) =>
 type MovieRow = Media & { jobStatus: JobStatus | null; jobError: string | null };
 
 /** What clients see of a job. They need not know how the worker gets through its queue. */
-const transcodeStatusOfJob: Record<JobStatus, TranscodeStatus> = {
+export const transcodeStatusOfJob: Record<JobStatus, TranscodeStatus> = {
 	queued: 'in progress',
 	running: 'in progress',
 	done: 'ready',
 	failed: 'failed',
 };
 
+/** A title with no transcode job has not been requested. */
+export const transcodeStatusWithoutJob: TranscodeStatus = 'not ready';
+
 const toMovie = ({ jobStatus, jobError, ...movie }: MovieRow): Movie => ({
 	...movie,
 	metadata: movie.metadata as MovieMetadata,
-	transcodeStatus: jobStatus ? transcodeStatusOfJob[jobStatus] : 'not ready',
+	transcodeStatus: jobStatus ? transcodeStatusOfJob[jobStatus] : transcodeStatusWithoutJob,
 	...(jobError ? { transcodeError: jobError } : {}),
 });
 

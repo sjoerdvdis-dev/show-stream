@@ -28,7 +28,7 @@ A user's logged-in state, which logging in starts and logging out ends. It lapse
 The titles an install knows, which scans fill.
 
 **Media folder**:
-The folder that holds the videos scans read, and the cache of streams.
+The folder that holds the videos scans read, and the cache of streams, posters and backdrops.
 _Avoid_: Media library
 
 **Title**:
@@ -62,7 +62,7 @@ What the API reports for a title, derived from its transcode job: `not ready`, `
 _Avoid_: API status
 
 **Scan**:
-The job that looks up each movie folder on TMDB and saves a title for each match. An admin starts it.
+The job that looks up each movie folder on TMDB and saves a title for each match, with its poster and backdrop. An admin starts it.
 _Avoid_: Rescan
 
 **Backup**:
