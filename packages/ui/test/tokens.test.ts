@@ -95,6 +95,23 @@ describe('the token mappings', () => {
 		expect(resolve(tokens, 'ring')).toBe(resolve(tokens, 'primary'));
 	});
 
+	it.each<Theme>(['dark', 'light'])('map the sidebar names to checked tokens in the %s theme', (theme) => {
+		const tokens = readTheme(theme);
+		const mapped = {
+			sidebar: 'card',
+			'sidebar-foreground': 'foreground',
+			'sidebar-primary': 'primary',
+			'sidebar-primary-foreground': 'primary-foreground',
+			'sidebar-accent': 'secondary',
+			'sidebar-accent-foreground': 'foreground',
+			'sidebar-border': 'border',
+			'sidebar-ring': 'primary',
+		};
+		for (const [name, target] of Object.entries(mapped)) {
+			expect(resolve(tokens, name), name).toBe(resolve(tokens, target));
+		}
+	});
+
 	it('keeps the 0.6rem radius', () => {
 		expect(readTheme('light').get('radius')).toBe('0.6rem');
 	});
