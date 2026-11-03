@@ -31,12 +31,12 @@ pnpm dev
 
 | Client | Open | Notes |
 |---|---|---|
-| `apps/next-client` | <http://localhost:3000> | What Compose serves today |
-| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Login, Setup, Movies, a movie's page, the player and Settings are here, on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. <http://127.0.0.1:5173/dev/components> previews the design tokens, primitives and patterns in both themes |
+| `apps/next-client` | <http://localhost:3000> | Out of Compose since Phase 2 item 7, and deleted in item 8 |
+| `apps/web` | <http://127.0.0.1:5173> | What Compose serves, through Caddy. Login, Setup, Movies, a movie's page, the player and Settings are here, on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. <http://127.0.0.1:5173/dev/components> previews the design tokens, primitives and patterns in both themes |
 
 A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
 
-Vite binds to `127.0.0.1`, and proxies `/api`, with the prefix removed, `/socket` and `/streams` to the API, which is what Caddy does in production. The proxy keeps the browser's `Host`, so the API's `Origin` check passes, and it does not reach the build. `API_SERVER_URL` moves its target, which defaults to `http://localhost:5000`.
+Vite binds to `127.0.0.1`, and proxies `/api`, with the prefix removed, `/socket` and `/streams` to the API, which is what Caddy does in production. Caddy's `Content-Security-Policy` is not sent here, so check a change that could break it, such as a new inline script, a third-party origin or `eval`, through `pnpm test:browser`. The proxy keeps the browser's `Host`, so the API's `Origin` check passes, and it does not reach the build. `API_SERVER_URL` moves its target, which defaults to `http://localhost:5000`.
 
 `pnpm dev` builds `packages/contract`, `packages/db` and `packages/api-client` first, and the API and `apps/web` run that build. After changing one of them, restart `pnpm dev`.
 
@@ -107,13 +107,13 @@ To catch a job partway, a test calls `holdFfmpeg` from `test/support/ffmpeg.ts`.
 
 Almost every route needs a session, so a test starts with `api.createOwner()` and makes its requests through the client that returns.
 
-**Client tests** run the real router and query client of `apps/web` in `jsdom`, against a small fake API in `msw`, from `test/support/fake-api.ts`. `hls.js` and Socket.IO are fakes there, because they need a real browser and a real server, so check those by hand in Chromium. `apps/e2e` stays on the Next client until Phase 2 item 7.
+**Client tests** run the real router and query client of `apps/web` in `jsdom`, against a small fake API in `msw`, from `test/support/fake-api.ts`. `hls.js` and Socket.IO are fakes there, because they need a real browser and a real server, so check those by hand in Chromium. `apps/e2e` drives `apps/web` through Caddy, with both.
 
 **Design token tests** read `packages/ui/src/styles/tokens.css` and check that it defines every variable a shadcn theme does, each with its own value in both themes, and their contrast and sRGB gamut. They also check that no primitive uses a raw color.
 
 **Component tests** in `packages/ui/test/components` render the primitives and patterns in `jsdom` and drive them by keyboard, as a user does: focus traps and Escape, arrow keys and typeahead, toggles, command filtering, calendar dates, filters and the player's shortcuts. Check how they look in Chromium at `/dev/components`.
 
-**Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
+**Browser tests** drive `apps/web` through the Caddy image that ships, over HTTPS: setup, login, the session cookie and the login limit, the library with its art, a filter that survives a reload, a movie's page, playback and seeking over HLS, a failed title with Retry, a toast from the socket, a scan from Settings and logout. `tests/proxy.spec.ts` checks that only Caddy's static files and the API answer, that streams are not compressed, the caching and security headers, a deep link on reload, and that the app runs under its `Content-Security-Policy` with no violation. They build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 
 After a failure, screenshots and traces are in `apps/e2e/test-results`. The movies come from `apps/e2e/fixtures/seed.mjs`, which the one-shot `seed` service runs after the API has migrated a new volume. `clip.mp4` beside it is a generated 30-second H.264 and AAC clip, and `corrupt.mp4` is a text file that the worker fails on. The worker preloads `fake-tmdb.mjs` beside them, so that a scan needs no network.
 
@@ -121,7 +121,9 @@ CI does not build images in the required check. If you change a Dockerfile, buil
 
 `pnpm test:browser` also plants fake env files in the build context, and afterwards reads every file of each built image for them.
 
-`apps/api/test/public-entry.test.ts` fails if Compose publishes anything but ports 80 and 443 from Caddy, if a service has no health check or log limit, if a `depends_on` is not `service_healthy`, or if `.dockerignore` lets an env file through, and validates all three HTTPS modes with `caddy validate`. It is the one part of `pnpm test` that uses Docker: it skips with a warning when Docker is not running, and fails in CI.
+`apps/api/test/public-entry.test.ts` fails if Compose publishes anything but ports 80 and 443 from Caddy, if a service has no health check or log limit, if a `depends_on` is not `service_healthy`, if `caddy` is not built from `apps/web/Dockerfile`, or if `.dockerignore` lets an env file through, and validates all three HTTPS modes with `caddy validate`, on the Caddy image that `apps/web/Dockerfile` ends on.
+
+`pnpm build` in `apps/web` fails if the `Content-Security-Policy` in `infra/caddy/Caddyfile` does not allow each inline script of `index.html` by its hash, and its message names the hash to put there. It is the one part of `pnpm test` that uses Docker: it skips with a warning when Docker is not running, and fails in CI.
 
 ## Full stack in Docker
 
@@ -129,7 +131,7 @@ CI does not build images in the required check. If you change a Dockerfile, buil
 bash build-docker.sh
 ```
 
-Then open <https://localhost>. Caddy is the only published service, and the [self-hosting guide](./self-hosting.md) explains its HTTPS modes and how to trust its CA.
+Then open <https://localhost>. Caddy is the only published service, and its image holds `apps/web`'s build and the Caddyfile, so a change to either needs a new build, which `build-docker.sh` does. The [self-hosting guide](./self-hosting.md) explains its HTTPS modes and how to trust its CA.
 
 This uses `./media` and the `sqlite-data` volume. The database is at `/data/app.db` in the volume, which must stay on a local disk, never NFS or SMB.
 
@@ -208,6 +210,6 @@ Never commit real values.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **`Too many attempts`** after 10 failed logins or setups from one address in 15 minutes. The count lives in memory, so restarting the API clears it.
-- **`pnpm dev` is not the shipped path.** It has no Caddy, so `next.config.mjs` rewrites `/api` and `/socket` to the API, as the proxy in `apps/web/vite.config.ts` does for the new client, and a built client has neither. Next passes on a client's own `X-Forwarded-For` there, so the rate limit proves nothing under `pnpm dev`, and Next answers `/socket/` with a 308 first. Test those through `pnpm test:browser`.
+- **`pnpm dev` is not the shipped path.** It has no Caddy, so the proxy in `apps/web/vite.config.ts` sends `/api`, `/socket` and `/streams` to the API, as `next.config.mjs` rewrites do for the Next client, sends no `Content-Security-Policy`, and a build has none of it. Both pass on a client's own `X-Forwarded-For`, so the rate limit proves nothing under `pnpm dev`, and Next answers `/socket/` with a 308 first. Test those through `pnpm test:browser`.
 - **`vitest` alone needs the packages built.** `pnpm test` builds them first. If you run `vitest` directly in `apps/api`, run `pnpm turbo build --filter=api^...` once.
 - **ffmpeg cannot write to a `MEDIA_FOLDER` containing `%d` or a form like `%03d`.** It reads that as part of the segment pattern, and `%%` does not escape it. Rename the folder.

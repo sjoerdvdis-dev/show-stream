@@ -1,5 +1,6 @@
 # The only public entry to ShowStream. Hosts never edit this file: docker-compose.yml passes
-# SITE_ADDRESS and TLS_MODE from the environment. See docs/guides/self-hosting.md.
+# SITE_ADDRESS and TLS_MODE from the environment. apps/web/Dockerfile builds it into the Caddy
+# image, at /etc/caddy/Caddyfile, beside the app. See docs/guides/self-hosting.md.
 {
 	# The CA belongs on the devices that visit, not inside this container.
 	skip_install_trust
