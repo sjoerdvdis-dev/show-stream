@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ownerCredentials, startApi, type TestApi } from './support/api';
-import { createDatabaseWithDefaultAccount, createDatabaseWithOldJobs } from './support/seed';
+import { createDatabaseWithDefaultAccount, createDatabaseWithOldJobs, createDatabaseWithOldMovies } from './support/seed';
 
 describe('upgrading a database that has the default account', () => {
 	let api: TestApi;
@@ -66,6 +66,40 @@ describe('upgrading a database from before the worker', () => {
 		expect(movies.map(({ details, transcodeStatus }: { details: { title: string }; transcodeStatus: string }) => [details.title, transcodeStatus])).toEqual([
 			['Old Ready', 'ready'],
 			['Old In Progress', 'not ready'],
+		]);
+	});
+});
+
+describe('upgrading a database from before library search', () => {
+	let api: TestApi;
+
+	beforeAll(async () => {
+		api = await startApi({
+			prepareDatabase: (databasePath) =>
+				createDatabaseWithOldMovies(databasePath, [
+					{ id: 8001, title: 'The Dark Knight', details: { genres: [{ id: 28, name: 'Action' }, { id: 80, name: 'Crime' }] } },
+					{ id: 8002, title: 'Amélie', details: { original_title: "Le Fabuleux Destin d'Amélie Poulain", genres: [{ id: 35, name: 'Comedy' }] } },
+					{ id: 8003, title: 'No Genres' },
+				]),
+		});
+	});
+
+	afterAll(async () => {
+		await api?.stop();
+	});
+
+	it('finds the titles that were already there, by title and by original title', async () => {
+		const owner = await api.createOwner();
+		const titlesOf = async (query: string) =>
+			(await (await owner.get(`/library/movies${query}`)).json()).items.map(({ title }: { title: string }) => title);
+
+		expect(await titlesOf('?q=dark%20kni')).toEqual(['The Dark Knight']);
+		expect(await titlesOf('?q=fabuleux')).toEqual(['Amélie']);
+		expect(await titlesOf('?genre=Crime')).toEqual(['The Dark Knight']);
+		expect((await (await owner.get('/library/movies/facets')).json()).genres).toEqual([
+			{ name: 'Action', count: 1 },
+			{ name: 'Comedy', count: 1 },
+			{ name: 'Crime', count: 1 },
 		]);
 	});
 });

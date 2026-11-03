@@ -118,6 +118,19 @@ export const createDatabaseWithDefaultAccount = async (databasePath: string) => 
 	}
 };
 
+/**
+ * Adds a movie with only the columns that every older schema has, because `saveMovie` writes
+ * the current ones.
+ */
+const insertOldMovie = (db: Database, id: number, title: string, details: MovieDetails = {}) => {
+	const { path: folder, metadata } = movieRow(id, title, details);
+	return db.$client
+		.prepare<[number, string, string, string], { id: number }>(
+			`INSERT INTO media (type, tmdb_id, title, path, metadata) VALUES ('movie', ?, ?, ?, ?) RETURNING id`,
+		)
+		.get(id, title, folder, JSON.stringify(metadata))!;
+};
+
 type OldJob = { title: string; status: string };
 
 /** Builds a database from before the worker, with a job of each status the API then wrote. */
@@ -126,11 +139,26 @@ export const createDatabaseWithOldJobs = async (databasePath: string, oldJobs: O
 	try {
 		await migrateUpTo(db, '0002_remove_default_account');
 		oldJobs.forEach(({ title, status }, index) => {
-			const movie = saveMovie(db, movieRow(7000 + index, title));
+			const movie = insertOldMovie(db, 7000 + index, title);
 			db.$client
 				.prepare(`INSERT INTO jobs (type, media_id, status) VALUES ('transcode', ?, ?)`)
 				.run(movie.id, status);
 		});
+	} finally {
+		closeDatabase(db);
+	}
+};
+
+export type OldMovie = { id: number; title: string; details?: MovieDetails };
+
+/** Builds a database from before library search and genres, with these movies in it. */
+export const createDatabaseWithOldMovies = async (databasePath: string, movies: OldMovie[]) => {
+	const db = openDatabase(databasePath);
+	try {
+		await migrateUpTo(db, '0005_one_active_job_without_title');
+		for (const { id, title, details } of movies) {
+			insertOldMovie(db, id, title, details);
+		}
 	} finally {
 		closeDatabase(db);
 	}
