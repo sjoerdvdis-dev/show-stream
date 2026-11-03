@@ -41,8 +41,8 @@ export const getLibraryMovies = async (query: LibraryQuery): Promise<LibraryPage
 export const getLibraryMovieFacets = async (): Promise<LibraryFacets> => libraryFacets(db, 'movie');
 
 /**
- * Images do not change once stored, but a later version may replace one, so browsers keep them
- * for a month and then check the ETag. `private`, because they need a session.
+ * A scan never replaces art it has stored, so browsers can keep an image for a month and then
+ * check its ETag. `private`, because images need a session.
  */
 const imageCacheControl = 'private, max-age=2592000';
 
