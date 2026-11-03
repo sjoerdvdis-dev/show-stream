@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, and `packages/ui` has shadcn's primitives on Base UI. Next:
 
-1. **Continue Phase 2 at item 3, shadcn on Base UI** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 2 at item 4, the patterns** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -53,7 +53,8 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed. `/impeccable init` wrote `PRODUCT.md`, and the Impeccable hook stays off (D1) |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
-| Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the tokens in both themes, `DESIGN.md` describes them, and a test checks their contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview at `/dev/theme`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
+| Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the theme the shadcn way, every variable with its own value in both themes, `DESIGN.md` names their roles, and a test checks the variable set, contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview at `/dev/theme`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
+| shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/primitives` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
 | `apps/web` | Done for Phase 2 item 1. A static Vite SPA with setup, login, sessions, the 401 path, an authenticated socket, and a thin library and player. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
@@ -107,18 +108,19 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Routing | `@tanstack/react-router`, `@tanstack/router-plugin` | 1.170.46, 1.168.48 | In use in `apps/web` |
 | Server state | `@tanstack/react-query` | 5.105.1 | In use in `apps/web` |
 | Styling | `tailwindcss`, `@tailwindcss/vite` | 4.3.3 | In use in `apps/web` |
-| Primitives | `@base-ui/react` through shadcn | 1.9.0 | Tested, one component |
-| Animation | `tw-animate-css` | 1.4.0 | Planned |
-| Icons | `lucide-react` | 1.66.0 | Installed in spike |
+| Primitives | `@base-ui/react` through shadcn, `base-nova` style | 1.9.0, shadcn CLI 4.23.0 through `pnpm dlx` | In use in `packages/ui` |
+| Animation | `tw-animate-css` | 1.4.0 | In use in `packages/ui` |
+| Icons | `lucide-react` | 1.66.0 | In use in `packages/ui` and `apps/web`. The Next client keeps 0.477.0 |
 | Forms | `react-hook-form`, `@hookform/resolvers` | 7.91.0, 7.0.1 | In use in `apps/web` |
 | Validation | `zod`, shared through `packages/contract` | 4.6.7 | In use |
 | Large lists | `@tanstack/react-virtual` | 3.14.25 | Installed in spike |
 | Video | `hls.js` | 1.7.4 | In use today |
 | Player controls | `media-chrome` | 4.19.4 | Planned; confirm when building S8 |
 | Real time | `socket.io-client` | 4.8.4 | In use today |
-| Toasts | `sonner` | 2.0.8 | In use today |
-| Command menu | `cmdk` | Current | In use today |
-| Dates | `date-fns`, `react-day-picker` | 4.4.0, 10.0.2 | In use today, bump pending |
+| Toasts | `sonner` | 2.0.8 | In use |
+| Class names | `cn`, behind `cn()` in `@workspace/ui/lib/utils` | 0.5.1 | In use in `packages/ui`, from `shadcn migrate cn` |
+| Command menu | `cmdk` | 1.1.1 | In use in `packages/ui` |
+| Dates | `date-fns`, `react-day-picker` | 4.4.0, 10.0.2 | In use in `packages/ui`. The Next client keeps `react-day-picker` 9.14.0 |
 | Local UI state | `zustand` | 5.0.16 | Player preferences only |
 | Debounce | `use-debounce` | 10.1.1 | In use today |
 | Fonts | `@fontsource-variable/geist`, `@fontsource-variable/geist-mono` | 5.3.0 | In use in `apps/web`, through `packages/ui` |
@@ -126,11 +128,11 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | PWA | `vite-plugin-pwa` | 2.0.0 | Tested, service worker generated |
 | Desktop | `electron`, `electron-builder` | 45.2.1, 26.18.0 | Planned |
 | Unit tests | `vitest`, with `jsdom` 30.1.3 in `apps/web` | 5.0.5 | In use |
-| Component tests | `@testing-library/react`, `@testing-library/user-event` | 16.3.3, 14.6.8 | In use in `apps/web` |
+| Component tests | `@testing-library/react`, `@testing-library/user-event` | 16.3.3, 14.6.8 | In use in `apps/web` and `packages/ui` |
 | API mocks | `msw` | 3.0.3 | In use in `apps/web` |
 | Browser tests | `@playwright/test` | 1.64.1 | In use in `apps/e2e` |
 
-**Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), and the Next ESLint rules.
+**Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), and the Next ESLint rules. `packages/ui` no longer has Radix, `next-themes`, `vaul` or `tailwindcss-animate`, which only the Next client keeps. `cmdk` 1.1.1, behind its `command`, still depends on `@radix-ui/react-dialog` and a few small Radix packages, so those stay in the lockfile after the Next client goes.
 
 **Deliberately not added:** Axios (`packages/api-client` wraps `fetch`), Redux, CSS-in-JS, or a second component library.
 
@@ -153,7 +155,9 @@ The spike did not test a full app, Base UI beyond a dialog, or browser behavior 
 | Vite proxy with `Host` kept | Pass. Login, the `Origin` check and the socket's WebSocket upgrade all work through it |
 | `hls.js` debug | Pass. Off in a build, on under `pnpm dev` |
 
-Still not tested: Base UI beyond a dialog, the PWA build of a full app, and `apps/web` behind Caddy, which is item 7.
+Every primitive of `packages/ui` was checked in Chromium on 2026-11-03 at `/dev/primitives`, against `pnpm dev`, at 390 and 1280 wide, in both themes, by keyboard and with reduced motion.
+
+Still not tested: the PWA build of a full app, and `apps/web` behind Caddy, which is item 7.
 
 ### 4.5 App structure
 
@@ -176,6 +180,7 @@ apps/web/src/
 | `/settings` | Settings | `/dashboard/settings` |
 | `/watch/$id` | Player | `/video/$id` |
 | `/dev/theme` | Theme preview, under `pnpm dev` only. Item 4 folds it into `/dev/components` | New |
+| `/dev/primitives` | Every primitive in both themes, under `pnpm dev` only. Item 4 folds it into `/dev/components` | New |
 
 In development, Vite proxies `/api`, `/socket` and `/streams` to the API, so cookies behave as they do behind Caddy.
 
@@ -411,7 +416,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 28 | `fluent-ffmpeg` deprecated | Replaced with `child_process.spawn` | Done |
 | 35 | No-op schema options | Removed with Mongoose | Done |
 | 38 | README incomplete | Rewritten, with `CONTRIBUTING.md` and a setup script | Done |
-| 40 | Stale `tailwind.config.ts` reference, empty `.npmrc` | Removed. The `packages/ui` config reference stays until finding 49 | Done |
+| 40 | Stale `tailwind.config.ts` reference, empty `.npmrc` | Removed, the `packages/ui` one with finding 49 | Done |
 
 ### Found since the audit
 
@@ -425,7 +430,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 46 | `--font-sans` points at an undefined `--font-geist-sans`, and Zain loads but no class uses it | One font setup ([section 9.4](#94-typography)). Done in `apps/web`, which renders Geist from its own origin. The Next client keeps its fonts until item 8 deletes it | 2 |
 | 47 | `PlayButton` is duplicated in two files | One shared pattern | 2 |
 | 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens. They exist in `tokens.css`, and `apps/web` has no raw colors, which a test checks. The Next client keeps its own until item 8 | 2 |
-| 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | [Section 9.6](#96-updating-shadcn) | 2 |
+| 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | Deleted, and both `components.json` files are on `base-nova` with an empty `tailwind.config` ([section 9.6](#96-updating-shadcn)) | Done |
 | 50 | No project licence | Apache-2.0, with a `NOTICE` that requires attribution | Done |
 | 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Add `.next/**` to the ignores | Done |
 | 52 | Next forwards a client's own `X-Forwarded-For`, so a client that sets it escapes the login rate limit | Caddy replaces the header, and a browser test proves that the spoof reaches the limit | Done |
@@ -440,12 +445,12 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | pnpm | 10.13.1 | 12.16.1 | Done | Tested 2026-11-01: install passes once `allowBuilds` in `pnpm-workspace.yaml` covers `esbuild` and `sharp` |
 | TypeScript | 5.7.3 and 5.9.3 | 7.0.2, with 6.0.3 private to `packages/eslint-config` | Done | Tested 2026-11-01: `tsc` and `next build` pass on 7.0.2 once `baseUrl` is removed from the Next tsconfig. `typescript-eslint` 8.72.1 refuses 7.0, so lint parses with 6.0.3 until it supports 7. |
 | `ts-node`, `nodemon` | 10.9.2, 3.1.14 | Removed | Done | `tsx` replaces both. Tested 2026-11-01: `tsx` boots the API with no database connected |
-| ESLint | 9.39.5 | 10.14.0 | Done | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. Rules that duplicate `react-hooks` are off, as are the rules that flag the `packages/ui` primitives Phase 2 replaces. `next-client` now reports 17 warnings against 8 before, mostly from stricter `react-hooks` 7 rules. Phase 2 deletes that code |
+| ESLint | 9.39.5 | 10.14.0 | Done | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. Rules that duplicate `react-hooks` are off, as were the rules that flagged the old `packages/ui` primitives. Those are on again in `packages/ui`, except in the upstream files that break them, and off only for the copies in the Next client. `next-client` now reports 17 warnings against 8 before, mostly from stricter `react-hooks` 7 rules. Phase 2 deletes that code |
 | Everything else in `pnpm outdated` | Various | Latest | Done | Except rows below, which are removed or replaced later |
 | dotenv | 16.6.1 | Removed | Done | `process.loadEnvFile` in the config module replaces it, with the same order and non-override behaviour |
-| lucide-react | 0.477.0 | 1.66.0 | 2 | Major jump; check icon renames |
+| lucide-react | 0.477.0 | 1.66.0 | Done | In `packages/ui` and `apps/web`, whose icons all exist in 1.x. The Next client keeps 0.477.0 until it is deleted |
 | @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | `apps/web` is on 7.0.1, and the Next client keeps 5.9.2 until it is deleted |
-| react-day-picker | 9.14.0 | 10.0.2 | 2 | With the shadcn update |
+| react-day-picker | 9.14.0 | 10.0.2 | Done | In `packages/ui`, with the base-nova calendar. The Next client keeps 9.14.0 until it is deleted |
 | mongoose | 8.24.7 | Removed | Done | With `mongodb-memory-server` |
 | fluent-ffmpeg | 2.1.3 | Removed | Done | Replaced by a `spawn` wrapper in `apps/worker` |
 | next, swr, next-themes | Current | Removed | 2 | Replaced by the [frontend stack](#4-frontend-stack) |
@@ -520,13 +525,15 @@ Screens      thin route files in apps/web
 
 ### 9.3 Color tokens
 
-[`DESIGN.md`](../DESIGN.md) is the one place the docs list the token values, with one table for both themes. `packages/ui/src/styles/tokens.css` ships them, and `packages/ui/test/design-md.test.ts` fails when the two disagree.
+`packages/ui/src/styles/tokens.css` is the one place the values live. It is a shadcn theme: every variable a current shadcn theme defines, each with its own value in `:root` and `.dark`, mapped to Tailwind colors in `@theme inline`, with shadcn's base layer. [`DESIGN.md`](../DESIGN.md) names each variable's role and points there for the values.
 
-They follow the direction in [section 9.1](#91-direction): OKLCH values on a cool neutral at hue 265, one amber accent, and `success`, `warning`, `info` and `destructive` for status. `overlay` is a scrim over posters and video, dark in both themes. `accent` and `input` map to `secondary` and `border`, and `ring` maps to `primary`.
+**To switch the theme,** paste a theme from shadcn's theme page or CLI over the first `:root` and `.dark` blocks, or edit their values, then run `pnpm --filter @workspace/ui test`. Nothing in the file overrides a pasted value. ShowStream's own colors sit in their own blocks, added the way shadcn documents for new colors, so a paste leaves them alone.
 
-A test in the required check reads the stylesheet and asserts, in both themes: text pairs at 4.5:1 or better, foreground on background at 7:1 or better, status colors and the focus ring at 3:1 or better, and every value in the sRGB gamut.
+They follow the direction in [section 9.1](#91-direction): OKLCH values on a cool neutral at hue 265, one amber accent, and `success`, `warning`, `info` and `destructive` for status. `overlay` is a scrim over posters and video, dark in both themes. `accent` and `input` hold the values of `secondary` and `border`, and `ring`, `chart-1`, `sidebar-primary` and `sidebar-ring` the accent.
 
-The rendered preview at `/dev/theme` is for the maintainer's review. Until it is approved, the tokens are provisional and E1 stays open in [open-decisions.md](./open-decisions.md). A change after review is an edit to `tokens.css` and `DESIGN.md`.
+A test in the required check reads the stylesheet and asserts that the variable set matches shadcn's, that each has its own value in both themes and a Tailwind color, and, in both themes: text pairs at 4.5:1 or better, foreground on background at 7:1 or better, status colors, charts and the focus ring at 3:1 or better, and every color in the sRGB gamut.
+
+The rendered preview at `/dev/theme` is for the maintainer's review. Until it is approved, the tokens are provisional and E1 stays open in [open-decisions.md](./open-decisions.md). A change after review is an edit to `tokens.css`.
 
 ### 9.4 Typography
 
@@ -534,9 +541,7 @@ One family: Geist Sans for UI and Geist Mono for technical data, self-hosted thr
 
 ### 9.5 Components
 
-**Primitives to keep:** all 16 current components are in use.
-
-**Primitives to add:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar.
+**Primitives kept:** all 16 moved to Base UI, except `form`, which the base styles replace with `field`. **Added:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar, and `textarea` and `input-group`, which `command` needs. `/dev/primitives` shows them all. Done in item 3.
 
 | Pattern | Replaces | Used by |
 |---|---|---|
@@ -558,15 +563,15 @@ A dev-only `/dev/components` route shows every pattern in both themes.
 
 ### 9.6 Updating shadcn
 
-The current setup is `new-york` style on Radix with Tailwind v4. **We are moving to Base UI**, shadcn's current default. This happens in Phase 2, in `packages/ui`, before patterns are built on it.
+**Status:** done in Phase 2 item 3. `packages/ui` and `apps/web` are on the `base-nova` style, Base UI's version of shadcn's current default.
 
-1. Run `pnpm dlx shadcn@latest info` from `apps/web` and `packages/ui`.
-2. Align both `components.json` files. They must share `style`, `iconLibrary` and `baseColor`. Use a Base UI style such as `base-nova`, set `iconLibrary` to `lucide`, leave `tailwind.config` empty for Tailwind v4, and set `rsc: false`.
-3. Replace `tailwindcss-animate` with `tw-animate-css`.
-4. Run `pnpm dlx shadcn@latest migrate cn`.
-5. Install the shadcn skill and migrate primitives one at a time. Migrations produce a report and a commit per component; `asChild` becomes `render`.
-6. Use `add --diff` on customized components such as `dual-range-slider`.
-7. Delete `add-shadcn.sh`, which pins `canary`.
+1. `pnpm dlx shadcn@latest info` from `apps/web` and `packages/ui` showed `new-york` on Radix, and no `components.json` in `apps/web`.
+2. Both `components.json` files share `base-nova`, `iconLibrary: lucide`, `baseColor: zinc`, an empty `tailwind.config` and `rsc: false`, and `shadcn info` reads them so. `apps/web`'s puts primitives in `packages/ui`.
+3. `tw-animate-css` and shadcn's `tailwind.css` replace `tailwindcss-animate`. The latter is copied into `packages/ui/src/styles/shadcn.css`, because importing it from the `shadcn` package shipped the CLI and a low `pnpm audit --prod` advisory in `deepmerge` with it.
+4. `shadcn migrate cn` moved `cn()` to the `cn` package. Primitives import it from `@workspace/ui/lib/utils`.
+5. The Radix primitives moved to the Next client unchanged. `packages/ui` took each one from the `base-nova` registry, one commit per component, with keyboard tests, so `asChild` became `render` with upstream's own code. `packages/ui/AGENTS.md` lists the few intended differences from upstream, which `add --diff` shows.
+6. `dual-range-slider` is not in the registry. It is the base-nova slider with its labels kept.
+7. `add-shadcn.sh`, which pinned `canary`, is deleted.
 
 ## 10. AI tooling
 
@@ -738,6 +743,8 @@ Checked on 2026-11-02:
 
    **Status:** done, except the maintainer's review of the preview. `PRODUCT.md` and `DESIGN.md` are at the root, the tokens are in `packages/ui`, and `apps/web` uses them with Geist and a theme provider. Its screens have no raw colors, and their look stays plain until item 6.
 3. Update shadcn and migrate primitives to Base UI.
+
+   **Status:** done. `packages/ui` has every primitive on Base UI, plus the ones [section 9.5](#95-components) adds, with keyboard tests and `/dev/primitives`. The theme follows shadcn's variables, so a pasted shadcn theme works. The Next client kept its look: its browser tests pass, and screenshots of the movie browser before and after match.
 4. Build the patterns and `/dev/components`.
 5. Add the API image cache and server-side library queries.
 6. Rebuild Login, Setup, Movies, Movie detail, Player and Settings on the patterns, including everything item 8 added to the Next client:
@@ -748,11 +755,10 @@ Checked on 2026-11-02:
    - A Library section in Settings for admins: a Scan library button, disabled while a scan is queued or running, with the status, time, counts, reason and problems of the latest scan. Without it, a new install cannot fill its library.
 7. Switch Caddy to serve `apps/web`.
 8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules. With them go what only the Next client uses:
-   - `packages/ui/src/styles/globals.css`, with its old tokens, and its `./globals.css` export.
-   - `packages/ui/postcss.config.mjs`, its `./postcss.config` export and `@tailwindcss/postcss`.
+   - What item 3 moved from `packages/ui` into the Next client, which leaves with it: the Radix primitives in `apps/next-client/components/ui/` (button, calendar, card, command, dialog, drawer, dropdown-menu, dual-range-slider, form, input, label, popover, radio-group, select, sonner and tooltip), `apps/next-client/lib/utils.ts`, the old stylesheet at `apps/next-client/styles/globals.css`, and `apps/next-client/postcss.config.mjs`.
+   - With them, the Next client's Radix packages, except those `cmdk` pulls in for `packages/ui`, and `vaul`, `tailwindcss-animate`, `class-variance-authority`, `clsx`, `tailwind-merge`, `@tailwindcss/postcss`, `lucide-react` 0.477.0 and `react-day-picker` 9, which only it uses.
    - Zain and the `next/font` setup, which leave with `apps/next-client/app/layout.tsx`.
-   - `next-themes`, in `packages/ui` and `apps/next-client`.
-   - `tailwindcss-animate`, unless item 3 has already replaced it with `tw-animate-css`.
+   - `next-themes`, in `apps/next-client`.
 
 **Done when:** today's features work on the new patterns in both themes, at phone and desktop widths, and no Next.js code remains.
 

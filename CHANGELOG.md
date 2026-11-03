@@ -28,11 +28,14 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - Design tokens for `apps/web`, in `packages/ui`: a cool dark theme with one amber accent, a full light theme, and colors for success, warning, info and errors. A test checks their contrast. `DESIGN.md` describes them, and `PRODUCT.md` records who ShowStream is for, both at the root.
 - `apps/web` uses the Geist and Geist Mono fonts, served by the app itself rather than a font service. It follows the system theme, or a choice kept in the browser, and shows the right theme from the first paint.
 - A theme preview at <http://127.0.0.1:5173/dev/theme>, under `pnpm dev` only.
+- shadcn's primitives on Base UI in `packages/ui`, for `apps/web`: buttons, fields, dialogs, sheets, drawers, menus, selects, popovers, tooltips, tabs, switches, checkboxes, radios, sliders, a calendar, a command list, a sidebar, tables and more. They work by keyboard, which tests check, and settle at once under reduced motion. `apps/web`'s login form and toasts use them, and <http://127.0.0.1:5173/dev/primitives> shows them all under `pnpm dev`.
 - Caddy as the only published service, on ports 80 and 443, with HTTPS by default. `TLS_MODE` selects `internal`, `public` or `tailscale`, and `SITE_ADDRESS` names the server, in an optional `.env` at the root. `docs/guides/self-hosting.md` explains them. `public` and `tailscale` pass `caddy validate`, but have not been run.
 
 ### Changed
 
 - Upgraded to Next.js 16, React 19.3, Node 26, pnpm 12, TypeScript 7 and ESLint 10.
+- The theme in `packages/ui` follows shadcn's variables, each with its own value in both themes, so a theme pasted from shadcn works as it is. It gains chart and sidebar colors. `DESIGN.md` points to `tokens.css` for the values.
+- `packages/ui` moved from shadcn's `new-york` style on Radix to `base-nova` on Base UI, with `lucide-react` 1 and `react-day-picker` 10. The Next client keeps its own copy of the old primitives, and looks and works as before.
 - The MongoDB and API ports are no longer published to the host.
 - **Breaking:** SQLite replaces MongoDB. There is no database server, no database password, and `pnpm dev` no longer needs Docker. The database is one file: `data/app.db` under `pnpm dev`, and `/data/app.db` on the `sqlite-data` volume under Compose. `DATABASE_PATH` changes it. Migrations run at API startup, and a failed migration stops the API.
 - **Upgrading from MongoDB:** existing data is not carried over. Your library comes back with a rescan, but users are not kept, so create the owner again in setup. Leftover `MONGO_DB_*` variables in `.env` are ignored and can be deleted, and the old database files in `./data` can be removed. In a Compose stack, run `docker compose up -d --remove-orphans` to remove the old `mongodb` container.
@@ -71,5 +74,6 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 
 ### Removed
 
+- `add-shadcn.sh`, which installed from shadcn's `canary`.
 - `fluent-ffmpeg`, which is deprecated. A small `spawn` wrapper replaces it, with the same arguments.
 - `tmdb-ts` from the API, which no longer calls TMDB, and the unused `lastScanTime` setting.

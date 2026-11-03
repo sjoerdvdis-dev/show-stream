@@ -4,17 +4,9 @@ import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Input } from '@workspace/ui/components/input';
-import { Button } from '@workspace/ui/components/button';
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-	FormRootError,
-} from '@workspace/ui/components/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormRootError } from '@/components/ui/form';
 import { ApiError } from '@workspace/api-client';
 import { api } from '@/lib/api';
 import { loginSchema, setupSchema } from '@/lib/form';

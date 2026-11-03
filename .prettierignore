@@ -1,0 +1,17 @@
+# Prettier also skips what .gitignore lists, such as node_modules.
+
+# Upstream shadcn files, kept as the CLI writes them, so that `shadcn add --diff` shows only the intended changes.
+packages/ui/src/components/
+packages/ui/src/hooks/
+
+# Generated.
+apps/web/src/routeTree.gen.ts
+pnpm-lock.yaml
+
+# Build outputs.
+dist/
+.next/
+out/
+build/
+coverage/
+.turbo/

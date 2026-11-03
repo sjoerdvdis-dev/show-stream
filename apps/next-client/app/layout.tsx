@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono, Zain } from 'next/font/google';
 
-import '@workspace/ui/globals.css';
+import '@/styles/globals.css';
 // import "@/app/globals.css"
 import { Providers } from '@/components/providers';
 import { Metadata } from 'next';

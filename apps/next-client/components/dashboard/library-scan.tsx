@@ -2,7 +2,7 @@
 
 import type { Scan, ScanAPIData, ScanCounts } from '@workspace/contract/api-types';
 import { ApiError } from '@workspace/api-client';
-import { Button } from '@workspace/ui/components/button';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import { api, fetcher, isSessionEnded, returnToLogin } from '@/lib/api';

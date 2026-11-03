@@ -1,5 +1,5 @@
 import { AsteriskIcon, CheckIcon, LoaderCircle, TriangleAlertIcon, XIcon } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@workspace/ui/components/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
 
 export default function TranscodeStatusIcon({

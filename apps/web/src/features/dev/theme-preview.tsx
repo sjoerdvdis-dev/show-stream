@@ -1,6 +1,6 @@
 import { useSyncExternalStore, type ReactNode } from 'react';
-import { useTheme, type Theme } from '@/lib/theme';
 import poster from './poster.svg';
+import { ThemeSwitch } from './theme-switch';
 
 /**
  * Every token from `@workspace/ui/tokens.css`, rendered for review. Dev only: the route at
@@ -9,47 +9,47 @@ import poster from './poster.svg';
  * Phase 2 item 4 folds it into `/dev/components`.
  */
 
-const tokenGroups: { title: string; tokens: { name: string; note?: string }[] }[] = [
+const tokenGroups: { title: string; tokens: string[] }[] = [
 	{
 		title: 'Surfaces',
-		tokens: [{ name: 'background' }, { name: 'card' }, { name: 'popover' }, { name: 'muted' }, { name: 'secondary' }],
+		tokens: ['background', 'card', 'popover', 'muted', 'secondary'],
 	},
 	{
 		title: 'Text',
-		tokens: [
-			{ name: 'foreground' },
-			{ name: 'muted-foreground' },
-			{ name: 'card-foreground', note: 'foreground' },
-			{ name: 'popover-foreground', note: 'foreground' },
-			{ name: 'secondary-foreground', note: 'foreground' },
-		],
+		tokens: ['foreground', 'muted-foreground', 'card-foreground', 'popover-foreground', 'secondary-foreground'],
 	},
 	{
 		title: 'Accent',
-		tokens: [{ name: 'primary' }, { name: 'primary-foreground' }, { name: 'ring', note: 'primary' }],
+		tokens: ['primary', 'primary-foreground', 'ring'],
 	},
 	{
 		title: 'Status',
-		tokens: [
-			{ name: 'destructive' },
-			{ name: 'destructive-foreground' },
-			{ name: 'success' },
-			{ name: 'warning' },
-			{ name: 'info' },
-		],
+		tokens: ['destructive', 'destructive-foreground', 'success', 'warning', 'info'],
 	},
 	{
-		title: 'Lines and shadcn names',
+		title: 'Lines and hover fills',
+		tokens: ['border', 'input', 'accent', 'accent-foreground'],
+	},
+	{
+		title: 'Charts',
+		tokens: ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'],
+	},
+	{
+		title: 'Sidebar',
 		tokens: [
-			{ name: 'border' },
-			{ name: 'input', note: 'border' },
-			{ name: 'accent', note: 'secondary' },
-			{ name: 'accent-foreground', note: 'secondary-foreground' },
+			'sidebar',
+			'sidebar-foreground',
+			'sidebar-primary',
+			'sidebar-primary-foreground',
+			'sidebar-accent',
+			'sidebar-accent-foreground',
+			'sidebar-border',
+			'sidebar-ring',
 		],
 	},
 	{
 		title: 'Overlay',
-		tokens: [{ name: 'overlay' }, { name: 'overlay-foreground' }],
+		tokens: ['overlay', 'overlay-foreground'],
 	},
 ];
 
@@ -66,12 +66,6 @@ const statuses = [
 	{ name: 'warning', dot: 'bg-warning', text: 'text-warning', message: 'Transcode in progress' },
 	{ name: 'info', dot: 'bg-info', text: 'text-info', message: 'Scan queued' },
 	{ name: 'destructive', dot: 'bg-destructive', text: 'text-destructive', message: 'Transcode failed' },
-];
-
-const themes: { value: Theme; label: string }[] = [
-	{ value: 'system', label: 'System' },
-	{ value: 'light', label: 'Light' },
-	{ value: 'dark', label: 'Dark' },
 ];
 
 const buttonBase = 'rounded-md px-3 py-2 text-sm font-medium disabled:opacity-60';
@@ -96,7 +90,7 @@ const subscribeToRootClass = (onChange: () => void) => {
 const useTokenValues = (): Record<string, string> => {
 	useSyncExternalStore(subscribeToRootClass, () => document.documentElement.className);
 	const style = getComputedStyle(document.documentElement);
-	const tokenNames = [...tokenGroups.flatMap(({ tokens }) => tokens.map(({ name }) => name)), 'radius'];
+	const tokenNames = [...tokenGroups.flatMap(({ tokens }) => tokens), 'radius'];
 	return Object.fromEntries(tokenNames.map((name) => [name, style.getPropertyValue(`--${name}`).trim()]));
 };
 
@@ -110,32 +104,13 @@ const Section = ({ title, description, children }: { title: string; description?
 	</section>
 );
 
-const ThemeSwitch = () => {
-	const { theme, setTheme } = useTheme();
-	return (
-		<div role="group" aria-label="Theme" className="flex w-fit gap-1 rounded-lg border border-border bg-card p-1">
-			{themes.map(({ value, label }) => (
-				<button
-					key={value}
-					type="button"
-					aria-pressed={theme === value}
-					onClick={() => setTheme(value)}
-					className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground aria-pressed:bg-primary aria-pressed:text-primary-foreground"
-				>
-					{label}
-				</button>
-			))}
-		</div>
-	);
-};
-
 const Swatches = ({ values }: { values: Record<string, string> }) => (
 	<div className="flex flex-col gap-6">
 		{tokenGroups.map(({ title, tokens }) => (
 			<div key={title} className="flex flex-col gap-2">
 				<h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
 				<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-					{tokens.map(({ name, note }) => (
+					{tokens.map((name) => (
 						<li key={name} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
 							<span
 								aria-hidden="true"
@@ -144,10 +119,7 @@ const Swatches = ({ values }: { values: Record<string, string> }) => (
 							/>
 							<span className="flex min-w-0 flex-col">
 								<span className="font-mono text-sm">--{name}</span>
-								<span className="truncate font-mono text-xs text-muted-foreground">
-									{note ? `= ${note} · ` : ''}
-									{values[name] ?? ''}
-								</span>
+								<span className="truncate font-mono text-xs text-muted-foreground">{values[name] ?? ''}</span>
 							</span>
 						</li>
 					))}

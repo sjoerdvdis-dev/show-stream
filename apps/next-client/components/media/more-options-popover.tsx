@@ -1,4 +1,4 @@
-import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { EllipsisVertical } from 'lucide-react';
 
 export default function MoreOptionsPopover({ size }: { size: string }) {

@@ -1,5 +1,5 @@
 // Page showing the list of shows
-import { Input } from '@workspace/ui/components/input';
+import { Input } from '@/components/ui/input';
 
 export default function ShowsPage() {
 	return (
