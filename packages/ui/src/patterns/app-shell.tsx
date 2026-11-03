@@ -34,7 +34,7 @@ type NavProps = {
 
 /** The desktop navigation: the sidebar primitive, collapsible to icons, with a brand at the top and a footer. */
 export const NavSidebar = ({ items, brand, footer, label = 'Main', className }: NavProps & { className?: string }) => (
-	<Sidebar collapsible="icon" className={cn(className)}>
+	<Sidebar collapsible="icon" className={className}>
 		<SidebarHeader className="flex-row items-center justify-between">
 			{brand ? <div className="min-w-0 truncate group-data-[collapsible=icon]:hidden">{brand}</div> : null}
 			<SidebarTrigger />
@@ -109,10 +109,17 @@ export const MobileNav = ({ items, brand, footer, label = 'Main', className }: N
  * The signed-in layout: `NavSidebar` on a wide screen and `MobileNav` on a phone, around the page in a `main`
  * landmark that leaves room for the bottom bar.
  */
-export const AppShell = ({ items, brand, footer, label, children }: NavProps & { children: ReactNode }) => {
+export const AppShell = ({
+	items,
+	brand,
+	footer,
+	label,
+	className,
+	children,
+}: NavProps & { className?: string; children: ReactNode }) => {
 	const isMobile = useIsMobile();
 	return (
-		<SidebarProvider>
+		<SidebarProvider className={className}>
 			{isMobile ? null : <NavSidebar items={items} brand={brand} footer={footer} label={label} />}
 			<SidebarInset className={cn('min-w-0', isMobile && 'pb-[calc(4rem+env(safe-area-inset-bottom))]')}>
 				{children}

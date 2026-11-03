@@ -69,4 +69,16 @@ describe('AppShell', () => {
 		await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 		expect(document.activeElement).toBe(more);
 	});
+
+	it('passes its className to the layout around the navigation and the page', () => {
+		const { container } = render(
+			<AppShell items={items} className="bg-muted">
+				<h1>Movies</h1>
+			</AppShell>,
+		);
+
+		const layout = container.firstElementChild;
+		expect(layout?.classList.contains('bg-muted')).toBe(true);
+		expect(layout?.contains(screen.getByRole('main'))).toBe(true);
+	});
 });

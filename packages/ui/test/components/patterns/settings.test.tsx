@@ -107,6 +107,23 @@ describe('ConfirmDialog', () => {
 		await waitFor(() => expect(confirm.getAttribute('aria-disabled')).not.toBe('true'));
 		expect(screen.getByRole('alertdialog')).toBeTruthy();
 	});
+
+	it('passes its className to the dialog', async () => {
+		const user = userEvent.setup();
+		render(
+			<ConfirmDialog
+				trigger={<Button>Reset</Button>}
+				title="Reset the settings?"
+				className="sm:max-w-md"
+				onConfirm={() => {}}
+			/>,
+		);
+
+		await user.click(screen.getByRole('button', { name: 'Reset' }));
+
+		const dialog = await screen.findByRole('alertdialog', { name: 'Reset the settings?' });
+		expect(dialog.classList.contains('sm:max-w-md')).toBe(true);
+	});
 });
 
 describe('SettingsSection', () => {

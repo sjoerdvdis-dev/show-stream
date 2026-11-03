@@ -59,6 +59,7 @@ type ConfirmDialogProps = {
 	 * the promise resolves, and stays open when it rejects, so the screen can report the error.
 	 */
 	onConfirm: () => void | Promise<void>;
+	className?: string;
 };
 
 /** Asks the user to confirm an action before it runs, such as deleting a user. */
@@ -70,6 +71,7 @@ export const ConfirmDialog = ({
 	cancelLabel = 'Cancel',
 	destructive = false,
 	onConfirm,
+	className,
 }: ConfirmDialogProps) => {
 	const [open, setOpen] = useState(false);
 	const [pending, setPending] = useState(false);
@@ -90,7 +92,7 @@ export const ConfirmDialog = ({
 	return (
 		<AlertDialog open={open} onOpenChange={(next) => !pending && setOpen(next)}>
 			<AlertDialogTrigger render={trigger} />
-			<AlertDialogContent>
+			<AlertDialogContent className={className}>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
 					{description ? <AlertDialogDescription>{description}</AlertDialogDescription> : null}
