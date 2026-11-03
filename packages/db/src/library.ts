@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { MediaType, TranscodeStatus } from '@workspace/contract/api-types';
-import type { LibraryFacets, LibraryItem, LibraryQuery, LibrarySort } from '@workspace/contract/library';
+import type { LibraryFacets, LibraryPage, LibraryQuery, LibrarySort } from '@workspace/contract/library';
 import type { Database } from './connection.js';
 import { transcodeStatusOfJob, transcodeStatusWithoutJob } from './media.js';
 import { jobs, media, mediaGenres } from './schema.js';
@@ -82,7 +82,8 @@ const filtersOf = (type: MediaType, query: LibraryQuery) => {
 const genresOfTitle = sql<string>`(SELECT json_group_array(genre) FROM
 	(SELECT ${mediaGenres.genre} AS genre FROM ${mediaGenres} WHERE ${mediaGenres.mediaId} = ${media.id} ORDER BY genre))`;
 
-export type LibraryPageResult = { items: LibraryItem[]; total: number };
+/** A page of titles. The API adds the page and its size, which it was asked for. */
+export type LibraryPageResult = Pick<LibraryPage, 'items' | 'total'>;
 
 /**
  * One page of a media type's titles. Values that a title lacks sort last in either order, and
