@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, sql, type SQL 
 import type { MediaType, TranscodeStatus } from '@workspace/contract/api-types';
 import type { LibraryFacets, LibraryItem, LibraryQuery, LibrarySort } from '@workspace/contract/library';
 import type { Database } from './connection.js';
+import { transcodeStatusOfJob, transcodeStatusWithoutJob } from './media.js';
 import { jobs, media, mediaGenres } from './schema.js';
 
 /**
@@ -9,13 +10,19 @@ import { jobs, media, mediaGenres } from './schema.js';
  * no call reads the whole library.
  */
 
-/** A title's playback status, by the same rule as `transcodeStatusOfJob`. No job yet is `not ready`. */
-const transcodeStatus = sql<TranscodeStatus>`CASE ${jobs.status}
-	WHEN 'queued' THEN 'in progress'
-	WHEN 'running' THEN 'in progress'
-	WHEN 'done' THEN 'ready'
-	WHEN 'failed' THEN 'failed'
-	ELSE 'not ready' END`;
+/**
+ * One of our own constants as an SQL string literal rather than a bound parameter, so that the
+ * status reads the same wherever the query selects, filters or groups by it.
+ */
+const textLiteral = (value: string) => sql.raw(`'${value.replaceAll("'", "''")}'`);
+
+/** A title's playback status, built from `transcodeStatusOfJob` and `transcodeStatusWithoutJob`. */
+const transcodeStatus = sql<TranscodeStatus>`CASE ${jobs.status} ${sql.join(
+	Object.entries(transcodeStatusOfJob).map(
+		([job, status]) => sql`WHEN ${textLiteral(job)} THEN ${textLiteral(status)}`,
+	),
+	sql` `,
+)} ELSE ${textLiteral(transcodeStatusWithoutJob)} END`;
 
 const transcodeJobOfTitle = and(eq(jobs.mediaId, media.id), eq(jobs.type, 'transcode'));
 
