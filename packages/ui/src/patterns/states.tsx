@@ -56,6 +56,21 @@ export const ErrorState = ({
 	</StateLayout>
 );
 
+/** Placeholders for data that is on its way, named by `label` for assistive technology. Every loading state uses it. */
+export const LoadingStatus = ({
+	label,
+	className,
+	children,
+}: {
+	label: string;
+	className?: string;
+	children: ReactNode;
+}) => (
+	<div role="status" aria-label={label} aria-busy="true" className={className}>
+		{children}
+	</div>
+);
+
 /** Poster-shaped placeholders in the grid's own columns, so that the page does not jump when data arrives. */
 export const LoadingGrid = ({
 	label = 'Loading',
@@ -66,7 +81,7 @@ export const LoadingGrid = ({
 	count?: number;
 	className?: string;
 }) => (
-	<div role="status" aria-label={label} aria-busy="true" className={cn(posterGridClassName, className)}>
+	<LoadingStatus label={label} className={cn(posterGridClassName, className)}>
 		{Array.from({ length: count }, (_, index) => (
 			<div key={index} className="flex flex-col gap-2">
 				<Skeleton className="aspect-2/3 w-full rounded-lg" />
@@ -74,5 +89,5 @@ export const LoadingGrid = ({
 				<Skeleton className="h-3 w-1/3" />
 			</div>
 		))}
-	</div>
+	</LoadingStatus>
 );

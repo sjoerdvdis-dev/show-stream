@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { EmptyState, ErrorState, LoadingGrid } from '@workspace/ui/patterns/states';
+import { EmptyState, ErrorState, LoadingGrid, LoadingStatus } from '@workspace/ui/patterns/states';
 
 describe('EmptyState', () => {
 	it('shows its title, description and action', () => {
@@ -43,5 +43,19 @@ describe('LoadingGrid', () => {
 
 		const status = screen.getByRole('status', { name: 'Loading movies' });
 		expect(status.getAttribute('aria-busy')).toBe('true');
+	});
+});
+
+describe('LoadingStatus', () => {
+	it('names what is loading for assistive technology, around its placeholders', () => {
+		render(
+			<LoadingStatus label="Loading genres">
+				<span>placeholder</span>
+			</LoadingStatus>,
+		);
+
+		const status = screen.getByRole('status', { name: 'Loading genres' });
+		expect(status.getAttribute('aria-busy')).toBe('true');
+		expect(status.textContent).toBe('placeholder');
 	});
 });

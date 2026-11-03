@@ -7,6 +7,7 @@ import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
 import { Skeleton } from '@workspace/ui/components/skeleton';
 import { cn } from '@workspace/ui/lib/utils';
+import { LoadingStatus } from '@workspace/ui/patterns/states';
 
 type RangeFilterProps = {
 	label: string;
@@ -166,11 +167,11 @@ const FacetBody = ({
 	}
 	if (loading) {
 		return (
-			<div role="status" aria-label={`Loading ${label}`} aria-busy="true" className="flex flex-col gap-2.5 py-1">
+			<LoadingStatus label={`Loading ${label}`} className="flex flex-col gap-2.5 py-1">
 				{Array.from({ length: 4 }, (_, index) => (
 					<Skeleton key={index} className="h-4 w-2/3" />
 				))}
-			</div>
+			</LoadingStatus>
 		);
 	}
 	if (options.length === 0) return <p className="text-sm text-muted-foreground">{emptyText}</p>;

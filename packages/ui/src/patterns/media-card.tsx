@@ -4,7 +4,7 @@ import { Skeleton } from '@workspace/ui/components/skeleton';
 import { cn } from '@workspace/ui/lib/utils';
 import { AppLink } from '@workspace/ui/patterns/link';
 import { MediaImage } from '@workspace/ui/patterns/media-image';
-import { EmptyState, ErrorState, LoadingGrid, posterGridClassName } from '@workspace/ui/patterns/states';
+import { EmptyState, ErrorState, LoadingGrid, LoadingStatus, posterGridClassName } from '@workspace/ui/patterns/states';
 import { PlayButton, StatusBadge } from '@workspace/ui/patterns/status';
 
 type MediaCardProps = {
@@ -154,14 +154,14 @@ export const MediaRow = <T,>({
 			{state === 'error' && error ? (
 				<ErrorState {...error} className="py-6" />
 			) : state === 'loading' || !items ? (
-				<div role="status" aria-label={loadingLabel} aria-busy="true" className="flex gap-3 overflow-hidden">
+				<LoadingStatus label={loadingLabel} className="flex gap-3 overflow-hidden">
 					{Array.from({ length: 8 }, (_, index) => (
 						<div key={index} className={cn(rowItemClassName, 'flex flex-col gap-2')}>
 							<Skeleton className="aspect-2/3 w-full rounded-lg" />
 							<Skeleton className="h-4 w-3/4" />
 						</div>
 					))}
-				</div>
+				</LoadingStatus>
 			) : state === 'empty' ? (
 				<EmptyState {...empty} className="py-6" />
 			) : (

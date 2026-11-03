@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { Skeleton } from '@workspace/ui/components/skeleton';
 import { cn } from '@workspace/ui/lib/utils';
 import { MediaImage } from '@workspace/ui/patterns/media-image';
-import { ErrorState } from '@workspace/ui/patterns/states';
+import { ErrorState, LoadingStatus } from '@workspace/ui/patterns/states';
 import { StatusBadge } from '@workspace/ui/patterns/status';
 
 type MediaHeroData = {
@@ -41,7 +41,7 @@ export const MediaHero = (props: MediaHeroProps) => {
 	}
 	if (props.loading) {
 		return (
-			<div role="status" aria-label="Loading title" aria-busy="true" className={cn(heroClassName, props.className)}>
+			<LoadingStatus label="Loading title" className={cn(heroClassName, props.className)}>
 				<Skeleton className="absolute inset-0 -z-10 rounded-none" />
 				<div className={contentClassName}>
 					<Skeleton className={cn(posterClassName, 'aspect-2/3 ring-0')} />
@@ -52,7 +52,7 @@ export const MediaHero = (props: MediaHeroProps) => {
 						<Skeleton className="h-9 w-28 bg-card" />
 					</div>
 				</div>
-			</div>
+			</LoadingStatus>
 		);
 	}
 
