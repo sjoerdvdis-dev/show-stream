@@ -2,6 +2,8 @@
   "extends": "@workspace/typescript-config/react-library.json",
   "compilerOptions": {
     //"outDir": "dist"
+    // For the tests, which read the stylesheet from disk.
+    "types": ["node"],
     "paths": {
       "@workspace/ui/*": ["./src/*"]
     }
