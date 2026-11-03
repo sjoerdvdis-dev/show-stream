@@ -14,7 +14,7 @@ const LoginPage = () => {
 	const { redirect: returnPath } = Route.useSearch();
 
 	return (
-		<CenteredPage title="Log in to ShowStream">
+		<CenteredPage title="Log in to ShowStream" description="Enter your username and password.">
 			<CredentialsForm mode="login" onDone={() => void router.navigate({ href: returnPath ?? '/', replace: true })} />
 		</CenteredPage>
 	);

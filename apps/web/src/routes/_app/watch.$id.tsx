@@ -1,17 +1,10 @@
 import { createFileRoute, notFound } from '@tanstack/react-router';
 import { endpoints } from '@workspace/contract/endpoints';
-import { BackLink, PageContainer } from '@workspace/ui/patterns/page';
-import { Player } from '@/features/player/player';
+import { WatchScreen } from '@/features/player/watch-screen';
 
 const WatchPage = () => {
 	const { id } = Route.useParams();
-
-	return (
-		<PageContainer>
-			<BackLink href="/movies" label="Movies" />
-			<Player key={id} id={id} />
-		</PageContainer>
-	);
+	return <WatchScreen key={id} id={id} />;
 };
 
 export const Route = createFileRoute('/_app/watch/$id')({

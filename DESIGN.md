@@ -196,7 +196,7 @@ Gently rounded corners from one radius, `0.6rem` (`--radius`). Steps derive from
 
 ## Components
 
-The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kept close to upstream, and `/dev/components` under `pnpm dev` shows each one, and every pattern, in both themes. They style through Tailwind utilities on the variables above, and merge classes with `cn()`. Upstream gives floating layers, such as menus, popovers, selects and sheets, a small shadow, which they keep for now against the Tonal Lift Rule above; the maintainer decides whether it stays. The patterns in `packages/ui/src/patterns` build on them, as the last part of this section describes. Movies and a movie's page are on the patterns now. Login, Setup, Settings and the player follow in the second ticket of item 6, and until then the descriptions of buttons, cards and fields below are of the plain elements those screens use.
+The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kept close to upstream, and `/dev/components` under `pnpm dev` shows each one, and every pattern, in both themes. They style through Tailwind utilities on the variables above, and merge classes with `cn()`. Upstream gives floating layers, such as menus, popovers, selects and sheets, a small shadow, which they keep for now against the Tonal Lift Rule above; the maintainer decides whether it stays. The patterns in `packages/ui/src/patterns` build on them, as the last part of this section describes. Every screen of `apps/web` is on them.
 
 ### Buttons
 

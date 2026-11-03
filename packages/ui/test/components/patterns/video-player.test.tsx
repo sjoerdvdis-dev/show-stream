@@ -284,24 +284,14 @@ describe('PlayerControls', () => {
 
 describe('VideoPlayer', () => {
 	it('loads the playlist through hls.js, with its debug log off unless asked', () => {
-		const { rerender } = render(
-			<VideoPlayer src="/streams/7/playlist.m3u8" title="Alien" onUnauthorized={() => {}} onFatalError={() => {}} />,
-		);
+		const { rerender } = render(<VideoPlayer src="/streams/7/playlist.m3u8" title="Alien" onUnauthorized={() => {}} />);
 
 		expect(fakeHls.url).toBe('/streams/7/playlist.m3u8');
 		expect(fakeHls.media).toBeInstanceOf(HTMLVideoElement);
 		expect(fakeHls.config?.debug).toBe(false);
 		expect(screen.getByText('Alien')).toBeTruthy();
 
-		rerender(
-			<VideoPlayer
-				src="/streams/8/playlist.m3u8"
-				title="Aliens"
-				debug
-				onUnauthorized={() => {}}
-				onFatalError={() => {}}
-			/>,
-		);
+		rerender(<VideoPlayer src="/streams/8/playlist.m3u8" title="Aliens" debug onUnauthorized={() => {}} />);
 		expect(fakeHls.destroyed).toBe(1);
 		expect(fakeHls.url).toBe('/streams/8/playlist.m3u8');
 		expect(fakeHls.config?.debug).toBe(true);
@@ -359,6 +349,14 @@ describe('VideoPlayer errors', () => {
 		unmount();
 
 		expect(fakeHls.destroyed).toBe(1);
+	});
+
+	it('shows a fatal error without onFatalError', () => {
+		render(<VideoPlayer src="/streams/7/playlist.m3u8" title="Alien" onUnauthorized={() => {}} />);
+
+		act(() => fakeHls.fail({ fatal: true, details: 'manifestLoadError', response: { code: 500 } }));
+
+		expect(screen.getByRole('alert').textContent).toContain('This title could not be played.');
 	});
 
 	it('plays HLS natively where hls.js is not supported, and shows a media error', () => {

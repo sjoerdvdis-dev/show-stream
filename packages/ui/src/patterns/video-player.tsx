@@ -317,8 +317,11 @@ type VideoPlayerProps = {
 	poster?: string;
 	/** Called on a 401 from any request hls.js makes, so that the app can send the user to log in. */
 	onUnauthorized: () => void;
-	/** Called when playback cannot go on, with hls.js's error detail or `mediaError`. The player shows the error. */
-	onFatalError: (reason: string) => void;
+	/**
+	 * Called when playback cannot go on, with hls.js's error detail or `mediaError`, for an app that
+	 * logs or reports it. Optional, because the player shows the error in place of the video itself.
+	 */
+	onFatalError?: (reason: string) => void;
 	/** Turns on hls.js's debug log. Pass `import.meta.env.DEV`, so that it stays off in a build. */
 	debug?: boolean;
 	className?: string;
@@ -342,7 +345,7 @@ export const VideoPlayer = ({
 	const reportUnauthorized = useEffectEvent(() => onUnauthorized());
 	const reportFatal = useEffectEvent((failingSrc: string, reason: string) => {
 		setFailedSrc(failingSrc);
-		onFatalError(reason);
+		onFatalError?.(reason);
 	});
 
 	useEffect(() => {

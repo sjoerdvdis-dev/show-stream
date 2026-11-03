@@ -112,6 +112,7 @@ import {
 } from '@workspace/ui/components/sidebar';
 import { Skeleton } from '@workspace/ui/components/skeleton';
 import { Slider } from '@workspace/ui/components/slider';
+import { Spinner } from '@workspace/ui/components/spinner';
 import { Switch } from '@workspace/ui/components/switch';
 import {
 	Table,
@@ -179,6 +180,19 @@ const Buttons = () => (
 			<Badge variant="secondary">4K</Badge>
 			<Badge variant="outline">H.265</Badge>
 			<Badge variant="destructive">Failed</Badge>
+		</Row>
+		<Row>
+			<Spinner />
+			<Spinner className="size-6 text-muted-foreground" />
+			{/* A busy button names itself, so its spinner is hidden and adds no second status. */}
+			<Button disabled aria-busy>
+				<Spinner aria-hidden="true" data-icon="inline-start" />
+				Scan library
+			</Button>
+			<Button variant="outline" disabled aria-busy>
+				<Spinner aria-hidden="true" data-icon="inline-start" />
+				Log out
+			</Button>
 		</Row>
 	</div>
 );
@@ -572,7 +586,7 @@ const Navigation = () => (
 export const PrimitivesSection = () => (
 	<TooltipProvider>
 		<div className="flex flex-col gap-12">
-			<Section title="Buttons and badges">
+			<Section title="Buttons, badges and spinners">
 				<Buttons />
 			</Section>
 			<Section title="Fields">

@@ -37,6 +37,9 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `apps/web`'s Movies screen: a poster grid from the paged library API, one page at a time, with art from the API, search, sort, and filters for status, genre, year, release date, runtime and rating. The filters offer what the library has, with counts. All of it is in the URL, so a view survives a reload and can be shared, and Back undoes a filter change. Typing in search waits until it settles, and does not fill the history.
 - `apps/web`'s page for a movie, with its backdrop, poster, overview, year, runtime, rating and genres, and Play. A failed title shows why, with Retry in place of Play.
 - In `apps/web`, Play on a card opens the player for a ready title and prepares any other, and a failed one says why in a toast with Retry. Notifications update the cards and the movie's page as they arrive, with Play in a ready toast and Retry in a failed one. Settings joins the navigation, with the account so far.
+- `apps/web`'s player, at `/watch/$id`, on the shared video player: the title, a way back to its page, and keyboard shortcuts for play, seek, volume, mute and full screen. A title that is not ready shows its status, with Play to prepare it or Retry for a failure, and starts to play there once it is ready. An expired session while it plays returns to login, and back after.
+- `apps/web`'s Settings: the account with Log out, a choice of system, dark or light kept in the browser, and for an owner or admin a Library section with Scan library and the latest scan's status, time, counts, reason and problems, which refreshes while the scan runs.
+- `apps/web`'s Login and Setup in a card, on the design system. Setup says how long the password must be.
 
 ### Changed
 

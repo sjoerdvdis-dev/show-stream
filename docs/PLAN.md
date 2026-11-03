@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web`'s Movies and movie pages are on the patterns. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Next:
 
-1. **Finish Phase 2 item 6 with Player, Settings, Login and Setup** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Phase 2 item 7: switch Caddy to serve `apps/web`** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -55,9 +55,9 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
 | Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the theme the shadcn way, every variable with its own value in both themes, `DESIGN.md` names their roles, and a test checks the variable set, contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview, now the Theme part of `/dev/components`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
 | shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
-| Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. The screens move to the patterns in item 6 |
+| Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. Every screen of `apps/web` is on them since item 6 |
 | Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web`'s Movies screen uses all of it |
-| `apps/web` | Done for Phase 2 item 1, and item 6 has started. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. Notifications refresh what is on screen, with no polling. The player is still thin. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
+| `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
 **Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
@@ -116,7 +116,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Forms | `react-hook-form`, `@hookform/resolvers` | 7.91.0, 7.0.1 | In use in `apps/web` |
 | Validation | `zod`, shared through `packages/contract` | 4.6.7 | In use |
 | Large lists | `@tanstack/react-virtual` | 3.14.25 | Installed in spike |
-| Video | `hls.js` | 1.7.4 | In use in `apps/web`, and in `packages/ui` behind `VideoPlayer` |
+| Video | `hls.js` | 1.7.4 | In use in `packages/ui` behind `VideoPlayer`, which `apps/web` plays with. `apps/web` keeps it as a dev dependency, so its tests can stand in for it |
 | Player controls | `media-chrome` | 4.19.4 | **Rejected** in item 4 ([ADR 0010](./adr/0010-own-player-controls-on-hls-js.md)). Its controls are web components in a shadow DOM, so they cannot be built from the Base UI primitives, styled with the tokens' utilities or tested by role like the other patterns, and it would be a second component library. `PlayerControls` in `packages/ui` is our own, on `hls.js` |
 | Real time | `socket.io-client` | 4.8.4 | In use today |
 | Toasts | `sonner` | 2.0.8 | In use |
@@ -179,8 +179,8 @@ apps/web/src/
 | `/movies`, `/movies/$id` | Movie library, detail. Search, sort, filters and the page live in the URL, validated with the contract's library query | `/dashboard/movies` |
 | `/shows`, `/shows/$id` | Show library, detail | `/dashboard/shows` |
 | `/search` | Search | `/dashboard/search` |
-| `/settings` | Settings | `/dashboard/settings` |
-| `/watch/$id` | Player | `/video/$id` |
+| `/settings` | Account and Log out, the theme, and Scan library for admins | `/dashboard/settings` |
+| `/watch/$id` | Player, inside the shell, with the title and a way back to its page. A title that is not ready shows its status, with Play or Retry | `/video/$id` |
 | `/dev/components` | Every token, primitive and pattern in both themes, from fixture data, under `pnpm dev` only. It took in `/dev/theme` and `/dev/primitives` | New |
 
 In development, Vite proxies `/api`, `/socket` and `/streams` to the API, so cookies behave as they do behind Caddy.
@@ -394,14 +394,14 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 
 | # | Problem | Fix | Phase |
 |---|---|---|---|
-| 17 | Polling the whole library | Socket events invalidate queries. Done in `apps/web`: `transcode:ready` and `transcode:failed` refresh every library query, and nothing polls. The Next client polls until item 8 | 2 |
+| 17 | Polling the whole library | Socket events invalidate queries. Done in `apps/web`: `transcode:ready` and `transcode:failed` refresh the library, its facets and the title's page and player, and the library is never polled. Only Settings asks for the latest scan, every second while it is queued or running, and refreshes the library when it ends. The Next client polls until item 8 | 2 |
 | 18 | Fake technical details | Real `ffprobe` data | 4 |
 | 19 | Fragile image URLs | `MediaImage` with a fallback. Done in `apps/web`, whose art comes only from the API's image endpoint, falling back for a title without art. The Next client loads TMDB until item 8 | 2 |
 | 29 | Date filter format bug | Typed date range. Done in `apps/web`, whose `DateRangeFilter` sends ISO dates that the contract validates | 2 |
 | 30 | "Popularity" sorts by vote count | Server-side sort on the correct field. Done in `apps/web`, whose sort is the API's, by TMDB popularity | 2 |
 | 31 | `.sort()` mutates shared arrays | Sorting moves to the server. Done in `apps/web`, which sorts nothing itself | 2 |
 | 32 | Empty library gives `-Infinity` | Facets come from the API. Done in `apps/web`, which leaves out a range the facets give as `null` | 2 |
-| 33 | hls.js debug on in production | Dev only. Done in `apps/web`, and Next keeps it until item 8 deletes it | 2 |
+| 33 | hls.js debug on in production | Dev only. Done in `apps/web`, whose player passes `import.meta.env.DEV` to `VideoPlayer`, and Next keeps it until item 8 deletes it | 2 |
 | 34 | Socket 308 on each request | Direct `/socket` route through Caddy. `pnpm dev` keeps the 308 | Done |
 
 ### Tooling and repo
@@ -546,7 +546,7 @@ One family: Geist Sans for UI and Geist Mono for technical data, self-hosted thr
 
 ### 9.5 Components
 
-**Primitives kept:** all 16 moved to Base UI, except `form`, which the base styles replace with `field`. **Added:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar, and `textarea` and `input-group`, which `command` needs. `/dev/components` shows them all. Done in item 3.
+**Primitives kept:** all 16 moved to Base UI, except `form`, which the base styles replace with `field`. **Added:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar, spinner, and `textarea` and `input-group`, which `command` needs. `/dev/components` shows them all. Done in item 3, except `spinner`, which item 6 added for busy buttons.
 
 | Pattern | Replaces | Used by |
 |---|---|---|
@@ -573,9 +573,9 @@ A dev-only `/dev/components` route shows every pattern in both themes.
 - **States.** `MediaGrid`, `MediaRow`, `MediaHero`, `DataTable` and `FacetFilter` take `loading`, `error` and `empty`, and compose `LoadingGrid`, `ErrorState` and `EmptyState`, with every loading state inside `LoadingStatus`. `FacetFilter` is compact, so it shows small inline states in their place. A title's own failure is `failureReason`, apart from a failed load.
 - **Status.** `StatusBadge` names each status with an icon, a tooltip and the failure's reason for screen readers. Tab reaches it only for a failure with a reason, so that the tooltip opens by keyboard and a grid gains no tab stop per card. It is opaque, so it reads on a poster, and only its icon takes the status color, which the contrast test checks at 3:1. `PlayButton` plays a ready or not-ready title, waits while one is prepared, and offers Retry on a failed one when the screen passes `onRetry`.
 - **Filters.** `FilterBar` holds search, sort and a Filters button that counts the active filters, opening them in a popover on a wide screen as well, so the bar keeps one height whatever the number of filters, and in a sheet from the bottom on a phone. `DateRangeFilter` uses native date fields and emits ISO `YYYY-MM-DD`, and rejects a reversed range, which fixes finding 29 for `apps/web`. The screen does the filtering and sorting, and `DataTable` only asks for a sort.
-- **Player.** `VideoPlayer` reports a 401 from `hls.js` through `onUnauthorized` and a fatal error through `onFatalError`, and takes `debug`, which `apps/web` sets to `import.meta.env.DEV`. `PlayerControls` has Space or K, the arrows, M and F, hides after 3 seconds of playback, and listens on the document, so a page has one player.
+- **Player.** `VideoPlayer` reports a 401 from `hls.js` through `onUnauthorized`. It shows a fatal error itself, and also reports it through `onFatalError` when an app passes one. It takes `debug`, which `apps/web` sets to `import.meta.env.DEV`. `PlayerControls` has Space or K, the arrows, M and F, hides after 3 seconds of playback, and listens on the document, so a page has one player.
 - **Shell.** `AppShell` shows `NavSidebar`, which collapses to icons, on a wide screen, and the `MobileNav` bottom bar with a More sheet for the footer on a phone. The bottom bar fits about four items at 390px.
-- **Preview and the player route.** `/dev/components` renders fixture data, except its player, which asks the API for a prepared title's playlist, so it needs a session and a 401 goes to login. `/watch/$id` still uses `features/player/hls-player.tsx` until the second ticket of item 6, which moves it to `VideoPlayer` and decides whether the player keeps the shell.
+- **Preview and the player route.** `/dev/components` renders fixture data, except its player, which asks the API for a prepared title's playlist, so it needs a session and a 401 goes to login. `/watch/$id` uses `VideoPlayer` inside the shell, so navigation stays one key away and F gives the full screen. It asks for the playlist only once the title is ready, so a title being prepared starts to play there when its notification arrives.
 - **Paging.** `Pager` has Previous and Next around "Page 2 of 5", and hides at one page. Item 6 added it, and `BackLink`, which a title's page shows above its hero.
 
 ### 9.6 Updating shadcn
@@ -755,7 +755,7 @@ Checked on 2026-11-02:
    - Connecting the notification socket at `/socket`, the path Caddy routes to the API, only once there is a session, and disconnecting it on leaving.
    - Asking for streams at `/streams` rather than `/api/streams`, which Caddy serves too.
 
-   **Status:** done. `apps/web` covers all of the above, with a thin `/movies`, which item 6 replaced, and `/watch/$id`, which item 6 replaces. `apps/e2e` stays on Next until item 7 moves it.
+   **Status:** done. `apps/web` covers all of the above, with a thin `/movies` and `/watch/$id`, which item 6 replaced. `apps/e2e` stays on Next until item 7 moves it.
 2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
 
    **Status:** done, except the maintainer's review of the preview. `PRODUCT.md` and `DESIGN.md` are at the root, the tokens are in `packages/ui`, and `apps/web` uses them with Geist and a theme provider. Its screens have no raw colors, and their look stays plain until item 6.
@@ -777,7 +777,7 @@ Checked on 2026-11-02:
 
    Home, Search and Shows are stubs in the Next client, so they are not rebuilt here, and wait for Phases 5 and 6.
 
-   **Status:** in progress, in two tickets. The first is done: the shell has Movies and Settings, Movies and a movie's page are on the patterns, and the failed status, the failure's reason with Retry on the movie's page, the failure toast with Retry from a card and the `transcode:failed` toast are all in `apps/web`. Notifications carry the title's ID, so a toast can play or retry it. The thin `/movies` from item 1 is gone. It was checked in Chromium under the dev servers with a fake TMDB, at 390 and 1280 wide, by keyboard, dark at 1280 and light at 390. Light at 1280 and dark at 390 were not looked at, nor Safari. The second ticket rebuilds Player, Settings with the Library section, Login and Setup.
+   **Status:** done, in two tickets. The first put the shell, Movies and a movie's page on the patterns, with the failed status, the failure's reason with Retry on the movie's page, the failure toast with Retry from a card and the `transcode:failed` toast. Notifications carry the title's ID, so a toast can play or retry it. The second put the player on `VideoPlayer`, with the title, a way back, the keyboard shortcuts, the 401 path and the status of a title that is not ready, and rebuilt Settings, with the account and Log out, the theme, and the admin's Library section, and Login and Setup, in a card on the field primitives. The thin `/movies` and the bare player from item 1 are gone. Home, Search and Shows were stubs in the Next client, so they were not rebuilt, and wait for Phases 5 and 6. The first ticket was checked in Chromium under the dev servers with a fake TMDB, at 390 and 1280 wide, by keyboard, dark at 1280 and light at 390. The second was checked the same way on 2026-11-03, in both themes at both widths: setup, login with a wrong password, a scan from Settings, playing a prepared title by keyboard, a title prepared from the player's page that started to play when it was ready, a failed title with its reason and Retry, a session ended on the server, which returned to login and back to the player, the theme kept across a reload, logout from Settings, and Settings as a user without the Library section. The browser saw that lost session as a 401 when the player loaded its stream, not in the middle of playback, because the 30-second fixture is buffered in full at once. The jsdom test in `apps/web/test/player.test.tsx` covers a 401 after the stream has started. Safari and native HLS are not tested.
 7. Switch Caddy to serve `apps/web`.
 8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules. With them go what only the Next client uses:
    - What item 3 moved from `packages/ui` into the Next client, which leaves with it: the Radix primitives in `apps/next-client/components/ui/` (button, calendar, card, command, dialog, drawer, dropdown-menu, dual-range-slider, form, input, label, popover, radio-group, select, sonner and tooltip), `apps/next-client/lib/utils.ts`, the old stylesheet at `apps/next-client/styles/globals.css`, and `apps/next-client/postcss.config.mjs`.

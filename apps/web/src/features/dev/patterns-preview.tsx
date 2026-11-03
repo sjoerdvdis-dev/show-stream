@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
-import { ApiError } from '@workspace/api-client';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
 import { endpoints } from '@workspace/contract/endpoints';
 import { Button } from '@workspace/ui/components/button';
@@ -21,7 +20,8 @@ import { ConfirmDialog, SettingsSection } from '@workspace/ui/patterns/settings'
 import { EmptyState, ErrorState, LoadingGrid } from '@workspace/ui/patterns/states';
 import { PlayButton, StatusBadge } from '@workspace/ui/patterns/status';
 import { VideoPlayer } from '@workspace/ui/patterns/video-player';
-import { playlistQuery } from '@/features/player/player';
+import { playlistQuery } from '@/features/player/queries';
+import { isNotFound } from '@/lib/api';
 import poster from './poster.svg';
 import { Section } from './section';
 
@@ -361,7 +361,7 @@ const PreparedTitle = ({ id }: { id: number }) => {
 
 	if (isPending) return <p className="text-sm text-muted-foreground">Loading…</p>;
 	if (error) {
-		const notReady = error instanceof ApiError && error.code === 'not_found';
+		const notReady = isNotFound(error);
 		return (
 			<p role="alert" className="text-sm text-destructive">
 				{notReady ? 'This title is not ready to play.' : 'Could not load this title.'}

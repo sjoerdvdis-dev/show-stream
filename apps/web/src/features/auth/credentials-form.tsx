@@ -1,28 +1,35 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { useForm, type FieldError } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { ApiError } from '@workspace/api-client';
-import { endpoints } from '@workspace/contract/endpoints';
+import { endpoints, minimumPasswordLength } from '@workspace/contract/endpoints';
 import { Button } from '@workspace/ui/components/button';
 import { Input } from '@workspace/ui/components/input';
-import { Label } from '@workspace/ui/components/label';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@workspace/ui/components/field';
+import { Spinner } from '@workspace/ui/components/spinner';
 import type { z } from 'zod';
 import { sessionQuery } from '@/features/auth/queries';
 import { api } from '@/lib/api';
 
 const modes = {
-	login: { schema: endpoints.login.body, submit: api.login, label: 'Log in', password: 'current-password' },
-	setup: { schema: endpoints.setup.body, submit: api.setup, label: 'Create account', password: 'new-password' },
+	login: {
+		schema: endpoints.login.body,
+		submit: api.login,
+		label: 'Log in',
+		password: 'current-password',
+		passwordHint: undefined,
+	},
+	setup: {
+		schema: endpoints.setup.body,
+		submit: api.setup,
+		label: 'Create account',
+		password: 'new-password',
+		passwordHint: `At least ${minimumPasswordLength} characters.`,
+	},
 };
 
-const errorClass = 'text-sm text-destructive';
-
-const FieldMessage = ({ id, error }: { id: string; error?: FieldError }) =>
-	error ? (
-		<p id={id} className={errorClass}>
-			{error.message}
-		</p>
-	) : null;
+/** The ids of what describes a field, leaving out what is not shown. */
+const describedBy = (...ids: (string | false)[]) => ids.filter(Boolean).join(' ') || undefined;
 
 type Values = z.infer<typeof endpoints.login.body>;
 
@@ -31,7 +38,7 @@ type Values = z.infer<typeof endpoints.login.body>;
  * here a 401 is a wrong password, which stays on the form, and not a lost session.
  */
 export const CredentialsForm = ({ mode, onDone }: { mode: keyof typeof modes; onDone: () => void }) => {
-	const { schema, submit, label, password } = modes[mode];
+	const { schema, submit, label, password, passwordHint } = modes[mode];
 	const queryClient = useQueryClient();
 	const {
 		register,
@@ -52,38 +59,41 @@ export const CredentialsForm = ({ mode, onDone }: { mode: keyof typeof modes; on
 	};
 
 	return (
-		<form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-			<div className="flex flex-col gap-1">
-				<Label htmlFor="username">Username</Label>
-				<Input
-					id="username"
-					autoComplete="username"
-					aria-invalid={Boolean(errors.username)}
-					aria-describedby={errors.username ? 'username-error' : undefined}
-					{...register('username')}
-				/>
-				<FieldMessage id="username-error" error={errors.username} />
-			</div>
-			<div className="flex flex-col gap-1">
-				<Label htmlFor="password">Password</Label>
-				<Input
-					id="password"
-					type="password"
-					autoComplete={password}
-					aria-invalid={Boolean(errors.password)}
-					aria-describedby={errors.password ? 'password-error' : undefined}
-					{...register('password')}
-				/>
-				<FieldMessage id="password-error" error={errors.password} />
-			</div>
-			{errors.root ? (
-				<p role="alert" className={errorClass}>
-					{errors.root.message}
-				</p>
-			) : null}
-			<Button type="submit" size="lg" disabled={isSubmitting}>
-				{label}
-			</Button>
+		<form onSubmit={handleSubmit(onSubmit)} noValidate>
+			<FieldGroup>
+				<Field data-invalid={Boolean(errors.username) || undefined}>
+					<FieldLabel htmlFor="username">Username</FieldLabel>
+					<Input
+						id="username"
+						autoComplete="username"
+						aria-invalid={Boolean(errors.username)}
+						aria-describedby={describedBy(Boolean(errors.username) && 'username-error')}
+						{...register('username')}
+					/>
+					{errors.username ? <FieldError id="username-error">{errors.username.message}</FieldError> : null}
+				</Field>
+				<Field data-invalid={Boolean(errors.password) || undefined}>
+					<FieldLabel htmlFor="password">Password</FieldLabel>
+					<Input
+						id="password"
+						type="password"
+						autoComplete={password}
+						aria-invalid={Boolean(errors.password)}
+						aria-describedby={describedBy(
+							Boolean(passwordHint) && 'password-hint',
+							Boolean(errors.password) && 'password-error',
+						)}
+						{...register('password')}
+					/>
+					{passwordHint ? <FieldDescription id="password-hint">{passwordHint}</FieldDescription> : null}
+					{errors.password ? <FieldError id="password-error">{errors.password.message}</FieldError> : null}
+				</Field>
+				{errors.root ? <FieldError>{errors.root.message}</FieldError> : null}
+				<Button type="submit" size="lg" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
+					{isSubmitting ? <Spinner aria-hidden="true" data-icon="inline-start" /> : null}
+					{label}
+				</Button>
+			</FieldGroup>
 		</form>
 	);
 };

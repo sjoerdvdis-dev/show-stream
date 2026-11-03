@@ -1,4 +1,4 @@
-import type { TranscodeStatus } from '@workspace/contract/api-types';
+import type { Scan, TranscodeStatus } from '@workspace/contract/api-types';
 import { endpoints } from '@workspace/contract/endpoints';
 import type { LibraryItem } from '@workspace/contract/library';
 import { delay, http, HttpResponse } from 'msw';
@@ -11,6 +11,8 @@ const password = 'correct horse battery';
 
 const unauthorized = (message = 'Log in first') =>
 	HttpResponse.json({ code: 'unauthorized', message }, { status: 401 });
+
+const forbidden = () => HttpResponse.json({ code: 'forbidden', message: 'Only an admin can do this' }, { status: 403 });
 
 const notFound = (message: string) => HttpResponse.json({ code: 'not_found', message }, { status: 404 });
 
@@ -44,7 +46,13 @@ export type FakeApi = {
 	rateLimited: boolean;
 	/** How many times each title was asked to play, by ID. */
 	playRequests: Map<number, number>;
+	/** The latest scan. A test moves it on, as the worker would. */
+	scan: Scan | null;
+	/** How many scans were asked for. */
+	scanRequests: number;
 };
+
+const noCounts = { found: 0, added: 0, updated: 0, unmatched: 0, failed: 0 };
 
 const toItem = (movie: FakeMovie): LibraryItem => ({
 	year: null,
@@ -78,6 +86,8 @@ export const startFakeApi = (state: Partial<FakeApi> = {}) => {
 		facetsFail: false,
 		rateLimited: false,
 		playRequests: new Map(),
+		scan: null,
+		scanRequests: 0,
 		...state,
 		// Copies, because the fake changes a movie's status as the API would.
 		movies: (state.movies ?? []).map((movie) => ({ ...movie })),
@@ -114,6 +124,21 @@ export const startFakeApi = (state: Partial<FakeApi> = {}) => {
 		http.get('/api/auth/me', () =>
 			api.signedIn ? HttpResponse.json({ user: { ...owner, role: api.role } }) : unauthorized(),
 		),
+		http.get('/api/scan', () => {
+			if (!api.signedIn) return unauthorized();
+			if (api.role === 'user') return forbidden();
+			return HttpResponse.json({ scan: api.scan });
+		}),
+		http.post('/api/scan', () => {
+			if (!api.signedIn) return unauthorized();
+			if (api.role === 'user') return forbidden();
+			if (api.scan?.status === 'queued' || api.scan?.status === 'running') {
+				return HttpResponse.json({ code: 'conflict', message: 'A scan is already queued or running' }, { status: 409 });
+			}
+			api.scanRequests += 1;
+			api.scan = { status: 'queued', time: new Date().toISOString(), counts: noCounts, errors: [] };
+			return HttpResponse.json({ scan: api.scan }, { status: 202 });
+		}),
 		http.get('/api/library/movies/facets', () => {
 			if (!api.signedIn) return unauthorized();
 			if (api.facetsFail) return serverError();
@@ -225,7 +250,7 @@ export const startFakeApi = (state: Partial<FakeApi> = {}) => {
 		}),
 		http.get('/api/transcode/playlist/:id', ({ params }) => {
 			if (!api.signedIn) return unauthorized();
-			if (params.id === '404') {
+			if (findMovie(params.id)?.status !== 'ready') {
 				return HttpResponse.json({ code: 'not_found', message: 'Transcoding not found' }, { status: 404 });
 			}
 			return HttpResponse.json({ playlistUrl: `/streams/${String(params.id)}/playlist.m3u8` });
