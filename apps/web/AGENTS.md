@@ -2,12 +2,12 @@
 
 The static React SPA that replaces `apps/next-client`. `pnpm dev` serves it beside Next, and Caddy moves to it in Phase 2 item 7.
 
-| Folder | Holds |
-|---|---|
-| `src/routes/` | File-based routes. Thin: guards and wiring only. `_app` is the signed-in layout |
-| `src/features/` | `auth`, `library` and `player`, and `dev` for `/dev/components` |
-| `src/lib/` | The API client, the query client, the socket, the theme provider, `devOnly` for dev-only routes, `RouterLink` for the patterns, and `app.tsx`, which wires the router and query client |
-| `test/` | Vitest with `@testing-library/react` and `msw`, on the real router and query client |
+| Folder          | Holds                                                                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/routes/`   | File-based routes. Thin: guards and wiring only. `_app` is the signed-in layout                                                                                                        |
+| `src/features/` | `auth`, `library` and `player`, and `dev` for `/dev/components`                                                                                                                        |
+| `src/lib/`      | The API client, the query client, the socket, the theme provider, `devOnly` for dev-only routes, `RouterLink` for the patterns, and `app.tsx`, which wires the router and query client |
+| `test/`         | Vitest with `@testing-library/react` and `msw`, on the real router and query client                                                                                                    |
 
 - API access goes only through `api` in `src/lib/api.ts`. The one path written by hand is the socket's, in `src/lib/socket.ts`. The player uses the `playlistUrl` the API answers with, which is under `/streams`, never `/api/streams`.
 - Forms validate with schemas from `@workspace/contract`, as `endpoints.login.body`, never with local copies.
