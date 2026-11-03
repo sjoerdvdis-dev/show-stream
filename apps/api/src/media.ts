@@ -2,7 +2,8 @@ import path from 'path';
 import fs from 'fs';
 import { db } from './db';
 import { ApiFailure, notFound } from './errors';
-import { findLatestScan, findMovie, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
+import { findLatestScan, findMovie, listLibrary, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
+import type { LibraryPage, LibraryQuery } from '@workspace/contract/library';
 import type {
 	MovieAPIData,
 	MovieMetadata,
@@ -22,6 +23,14 @@ const toMovieMetadata = ({ metadata, transcodeStatus, transcodeError }: Movie): 
 	...metadata,
 	transcodeStatus,
 	...(transcodeError ? { transcodeError } : {}),
+});
+
+// GET /library/movies
+// -> one page of movies, searched, filtered and sorted
+export const getLibraryMovies = async (query: LibraryQuery): Promise<LibraryPage> => ({
+	...listLibrary(db, 'movie', query),
+	page: query.page,
+	pageSize: query.pageSize,
 });
 
 // /movies
