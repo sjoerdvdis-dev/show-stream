@@ -28,6 +28,9 @@ const modes = {
 	},
 };
 
+/** The ids of what describes a field, leaving out what is not shown. */
+const describedBy = (...ids: (string | false)[]) => ids.filter(Boolean).join(' ') || undefined;
+
 type Values = z.infer<typeof endpoints.login.body>;
 
 /**
@@ -54,8 +57,6 @@ export const CredentialsForm = ({ mode, onDone }: { mode: keyof typeof modes; on
 		}
 		onDone();
 	};
-
-	const describedBy = (...ids: (string | false)[]) => ids.filter(Boolean).join(' ') || undefined;
 
 	return (
 		<form onSubmit={handleSubmit(onSubmit)} noValidate>
