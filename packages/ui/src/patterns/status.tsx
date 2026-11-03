@@ -42,17 +42,23 @@ type StatusBadgeProps = {
 
 /**
  * A title's transcode status, with an icon, and a tooltip that says what it means. The reason for
- * a failure is also in the text that assistive technology reads. The badge is opaque, so it reads
- * on a poster too. Only the icon takes the status color, which is checked at 3:1 rather than the
- * 4.5:1 that text needs.
+ * a failure is also in the text that assistive technology reads. Tab reaches the badge only for a
+ * failure with a reason, so its tooltip opens by keyboard and a grid gains no tab stop per card.
+ * The badge is opaque, so it reads on a poster too. Only the icon takes the status color, which is
+ * checked at 3:1 rather than the 4.5:1 that text needs.
  */
 export const StatusBadge = ({ status = 'not ready', failureReason, className }: StatusBadgeProps) => {
 	const { label, meaning, icon: Icon, iconClassName } = statuses[status];
-	const detail = status === 'failed' && failureReason ? failureReason : meaning;
+	const reason = status === 'failed' ? failureReason : undefined;
+	const detail = reason || meaning;
 
 	return (
 		<Tooltip>
-			<TooltipTrigger render={<Badge variant="outline" className={cn('bg-card', className)} />}>
+			<TooltipTrigger
+				render={
+					<Badge variant="outline" tabIndex={reason ? 0 : undefined} className={cn('bg-card', className)} />
+				}
+			>
 				<Icon
 					aria-hidden="true"
 					data-icon="inline-start"

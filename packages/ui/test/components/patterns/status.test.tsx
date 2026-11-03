@@ -42,6 +42,37 @@ describe('StatusBadge', () => {
 
 		await waitFor(() => expect(screen.getAllByText('Being prepared for playback.')).toHaveLength(2));
 	});
+
+	it('shows the reason for a failure in a tooltip when tab reaches it', async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider delay={0}>
+				<StatusBadge status="failed" failureReason="The video has no audio track." />
+			</TooltipProvider>,
+		);
+
+		await user.tab();
+
+		expect(document.activeElement).not.toBe(document.body);
+		expect(document.activeElement?.textContent).toContain('Failed');
+		await waitFor(() => expect(screen.getAllByText('The video has no audio track.')).toHaveLength(2));
+	});
+
+	it.each([
+		['ready', undefined],
+		['failed', undefined],
+	] as const)('keeps a %s badge without a reason out of the tab order', async (status, failureReason) => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider delay={0}>
+				<StatusBadge status={status} failureReason={failureReason} />
+			</TooltipProvider>,
+		);
+
+		await user.tab();
+
+		expect(document.activeElement).toBe(document.body);
+	});
 });
 
 describe('PlayButton', () => {
