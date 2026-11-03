@@ -132,7 +132,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | API mocks | `msw` | 3.0.3 | In use in `apps/web` |
 | Browser tests | `@playwright/test` | 1.64.1 | In use in `apps/e2e` |
 
-**Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), and the Next ESLint rules. `packages/ui` no longer has Radix, `next-themes`, `vaul` or `tailwindcss-animate`, which only the Next client keeps.
+**Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), and the Next ESLint rules. `packages/ui` no longer has Radix, `next-themes`, `vaul` or `tailwindcss-animate`, which only the Next client keeps. `cmdk` 1.1.1, behind its `command`, still depends on `@radix-ui/react-dialog` and a few small Radix packages, so those stay in the lockfile after the Next client goes.
 
 **Deliberately not added:** Axios (`packages/api-client` wraps `fetch`), Redux, CSS-in-JS, or a second component library.
 
@@ -756,7 +756,7 @@ Checked on 2026-11-02:
 7. Switch Caddy to serve `apps/web`.
 8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules. With them go what only the Next client uses:
    - What item 3 moved from `packages/ui` into the Next client, which leaves with it: the Radix primitives in `apps/next-client/components/ui/` (button, calendar, card, command, dialog, drawer, dropdown-menu, dual-range-slider, form, input, label, popover, radio-group, select, sonner and tooltip), `apps/next-client/lib/utils.ts`, the old stylesheet at `apps/next-client/styles/globals.css`, and `apps/next-client/postcss.config.mjs`.
-   - With them, the Next client's Radix packages, `vaul`, `tailwindcss-animate`, `class-variance-authority`, `clsx`, `tailwind-merge`, `@tailwindcss/postcss`, `lucide-react` 0.477.0 and `react-day-picker` 9, which only it uses.
+   - With them, the Next client's Radix packages, except those `cmdk` pulls in for `packages/ui`, and `vaul`, `tailwindcss-animate`, `class-variance-authority`, `clsx`, `tailwind-merge`, `@tailwindcss/postcss`, `lucide-react` 0.477.0 and `react-day-picker` 9, which only it uses.
    - Zain and the `next/font` setup, which leave with `apps/next-client/app/layout.tsx`.
    - `next-themes`, in `apps/next-client`.
 
