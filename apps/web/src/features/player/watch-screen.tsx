@@ -124,8 +124,6 @@ export const WatchScreen = ({ id }: { id: number }) => {
 				// eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite sets DEV, and it is false in a build.
 				debug={import.meta.env.DEV}
 				onUnauthorized={onSessionLost}
-				// The player shows the error in place of the video.
-				onFatalError={() => {}}
 				className="rounded-xl"
 			/>
 		);
