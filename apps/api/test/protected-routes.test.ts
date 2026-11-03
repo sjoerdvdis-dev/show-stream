@@ -7,7 +7,8 @@ const allEndpoints: [string, Endpoint][] = Object.entries(endpoints);
 
 const isPublic = ([, endpoint]: [string, Endpoint]) => endpoint.access === 'public';
 
-const route = (endpoint: Endpoint) => endpoint.path.replace(':id', '1').replace(':file', 'playlist.m3u8');
+const route = (endpoint: Endpoint) =>
+	endpoint.path.replace(':id', '1').replace(':file', 'playlist.m3u8').replace(':kind', 'poster');
 
 // Driven by the contract, so that a new endpoint is covered without touching this file.
 describe('every endpoint that is not public', () => {

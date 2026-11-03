@@ -11,7 +11,8 @@ Runs jobs from the `jobs` table in SQLite. It publishes no ports, and SQLite is 
 | `src/ffmpeg.ts` | `runFfmpeg`, the one way to run ffmpeg |
 | `src/transcode.ts` | The `transcode` handler |
 | `src/scan.ts` | The `scan` handler, and what makes a scan fail |
-| `src/tmdb.ts` | The only code that calls TMDB |
+| `src/tmdb.ts` | The only code that calls TMDB, including image downloads |
+| `src/images.ts` | Stores a title's poster and backdrop for a scan |
 | `src/backup.ts` | The `backup` handler: writing and pruning files |
 | `src/config.ts` | The only code here that reads the environment |
 
@@ -26,7 +27,8 @@ Runs jobs from the `jobs` table in SQLite. It publishes no ports, and SQLite is 
 - This app cannot reach sockets. The API polls for finished jobs and announces them.
 - Log with `logger`, and name a job with `jobId` and `jobType` fields. `console` is only for a bad configuration, which comes before the logger.
 - The loop beats only after a turn that could read the queue, so a health check sees a loop that is stuck as well as a process that is. Nothing here may block the event loop for a minute, because that looks the same.
-- A job's reason can reach a browser, so it carries no paths or tokens from this machine.
+- A job's reason can reach a browser, so it carries no paths or tokens from this machine. The same goes for a scan's problems.
+- A scan stores each identified title's art in the folder `storedImageFolder` gives, beside the HLS cache. It downloads to `<kind>.partial` and renames on success, never fetches an image that is already on disk, and records each one with `recordStoredImage`. A failed image is a problem in the scan's result, never a failed title.
 - `scan` jobs and `backup` jobs have no title, and `queueJobWithoutTitle` allows one active of each. The schedule for backups lives in `queueDailyBackup`, not in a timer's memory, so that a restart changes nothing.
 
 ## Tests

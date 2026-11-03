@@ -13,7 +13,7 @@ import { createHeartbeat } from './heartbeat';
 import { createJobLoop, type JobHandlers } from './job-loop';
 import { logger } from './log';
 import { scanLibrary } from './scan';
-import { createMovieLookup } from './tmdb';
+import { createMovieLookup, downloadImage } from './tmdb';
 import { removePartialOutput, transcode } from './transcode';
 
 /** After this many runs that ended with the worker dying, a job has failed. */
@@ -22,10 +22,10 @@ const schemaRetryMs = 500;
 const backupCheckMs = 60_000;
 
 const createHandlers = (db: Database): JobHandlers => {
-	const lookup = config.tmdbToken ? createMovieLookup(config.tmdbToken) : undefined;
+	const tmdb = config.tmdbToken ? { lookup: createMovieLookup(config.tmdbToken), downloadImage } : undefined;
 	return {
 		transcode: (job, signal) => transcode(config.mediaFolder, job, signal),
-		scan: (job, signal) => scanLibrary(db, config.mediaFolder, lookup, job, signal),
+		scan: (job, signal) => scanLibrary(db, config.mediaFolder, tmdb, job, signal),
 		backup: (_job, signal) => backup(db, config.backupFolder, new Date(), signal),
 	};
 };

@@ -6,6 +6,7 @@ import { config } from './config';
 import { ApiFailure, notFound } from './errors';
 import { findMediaVideoPath } from './media';
 import { notifyUsers } from './notification';
+import { sendFile } from './send-file';
 import { db } from './db';
 import {
 	addTranscodeRequester,
@@ -169,19 +170,8 @@ export const streamVideoFile = async (params: { id: number; file: string; res: R
 		throw notFound('Stream');
 	}
 
-	await new Promise<void>((resolve, reject) => {
-		// `root` limits the file to the cache, and limits the check for dot folders to `file`.
-		res.sendFile(file, { root: getCachePath(id) }, (error: (Error & { code?: string; status?: number }) | undefined) => {
-			if (!error || error.code === 'ECONNABORTED') {
-				// Players drop segments they no longer need, which is not a failure.
-				resolve();
-			} else if (error.status === 404) {
-				reject(notFound('Stream'));
-			} else {
-				reject(error);
-			}
-		});
-	});
+	// `root` limits the file to the cache.
+	await sendFile(res, file, { root: getCachePath(id) }, 'Stream');
 };
 
 /**

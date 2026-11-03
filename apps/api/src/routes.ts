@@ -6,6 +6,7 @@ import {
 	type EndpointBody,
 	type EndpointName,
 	type EndpointParams,
+	type EndpointQuery,
 	type EndpointResponse,
 	type Endpoints,
 } from '@workspace/contract/endpoints';
@@ -16,6 +17,7 @@ import { ApiFailure } from './errors';
 type Handler<E extends Endpoint> = (
 	input: {
 		params: EndpointParams<E>;
+		query: EndpointQuery<E>;
 		body: EndpointBody<E>;
 		session: E extends { access: 'public' } ? undefined : Session;
 	},
@@ -61,7 +63,12 @@ const authorize = (endpoint: Endpoint, req: Request, res: Response) => {
 const bindRoute = (app: Express, endpoint: Endpoint, handler: (input: unknown, res: Response) => Promise<unknown>) => {
 	const route = async (req: Request, res: Response) => {
 		const session = authorize(endpoint, req, res);
-		const input = { params: parse(endpoint.params, req.params), body: parse(endpoint.body, req.body ?? {}), session };
+		const input = {
+			params: parse(endpoint.params, req.params),
+			query: parse(endpoint.query, req.query),
+			body: parse(endpoint.body, req.body ?? {}),
+			session,
+		};
 		const result = await handler(input, res);
 
 		if (endpoint.format === 'file') {

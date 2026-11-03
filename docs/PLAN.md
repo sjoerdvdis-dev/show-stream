@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, and `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, and the API serves a paged, searchable library and each title's stored art. Next:
 
-1. **Continue Phase 2 at items 5 and 6, the server-side library queries and the screens on the patterns** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 2 at item 6, the screens on the patterns** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -56,6 +56,7 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the theme the shadcn way, every variable with its own value in both themes, `DESIGN.md` names their roles, and a test checks the variable set, contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview, now the Theme part of `/dev/components`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
 | shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
 | Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. The screens move to the patterns in item 6 |
+| Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web` uses none of it until item 6 |
 | `apps/web` | Done for Phase 2 item 1. A static Vite SPA with setup, login, sessions, the 401 path, an authenticated socket, and a thin library and player. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
@@ -200,7 +201,7 @@ Keeping one public entry point and hiding the API is correct. These problems rem
 | 6 | Whole-file conversion before playback | Long waits and doubled storage | On-demand HLS in Phase 4 |
 | 7 | Login uses Next server actions | Only web pages can call it | Plain API endpoints |
 | 8 | Socket.IO broadcasts to everyone | Events are not scoped to a user | Authenticated sockets and per-user rooms |
-| 9 | Client downloads and filters the whole library | Poor scaling with large libraries | Server-side queries with pagination |
+| 9 | Client downloads and filters the whole library | Poor scaling with large libraries | Server-side queries with pagination. Done in the API, and `apps/web` uses them in Phase 2 item 6 |
 | 10 | Types are hand-maintained and unvalidated | API and client can drift; injection risk | Shared Zod contract |
 
 ### 5.2 Target architecture
@@ -393,11 +394,11 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 |---|---|---|---|
 | 17 | Polling the whole library | Socket events invalidate queries | 2 |
 | 18 | Fake technical details | Real `ffprobe` data | 4 |
-| 19 | Fragile image URLs | `MediaImage` with a fallback | 2 |
-| 29 | Date filter format bug | Typed date range | 2 |
-| 30 | "Popularity" sorts by vote count | Server-side sort on the correct field | 2 |
-| 31 | `.sort()` mutates shared arrays | Sorting moves to the server | 2 |
-| 32 | Empty library gives `-Infinity` | Facets come from the API | 2 |
+| 19 | Fragile image URLs | `MediaImage` with a fallback. The API's half is done: a scan stores each title's art, the API serves it, and a title without art is a 404, so `apps/web` need never send a browser to TMDB | 2 |
+| 29 | Date filter format bug | Typed date range. The API's half is done: release dates are ISO dates that the contract validates | 2 |
+| 30 | "Popularity" sorts by vote count | Server-side sort on the correct field. The API's half is done: `sort=popularity` sorts by TMDB popularity | 2 |
+| 31 | `.sort()` mutates shared arrays | Sorting moves to the server. The API's half is done | 2 |
+| 32 | Empty library gives `-Infinity` | Facets come from the API. The API's half is done: a range with no values is `null` | 2 |
 | 33 | hls.js debug on in production | Dev only. Done in `apps/web`, and Next keeps it until item 8 deletes it | 2 |
 | 34 | Socket 308 on each request | Direct `/socket` route through Caddy. `pnpm dev` keeps the 308 | Done |
 
@@ -464,7 +465,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 
 **Stack:** `drizzle-orm`, `drizzle-kit`, and `better-sqlite3` on the SQLite WAL journal. Drizzle has no `node:sqlite` driver.
 
-**Status:** done, except step 4, which is Phase 2 item 5.
+**Status:** done. Step 4 was Phase 2 item 5.
 
 **Tested on 2026-11-01:** Drizzle 0.45.4 and `better-sqlite3` 13.0.3 on Node 26 and `node:26.13-alpine`; `drizzle-kit` migrations from empty, as UID 1000 on a new named volume; data surviving a container restart and a recreated container; the browser tests with no MongoDB service. `better-sqlite3` 13 ships prebuilt binaries for glibc and musl, so the image needs no compiler. Drizzle is pre-1.0, so versions are pinned.
 
@@ -474,7 +475,9 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 |---|---|---|
 | `users` | `id`, `username` unique, `password_hash`, `role` | `users`. A partial unique index allows one owner |
 | `sessions` | `id` (the SHA-256 of the token), `user_id`, `expires_at` | Audit finding 10 |
-| `media` | `id`, `type`, `tmdb_id` (nullable), `title`, `year`, `path`, `release_date`, `runtime`, `vote_average`, `vote_count`, `popularity`, `metadata` JSON | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision |
+| `media` | `id`, `type`, `tmdb_id` (nullable), `title`, `year`, `path`, `release_date`, `runtime`, `vote_average`, `vote_count`, `popularity`, `metadata` JSON, `poster_format`, `backdrop_format` | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision. A format is NULL until that image is stored |
+| `media_genres` | `media_id`, `genre` | Genre filters and counts. Triggers fill it from `metadata` |
+| `media_search` | FTS5 over `title` and `original_title`, with the title's `id` as its rowid | Search. Triggers keep it in step with `media` |
 | `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 4 playback. Not yet created |
 | `seasons`, `episodes` | Link to `media` | Phase 6. Not yet created |
 | `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error`, `announced` | `transcodes`, in-memory state. `payload` holds a transcode's video, output folder and the users who asked, or a scan's request time and result. See [section 5.7](#57-worker-and-jobs) |
@@ -486,7 +489,7 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 1. Create `packages/db` with the schema, the first migration and connection setup (WAL, `busy_timeout`, foreign keys on).
 2. Move the 28 model calls behind repository functions in `auth`, `media` and `video`, with tests first where practical.
 3. Replace the hand-written database types.
-4. Move library sorting and filtering into SQL. FTS5 powers search.
+4. Move library sorting and filtering into SQL. FTS5 powers search. Done in Phase 2 item 5: `listLibrary` and `libraryFacets` in `packages/db` work for any media type, and the migration fills genres and search for titles already saved.
 5. Run migrations at API startup.
 6. Add the read-only [DBHub](https://github.com/bytebase/dbhub) MCP for development ([section 10.3](#103-database-mcp-in-docker)), as soon as the SQLite volume exists.
 7. Remove Mongoose, `mongodb-memory-server`, the `mongodb` service and the `MONGO_DB_*` variables.
@@ -759,6 +762,8 @@ Checked on 2026-11-02:
 
    **Status:** done. Every pattern in [section 9.5](#95-components) is in `packages/ui/src/patterns`, with component tests, and `apps/web`'s signed-in layout uses `AppShell`. `/dev/components` replaced `/dev/theme` and `/dev/primitives`. `media-chrome` was rejected for own controls on `hls.js` ([ADR 0010](./adr/0010-own-player-controls-on-hls-js.md)). The Next client is unchanged.
 5. Add the API image cache and server-side library queries.
+
+   **Status:** done. See [section 2](#2-status). `/movies`, `/shows` and `/movie/:id` are unchanged for the Next client, and item 8 deletes them.
 6. Rebuild Login, Setup, Movies, Movie detail, Player and Settings on the patterns, including everything item 8 added to the Next client:
    - The `failed` status, with its icon, tooltip and an option in the status filter.
    - The reason for a failure on the movie's detail page, with a Retry button in place of Play.
@@ -771,6 +776,7 @@ Checked on 2026-11-02:
    - With them, the Next client's Radix packages, except those `cmdk` pulls in for `packages/ui`, and `vaul`, `tailwindcss-animate`, `class-variance-authority`, `clsx`, `tailwind-merge`, `@tailwindcss/postcss`, `lucide-react` 0.477.0 and `react-day-picker` 9, which only it uses.
    - Zain and the `next/font` setup, which leave with `apps/next-client/app/layout.tsx`.
    - `next-themes`, in `apps/next-client`.
+   - The API's endpoints for the Next client, which `/library` replaces: `GET /movies`, `GET /shows` and `GET /movie/:id`, with their entries in `packages/contract`, their response schemas and handlers, and `listMovies` and `listShows` in `packages/db`. Item 6 moves `apps/web` off `GET /movies` first, and if its detail page still needs `GET /movie/:id`, it moves that under `/library` too.
 
 **Done when:** today's features work on the new patterns in both themes, at phone and desktop widths, and no Next.js code remains.
 
@@ -853,7 +859,7 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Trusted HTTPS for LAN-only installs | Section 5.2 |
 | Shared API contract and typed client | Done, in `packages/contract` and `packages/api-client` |
 | Background job handling without Redis | Done. [Section 5.7](#57-worker-and-jobs) |
-| Image caching | Phase 2 |
+| Image caching | Done in Phase 2 item 5. Scans store art in the media folder's cache, and the API serves it with caching headers |
 | Keyboard and TV navigation | Section 9.2 |
 | `PUID`/`PGID` for other hosts | Done. Section 6, item 44 |
 | Release flow, image registry, changelog | Before first public release |
@@ -866,7 +872,7 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | TypeScript 7 or ESLint 10 may not fit the stack | Try in Phase 1; stay on the newest supported version if not |
 | Phase 4 is much larger than it looks | Direct play first, so value arrives early |
 | Plugin, skill and MCP behavior in WSL desktop sessions | Verified at install; documentation does not confirm project skills in the Code tab |
-| Real TMDB responses have never been verified | Test with a real token in Phase 1. Only the maintainer can, because agents do not read real `.env` values |
+| Real TMDB responses have never been verified | Test with a real token in Phase 1. Only the maintainer can, because agents do not read real `.env` values. That includes downloading art from `image.tmdb.org` |
 | Drizzle is pre-1.0 | Pin versions; keep queries behind `packages/db` |
 | Only Chromium is tested | Add Firefox and WebKit in Playwright; test real Safari in Phase 3 |
 | The `public` and `tailscale` HTTPS modes have only passed `caddy validate` | Run each once. Only the maintainer can, because they need a real domain or tailnet |

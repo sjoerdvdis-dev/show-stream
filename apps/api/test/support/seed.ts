@@ -35,11 +35,14 @@ const withDatabase = <T>(databasePath: string, use: (db: Database) => T): T => {
 	}
 };
 
-const movieRow = (id: number, title: string) => ({
+/** TMDB fields of a seeded movie, such as `runtime` or `genres`, which win over the defaults. */
+export type MovieDetails = Record<string, unknown>;
+
+const movieRow = (id: number, title: string, details: MovieDetails = {}) => ({
 	tmdbId: id,
 	path: `movies/${title} (2024)`,
 	metadata: {
-		details: { id, title, release_date: '2024-01-01' },
+		details: { id, title, release_date: '2024-01-01', ...details },
 		credits: { cast: [], crew: [] },
 		images: { posters: [], backdrops: [], logos: [] },
 	} as unknown as MovieMetadata,
@@ -51,8 +54,13 @@ const movieRow = (id: number, title: string) => ({
  * This file is the only place that touches the database directly, because a scan needs
  * TMDB, only setup creates a user, and no route shows a session's row.
  */
-export const seedMovie = async (api: TestApi, id: number, title = `Movie ${id}`): Promise<SeededMovie> => {
-	const movie = movieRow(id, title);
+export const seedMovie = async (
+	api: TestApi,
+	id: number,
+	title = `Movie ${id}`,
+	details: MovieDetails = {},
+): Promise<SeededMovie> => {
+	const movie = movieRow(id, title, details);
 	await mkdir(path.join(api.mediaFolder, movie.path), { recursive: true });
 
 	withDatabase(api.databasePath, (db) => saveMovie(db, movie));
@@ -110,6 +118,19 @@ export const createDatabaseWithDefaultAccount = async (databasePath: string) => 
 	}
 };
 
+/**
+ * Adds a movie with only the columns that every older schema has, because `saveMovie` writes
+ * the current ones.
+ */
+const insertOldMovie = (db: Database, id: number, title: string, details: MovieDetails = {}) => {
+	const { path: folder, metadata } = movieRow(id, title, details);
+	return db.$client
+		.prepare<[number, string, string, string], { id: number }>(
+			`INSERT INTO media (type, tmdb_id, title, path, metadata) VALUES ('movie', ?, ?, ?, ?) RETURNING id`,
+		)
+		.get(id, title, folder, JSON.stringify(metadata))!;
+};
+
 type OldJob = { title: string; status: string };
 
 /** Builds a database from before the worker, with a job of each status the API then wrote. */
@@ -118,11 +139,26 @@ export const createDatabaseWithOldJobs = async (databasePath: string, oldJobs: O
 	try {
 		await migrateUpTo(db, '0002_remove_default_account');
 		oldJobs.forEach(({ title, status }, index) => {
-			const movie = saveMovie(db, movieRow(7000 + index, title));
+			const movie = insertOldMovie(db, 7000 + index, title);
 			db.$client
 				.prepare(`INSERT INTO jobs (type, media_id, status) VALUES ('transcode', ?, ?)`)
 				.run(movie.id, status);
 		});
+	} finally {
+		closeDatabase(db);
+	}
+};
+
+export type OldMovie = { id: number; title: string; details?: MovieDetails };
+
+/** Builds a database from before library search and genres, with these movies in it. */
+export const createDatabaseWithOldMovies = async (databasePath: string, movies: OldMovie[]) => {
+	const db = openDatabase(databasePath);
+	try {
+		await migrateUpTo(db, '0005_one_active_job_without_title');
+		for (const { id, title, details } of movies) {
+			insertOldMovie(db, id, title, details);
+		}
 	} finally {
 		closeDatabase(db);
 	}
@@ -163,6 +199,21 @@ export const findUserInBackup = (file: string, username: string) =>
 /** Removes every title, so that each test of a shared server starts with an empty library. */
 export const clearLibrary = (api: TestApi) => {
 	withDatabase(api.databasePath, (db) => db.$client.prepare('DELETE FROM media').run());
+};
+
+/**
+ * Gives a title a transcode job in this state, as the worker would leave it. Nobody waits on
+ * it. A `queued` job would be taken by the worker, so use `running` for a title in progress.
+ */
+export const setTranscodeJob = (api: TestApi, movie: SeededMovie, status: 'running' | 'done' | 'failed') => {
+	withDatabase(api.databasePath, (db) =>
+		db.$client
+			.prepare(
+				`INSERT INTO jobs (type, media_id, status, error, announced)
+				SELECT 'transcode', id, ?, ?, 1 FROM media WHERE type = 'movie' AND tmdb_id = ?`,
+			)
+			.run(status, status === 'failed' ? 'A seeded failure' : null, movie.id),
+	);
 };
 
 /** Writes a file that has a video extension but is not a video. */

@@ -1,8 +1,25 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import type { MediaType, MovieMetadata, ScanCounts } from '@workspace/contract/api-types';
+import type { ImageKind } from '@workspace/contract/library';
+
+export type { ImageKind };
 
 export type ShowMetadata = Record<string, unknown>;
+
+/**
+ * Each kind of art in the contract, once. The contract is only a type dependency here, so
+ * `satisfies` checks the list against it: a kind added to or dropped from the contract fails to
+ * compile until this list follows.
+ */
+const everyImageKind = { poster: true, backdrop: true } as const satisfies Record<ImageKind, true>;
+
+/** The art a scan stores for each title. */
+export const imageKinds = Object.keys(everyImageKind) as ImageKind[];
+
+/** The formats a stored image may have. Each is also the file's extension. */
+export const imageFormats = ['jpg', 'png', 'webp'] as const;
+export type ImageFormat = (typeof imageFormats)[number];
 
 export const users = sqliteTable(
 	'users',
@@ -53,8 +70,12 @@ export const media = sqliteTable(
 		voteAverage: real('vote_average'),
 		voteCount: integer('vote_count'),
 		popularity: real(),
-		/** The TMDB payload as it arrived. */
+		/** The TMDB payload as it arrived. Triggers keep `media_genres` and `media_search` in step with it. */
 		metadata: text({ mode: 'json' }).$type<MovieMetadata | ShowMetadata>().notNull(),
+		/** The format of the stored poster, or NULL if none is stored. */
+		posterFormat: text('poster_format', { enum: imageFormats }),
+		/** The format of the stored backdrop, or NULL if none is stored. */
+		backdropFormat: text('backdrop_format', { enum: imageFormats }),
 	},
 	(table) => [
 		uniqueIndex('media_type_tmdb_id_unique').on(table.type, table.tmdbId),
@@ -66,6 +87,21 @@ export const media = sqliteTable(
 		index('media_type_vote_count_idx').on(table.type, table.voteCount),
 		index('media_type_popularity_idx').on(table.type, table.popularity),
 	],
+);
+
+/**
+ * A title's genres, by name, so that the library can filter and count them. Triggers fill it
+ * from `metadata` whenever a title is saved, so no code writes it.
+ */
+export const mediaGenres = sqliteTable(
+	'media_genres',
+	{
+		mediaId: integer('media_id')
+			.notNull()
+			.references(() => media.id, { onDelete: 'cascade' }),
+		genre: text().notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.mediaId, table.genre] }), index('media_genres_genre_idx').on(table.genre)],
 );
 
 export type ScanResult = {

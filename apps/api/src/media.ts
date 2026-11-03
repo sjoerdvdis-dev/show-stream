@@ -2,7 +2,11 @@ import path from 'path';
 import fs from 'fs';
 import { db } from './db';
 import { ApiFailure, notFound } from './errors';
-import { findLatestScan, findMovie, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
+import { findLatestScan, findMovie, findStoredImage, libraryFacets, listLibrary, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
+import type { ImageKind, LibraryFacets, LibraryPage, LibraryQuery } from '@workspace/contract/library';
+import type { Response } from 'express';
+import { config } from './config';
+import { sendFile } from './send-file';
 import type {
 	MovieAPIData,
 	MovieMetadata,
@@ -23,6 +27,42 @@ const toMovieMetadata = ({ metadata, transcodeStatus, transcodeError }: Movie): 
 	transcodeStatus,
 	...(transcodeError ? { transcodeError } : {}),
 });
+
+// GET /library/movies
+// -> one page of movies, searched, filtered and sorted
+export const getLibraryMovies = async (query: LibraryQuery): Promise<LibraryPage> => ({
+	...listLibrary(db, 'movie', query),
+	page: query.page,
+	pageSize: query.pageSize,
+});
+
+// GET /library/movies/facets
+// -> what the movie filters can offer
+export const getLibraryMovieFacets = async (): Promise<LibraryFacets> => libraryFacets(db, 'movie');
+
+/**
+ * A scan never replaces art it has stored, so browsers can keep an image for a month and then
+ * check its ETag. `private`, because images need a session.
+ */
+const imageCacheControl = 'private, max-age=2592000';
+
+// GET /library/movies/:id/images/:kind
+// -> the stored poster or backdrop of a movie
+export const sendMovieImage = async ({ id, kind, res }: { id: number; kind: ImageKind; res: Response }) => {
+	// Built from the title and the kind alone, so no part of the path comes from the request.
+	const file = findStoredImage(db, 'movie', id, kind);
+	if (!file) {
+		throw notFound('Image');
+	}
+
+	await sendFile(
+		res,
+		file,
+		// Headers given here are only sent with the file, so a 404 is never cached.
+		{ root: config.mediaFolder, cacheControl: false, headers: { 'Cache-Control': imageCacheControl } },
+		'Image',
+	);
+};
 
 // /movies
 // -> metadata of all movies

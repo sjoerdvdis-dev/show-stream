@@ -4,6 +4,7 @@ import {
 	type EndpointBody,
 	type EndpointName,
 	type EndpointParams,
+	type EndpointQueryInput,
 	type EndpointResponse,
 	type Endpoints,
 } from '@workspace/contract/endpoints';
@@ -28,19 +29,43 @@ export class ApiError extends Error {
 }
 
 type Input<E extends Endpoint> = (E extends { params: unknown } ? { params: EndpointParams<E> } : object) &
+	(E extends { query: unknown } ? { query?: EndpointQueryInput<E> } : object) &
 	(E extends { body: unknown } ? { body: EndpointBody<E> } : object);
 
+/** Input is required for params and a body. A query is optional, because each of its values has a default or may be left out. */
 type Call<E extends Endpoint> =
 	E extends { params: unknown } | { body: unknown }
 		? (input: Input<E>) => Promise<EndpointResponse<E>>
-		: () => Promise<EndpointResponse<E>>;
+		: E extends { query: unknown }
+			? (input?: Input<E>) => Promise<EndpointResponse<E>>
+			: () => Promise<EndpointResponse<E>>;
 
 export type ApiClient = { [Name in EndpointName]: Call<Endpoints[Name]> };
 
-type LooseInput = { params?: Record<string, string | number>; body?: unknown };
+type QueryValue = string | number | boolean | null | undefined;
+
+type LooseInput = {
+	params?: Record<string, string | number>;
+	query?: Record<string, QueryValue | QueryValue[]>;
+	body?: unknown;
+};
 
 const fillPath = (path: string, params: LooseInput['params'] = {}) =>
 	path.replace(/:(\w+)/g, (_, name: string) => encodeURIComponent(String(params[name])));
+
+/** A list repeats its key, as the API reads it. A value that is undefined or null is left out. */
+const toQueryString = (query: LooseInput['query'] = {}) => {
+	const search = new URLSearchParams();
+	for (const [key, value] of Object.entries(query)) {
+		for (const item of Array.isArray(value) ? value : [value]) {
+			if (item !== undefined && item !== null) {
+				search.append(key, String(item));
+			}
+		}
+	}
+	const text = search.toString();
+	return text ? `?${text}` : '';
+};
 
 const readBody = (response: Response, format: Endpoint['format']) => {
 	if (format === 'text') return response.text();
@@ -75,7 +100,7 @@ export const createApiClient = (baseUrl: string, { headers }: ApiClientOptions =
 
 		let response: Response;
 		try {
-			response = await fetch(`${root}${fillPath(endpoint.path, input.params)}`, {
+			response = await fetch(`${root}${fillPath(endpoint.path, input.params)}${toQueryString(input.query)}`, {
 				method: endpoint.method,
 				credentials: 'include',
 				headers: { ...headers, ...(hasBody ? { 'content-type': 'application/json' } : {}) },

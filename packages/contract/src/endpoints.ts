@@ -10,6 +10,7 @@ import {
 	transcodePlaylistResponseSchema,
 	transcodeRequestResponseSchema,
 } from './api-types.js';
+import { imageKindSchema, libraryFacetsSchema, libraryPageSchema, libraryQuerySchema } from './library.js';
 
 export type Endpoint = {
 	method: 'GET' | 'POST';
@@ -21,6 +22,8 @@ export type Endpoint = {
 	rateLimited?: boolean;
 	/** Parses the path segments, which always arrive as strings. */
 	params?: z.ZodType;
+	/** Parses the query string, whose values arrive as strings, or lists of strings for a repeated key. */
+	query?: z.ZodType;
 	body?: z.ZodType;
 	/** Status of a successful response. Defaults to 200. */
 	status?: number;
@@ -45,6 +48,8 @@ const streamParams = z.object({
 	id: idSchema,
 	file: z.string().regex(/^[\w-]+\.(m3u8|ts)$/, 'Must be an HLS file name'),
 });
+
+const imageParams = z.object({ id: idSchema, kind: imageKindSchema });
 
 const credentials = z.object({ username: nonEmptyText('Username'), password: nonEmptyText('Password') });
 
@@ -106,6 +111,16 @@ export const endpoints = {
 		format: 'file',
 		response: z.instanceof(Blob),
 	},
+	libraryMovies: { method: 'GET', path: '/library/movies', query: libraryQuerySchema, response: libraryPageSchema },
+	libraryMovieFacets: { method: 'GET', path: '/library/movies/facets', response: libraryFacetsSchema },
+	/** A movie's stored poster or backdrop, which a browser may cache. */
+	libraryMovieImage: {
+		method: 'GET',
+		path: '/library/movies/:id/images/:kind',
+		params: imageParams,
+		format: 'file',
+		response: z.instanceof(Blob),
+	},
 	movies: { method: 'GET', path: '/movies', response: moviesResponseSchema },
 	shows: { method: 'GET', path: '/shows', response: showsResponseSchema },
 	movie: { method: 'GET', path: '/movie/:id', params: titleParams, response: movieResponseSchema },
@@ -116,6 +131,12 @@ export type EndpointName = keyof Endpoints;
 
 /** The parsed path params of an endpoint, or `undefined` if it has none. */
 export type EndpointParams<E extends Endpoint> = E extends { params: z.ZodType } ? z.output<E['params']> : undefined;
+
+/** The parsed query of an endpoint, or `undefined` if it has none. */
+export type EndpointQuery<E extends Endpoint> = E extends { query: z.ZodType } ? z.output<E['query']> : undefined;
+
+/** What a client passes as the query of an endpoint, before it is parsed. */
+export type EndpointQueryInput<E extends Endpoint> = E extends { query: z.ZodType } ? z.input<E['query']> : undefined;
 
 /** The parsed body of an endpoint, or `undefined` if it has none. */
 export type EndpointBody<E extends Endpoint> = E extends { body: z.ZodType } ? z.output<E['body']> : undefined;
