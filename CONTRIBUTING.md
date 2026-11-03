@@ -30,6 +30,10 @@ It needs Node.js 26. Everything else it installs itself. `pnpm dev` runs the API
 
 5. Open a pull request to `main`. The template asks for evidence and what you did not test.
 
+### Interface work
+
+The design system is in `packages/ui`: the theme in `src/styles/tokens.css`, and shadcn primitives on Base UI in `src/components`. To add a primitive, run `pnpm dlx shadcn@latest add <name>` from `packages/ui`, then follow [its AGENTS.md](./packages/ui/AGENTS.md). To change the theme, paste or edit the variables in `tokens.css` and run `pnpm --filter @workspace/ui test`. Under `pnpm dev`, <http://127.0.0.1:5173/dev/primitives> shows every primitive and <http://127.0.0.1:5173/dev/theme> every color, in both themes.
+
 `main` only accepts pull requests that pass the `check` job. The `audit` and `browser` jobs only report, so they do not block a merge.
 
 ## Definition of done and project rules
