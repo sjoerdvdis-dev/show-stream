@@ -8,8 +8,9 @@ vi.mock('socket.io-client', async () => {
 	return { io: fakeIo };
 });
 
-// Route components load on demand, so a first visit can take a moment.
-configure({ asyncUtilTimeout: 5000 });
+// Route components load on demand, so a first visit can take a moment. The signed-in layout loads
+// AppShell and its primitives, which took over 5 seconds on a CI runner busy with other packages' tests.
+configure({ asyncUtilTimeout: 15_000 });
 
 // Sonner and the router ask for these, and jsdom does not have them.
 window.matchMedia = () => new EventTarget() as MediaQueryList;

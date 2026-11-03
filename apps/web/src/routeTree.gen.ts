@@ -14,8 +14,7 @@ import { Route as LoginRouteImport } from './routes/login';
 import { Route as SetupRouteImport } from './routes/setup';
 import { Route as AppIndexRouteImport } from './routes/_app/index';
 import { Route as AppMoviesRouteImport } from './routes/_app/movies';
-import { Route as DevPrimitivesRouteImport } from './routes/dev.primitives';
-import { Route as DevThemeRouteImport } from './routes/dev.theme';
+import { Route as DevComponentsRouteImport } from './routes/dev.components';
 import { Route as AppWatchIdRouteImport } from './routes/_app/watch.$id';
 
 const AppRoute = AppRouteImport.update({
@@ -42,14 +41,9 @@ const AppMoviesRoute = AppMoviesRouteImport.update({
   path: '/movies',
   getParentRoute: () => AppRoute,
 } as any);
-const DevPrimitivesRoute = DevPrimitivesRouteImport.update({
-  id: '/dev/primitives',
-  path: '/dev/primitives',
-  getParentRoute: () => rootRouteImport,
-} as any);
-const DevThemeRoute = DevThemeRouteImport.update({
-  id: '/dev/theme',
-  path: '/dev/theme',
+const DevComponentsRoute = DevComponentsRouteImport.update({
+  id: '/dev/components',
+  path: '/dev/components',
   getParentRoute: () => rootRouteImport,
 } as any);
 const AppWatchIdRoute = AppWatchIdRouteImport.update({
@@ -63,16 +57,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute;
   '/setup': typeof SetupRoute;
   '/movies': typeof AppMoviesRoute;
-  '/dev/primitives': typeof DevPrimitivesRoute;
-  '/dev/theme': typeof DevThemeRoute;
+  '/dev/components': typeof DevComponentsRoute;
   '/watch/$id': typeof AppWatchIdRoute;
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute;
   '/setup': typeof SetupRoute;
   '/movies': typeof AppMoviesRoute;
-  '/dev/primitives': typeof DevPrimitivesRoute;
-  '/dev/theme': typeof DevThemeRoute;
+  '/dev/components': typeof DevComponentsRoute;
   '/': typeof AppIndexRoute;
   '/watch/$id': typeof AppWatchIdRoute;
 }
@@ -82,38 +74,23 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute;
   '/setup': typeof SetupRoute;
   '/_app/movies': typeof AppMoviesRoute;
-  '/dev/primitives': typeof DevPrimitivesRoute;
-  '/dev/theme': typeof DevThemeRoute;
+  '/dev/components': typeof DevComponentsRoute;
   '/_app/': typeof AppIndexRoute;
   '/_app/watch/$id': typeof AppWatchIdRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/login'
-    | '/setup'
-    | '/movies'
-    | '/dev/primitives'
-    | '/dev/theme'
-    | '/watch/$id';
+    '/' | '/login' | '/setup' | '/movies' | '/dev/components' | '/watch/$id';
   fileRoutesByTo: FileRoutesByTo;
-  to:
-    | '/login'
-    | '/setup'
-    | '/movies'
-    | '/dev/primitives'
-    | '/dev/theme'
-    | '/'
-    | '/watch/$id';
+  to: '/login' | '/setup' | '/movies' | '/dev/components' | '/' | '/watch/$id';
   id:
     | '__root__'
     | '/_app'
     | '/login'
     | '/setup'
     | '/_app/movies'
-    | '/dev/primitives'
-    | '/dev/theme'
+    | '/dev/components'
     | '/_app/'
     | '/_app/watch/$id';
   fileRoutesById: FileRoutesById;
@@ -122,8 +99,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren;
   LoginRoute: typeof LoginRoute;
   SetupRoute: typeof SetupRoute;
-  DevPrimitivesRoute: typeof DevPrimitivesRoute;
-  DevThemeRoute: typeof DevThemeRoute;
+  DevComponentsRoute: typeof DevComponentsRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -163,18 +139,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMoviesRouteImport;
       parentRoute: typeof AppRoute;
     };
-    '/dev/primitives': {
-      id: '/dev/primitives';
-      path: '/dev/primitives';
-      fullPath: '/dev/primitives';
-      preLoaderRoute: typeof DevPrimitivesRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    '/dev/theme': {
-      id: '/dev/theme';
-      path: '/dev/theme';
-      fullPath: '/dev/theme';
-      preLoaderRoute: typeof DevThemeRouteImport;
+    '/dev/components': {
+      id: '/dev/components';
+      path: '/dev/components';
+      fullPath: '/dev/components';
+      preLoaderRoute: typeof DevComponentsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/_app/watch/$id': {
@@ -205,8 +174,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,
-  DevPrimitivesRoute: DevPrimitivesRoute,
-  DevThemeRoute: DevThemeRoute,
+  DevComponentsRoute: DevComponentsRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

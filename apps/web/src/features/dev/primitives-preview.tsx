@@ -125,13 +125,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@workspace/ui/components/tabs';
 import { Textarea } from '@workspace/ui/components/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@workspace/ui/components/tooltip';
-import { ThemeSwitch } from './theme-switch';
+import { Section } from './section';
 
 /**
  * Every primitive from `@workspace/ui`, in its main states, for checking a change at a glance in
- * both themes. Dev only: the route at `/dev/primitives` uses this only under `pnpm dev`, so a build
- * leaves it out. Keep this module free of top-level side effects, or the build keeps them.
- * Phase 2 item 4 folds it into `/dev/components`.
+ * both themes on `/dev/components`, which only `pnpm dev` serves. Keep this module free of
+ * top-level side effects, or the build keeps them.
  */
 
 const sorts = [
@@ -148,13 +147,6 @@ const files = [
 	{ name: 'Heat (1995).mp4', codec: 'H.264', size: '8.7 GB', status: 'Transcoding' },
 	{ name: 'Alien (1979).avi', codec: 'MPEG-4', size: '1.4 GB', status: 'Failed' },
 ];
-
-const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-	<section className="flex flex-col gap-4" aria-label={title}>
-		<h2 className="text-xl font-semibold">{title}</h2>
-		{children}
-	</section>
-);
 
 const Row = ({ children }: { children: ReactNode }) => (
 	<div className="flex flex-wrap items-center gap-3">{children}</div>
@@ -577,17 +569,9 @@ const Navigation = () => (
 	</div>
 );
 
-export const PrimitivesPreview = () => (
+export const PrimitivesSection = () => (
 	<TooltipProvider>
-		<main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-8">
-			<header className="flex flex-col gap-4">
-				<h1 className="text-3xl font-semibold tracking-tight">Primitives</h1>
-				<p className="max-w-prose text-muted-foreground">
-					Every primitive in <code className="font-mono text-sm">@workspace/ui</code>, in the theme chosen here. Only{' '}
-					<code className="font-mono text-sm">pnpm dev</code> serves this page.
-				</p>
-				<ThemeSwitch />
-			</header>
+		<div className="flex flex-col gap-12">
 			<Section title="Buttons and badges">
 				<Buttons />
 			</Section>
@@ -612,6 +596,6 @@ export const PrimitivesPreview = () => (
 			<Section title="Tabs and sidebar">
 				<Navigation />
 			</Section>
-		</main>
+		</div>
 	</TooltipProvider>
 );

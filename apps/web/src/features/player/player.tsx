@@ -4,7 +4,8 @@ import { ApiError } from '@workspace/api-client';
 import { HlsPlayer } from '@/features/player/hls-player';
 import { api } from '@/lib/api';
 
-const playlistQuery = (id: number) =>
+/** The playlist of a prepared title. `/dev/components` plays it too. */
+export const playlistQuery = (id: number) =>
 	queryOptions({
 		queryKey: ['playlist', id],
 		queryFn: () => api.transcodePlaylist({ params: { id } }),

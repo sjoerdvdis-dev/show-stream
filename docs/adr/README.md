@@ -13,5 +13,6 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | [0007](./0007-shadcn-on-base-ui.md) | shadcn on Base UI |
 | [0008](./0008-schema-in-packages-db-migrated-at-startup.md) | The schema lives in `packages/db` and migrates at API startup |
 | [0009](./0009-job-queue-in-sqlite-with-a-separate-worker.md) | Jobs live in SQLite, and a separate worker runs them |
+| [0010](./0010-own-player-controls-on-hls-js.md) | Own player controls on hls.js, not media-chrome |
 
 ADRs are not rewritten once accepted. To change one, add a new ADR that supersedes it.
