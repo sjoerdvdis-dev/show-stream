@@ -11,7 +11,7 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - Log with the `logger` in `src/log.ts`, which writes JSON to stdout. `console` is only for what happens before it exists, which is a bad configuration.
 - The database is reached only through `@workspace/db`, with the `db` from `src/db.ts`. Never import Drizzle or `better-sqlite3`.
 - Library lists and facets come from `listLibrary` and `libraryFacets` in `@workspace/db`, which search, filter, sort and page in SQL. Never load the library to work on it in JavaScript.
-- Stored art is served by `findStoredImage`, whose path comes from the title and the kind of image alone. Never build a file path from request input, and send files with `res.sendFile` and a `root`, as streams and images do.
+- Stored art is served by `findStoredImage`, whose path comes from the title and the kind of image alone. Never build a file path from request input, and send files with `sendFile` in `src/send-file.ts`, which needs a `root`, as streams and images do.
 - ffmpeg and TMDB belong in the worker, and this image has no ffmpeg. The API queues transcodes and scans and reads their state in `@workspace/db`, and SQLite is the only link between the two.
 
 ## Tests
