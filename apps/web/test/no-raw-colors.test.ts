@@ -5,6 +5,7 @@ import { expect, it } from 'vitest';
 /**
  * Colors come from the tokens in `@workspace/ui/tokens.css`, as `bg-card` or `text-destructive`,
  * so that both themes and the contrast test cover them.
+ * Images such as `src/features/dev/poster.svg` are content, like TMDB posters, and are not checked.
  */
 const palette =
 	'slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose';

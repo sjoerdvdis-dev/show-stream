@@ -1,6 +1,7 @@
 import { createContext, use, useLayoutEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 
 export type Theme = 'system' | 'dark' | 'light';
+export type ResolvedTheme = 'dark' | 'light';
 
 /**
  * The stored choice. The inline script in `index.html` reads the same key and applies the theme
@@ -33,7 +34,7 @@ type ThemeContext = {
 	/** What the user chose. */
 	theme: Theme;
 	/** What the page shows. */
-	resolvedTheme: 'dark' | 'light';
+	resolvedTheme: ResolvedTheme;
 	setTheme: (theme: Theme) => void;
 };
 
@@ -53,7 +54,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 		() => systemScheme.matches,
 	);
 
-	const resolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
+	const resolvedTheme: ResolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
 
 	useLayoutEffect(() => {
 		const root = document.documentElement;

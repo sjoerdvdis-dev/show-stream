@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // The tests read the stylesheet from disk, so only they get the Node globals.
+    "types": ["node"]
+  },
+  "include": ["."],
+  "exclude": []
+}

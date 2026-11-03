@@ -16,7 +16,7 @@ const color = (tokens: Map<string, string>, name: string): Color => {
 	return parsed;
 };
 
-/** `color` at `alpha` over `under`, mixed in sRGB as browsers do. */
+/** `top` at `alpha` over `under`, mixed in sRGB as browsers do. */
 const over = (top: Color, alpha: number, under: Color): Color => {
 	const a = rgb(top);
 	const b = rgb(under);
@@ -44,35 +44,19 @@ const textPairs: [text: string, surface: string][] = [
 	['destructive-foreground', 'destructive'],
 ];
 
-const colorTokens = [
-	...surfaces,
-	'foreground',
-	'card-foreground',
-	'popover-foreground',
-	'muted-foreground',
-	'secondary-foreground',
-	'accent',
-	'accent-foreground',
-	'primary',
-	'primary-foreground',
-	'destructive-foreground',
-	'success',
-	'warning',
-	'info',
-	'overlay',
-	'overlay-foreground',
-	'border',
-	'input',
-	'ring',
-	...statuses,
-];
-
 const inSrgb = inGamut('rgb');
 const white: Color = { mode: 'rgb', r: 1, g: 1, b: 1 };
 
 describe.each<Theme>(['dark', 'light'])('the %s theme', (theme) => {
 	const tokens = readTheme(theme);
 	const contrast = (a: string, b: string) => wcagContrast(color(tokens, a), color(tokens, b));
+
+	/** Every token that ends at an OKLCH color, including references such as `ring`, so that a new one is covered. */
+	const colorTokens = [...tokens.keys()].filter((name) => resolve(tokens, name).startsWith('oklch('));
+
+	it('finds the color tokens', () => {
+		expect(colorTokens).toEqual(expect.arrayContaining(['background', 'primary', 'overlay', 'accent', 'ring']));
+	});
 
 	it.each(colorTokens)('has --%s in the sRGB gamut', (name) => {
 		expect(inSrgb(color(tokens, name))).toBe(true);

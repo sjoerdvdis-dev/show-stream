@@ -11,7 +11,7 @@ export type Theme = 'light' | 'dark';
 export const readTheme = (theme: Theme): Map<string, string> => {
 	const declared = new Map<string, string>();
 	const root = postcss.parse(readFileSync(stylesheet, 'utf8'));
-	const pass = (selector: string) =>
+	const applyRulesFor = (selector: string) =>
 		root.walkRules((rule) => {
 			if (rule.parent?.type !== 'root' || !rule.selectors.includes(selector)) {
 				return;
@@ -20,9 +20,9 @@ export const readTheme = (theme: Theme): Map<string, string> => {
 				declared.set(decl.prop.slice(2), decl.value);
 			});
 		});
-	pass(':root');
+	applyRulesFor(':root');
 	if (theme === 'dark') {
-		pass('.dark');
+		applyRulesFor('.dark');
 	}
 	return declared;
 };
