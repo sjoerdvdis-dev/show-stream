@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { ApiError } from '@workspace/api-client';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
+import { Card } from '@workspace/ui/components/card';
 import { Skeleton } from '@workspace/ui/components/skeleton';
 import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
 import { EmptyState, ErrorState, LoadingStatus } from '@workspace/ui/patterns/states';
@@ -19,9 +20,7 @@ const isNotFound = (error: unknown) => error instanceof ApiError && error.code =
 
 /** The player's box, so that loading, a title that is not ready and the video take the same place. */
 const Stage = ({ children }: { children: ReactNode }) => (
-	<div className="flex min-h-64 w-full flex-col justify-center overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 md:aspect-video">
-		{children}
-	</div>
+	<Card className="min-h-64 w-full justify-center md:aspect-video">{children}</Card>
 );
 
 const notReadyStates = {
