@@ -7,7 +7,8 @@ import { createContext, createElement, use, type ComponentProps, type ComponentT
 export type LinkProps = Omit<ComponentProps<'a'>, 'href'> & { href: string };
 export type LinkComponent = ComponentType<LinkProps>;
 
-const PlainLink: LinkComponent = ({ href, children, ...props }) => (
+/** A plain `a`, the default, for links that stay off the app's router, such as hash links within a page. */
+export const PlainLink: LinkComponent = ({ href, children, ...props }) => (
 	<a href={href} {...props}>
 		{children}
 	</a>

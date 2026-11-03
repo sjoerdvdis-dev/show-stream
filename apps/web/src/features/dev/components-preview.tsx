@@ -1,7 +1,7 @@
 import { Blocks, LayoutTemplate, Palette } from 'lucide-react';
 import { useEffect, useSyncExternalStore } from 'react';
 import { AppShell } from '@workspace/ui/patterns/app-shell';
-import { LinkProvider, type LinkComponent } from '@workspace/ui/patterns/link';
+import { LinkProvider, PlainLink } from '@workspace/ui/patterns/link';
 import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
 import { PatternsSection } from './patterns-preview';
 import { PrimitivesSection } from './primitives-preview';
@@ -21,13 +21,6 @@ const layers = [
 	{ id: 'patterns', label: 'Patterns', icon: LayoutTemplate },
 ];
 
-/** The fixtures link within this page, so a plain link keeps them off the router. */
-const HashLink: LinkComponent = ({ href, children, ...props }) => (
-	<a href={href} {...props}>
-		{children}
-	</a>
-);
-
 const subscribeToHash = (onChange: () => void) => {
 	window.addEventListener('hashchange', onChange);
 	return () => window.removeEventListener('hashchange', onChange);
@@ -44,8 +37,9 @@ export const ComponentsPreview = () => {
 		}
 	}, []);
 
+	// The fixtures link within this page, so a plain link keeps them off the router.
 	return (
-		<LinkProvider component={HashLink}>
+		<LinkProvider component={PlainLink}>
 			<AppShell
 				label="Layers"
 				items={items}
