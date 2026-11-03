@@ -414,6 +414,9 @@ importers:
       '@workspace/contract':
         specifier: workspace:*
         version: link:../../packages/contract
+      '@workspace/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       hls.js:
         specifier: ^1.7.4
         version: 1.7.4

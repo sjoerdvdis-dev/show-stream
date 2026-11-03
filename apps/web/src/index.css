@@ -1,11 +1,8 @@
 @import 'tailwindcss';
+@import '@workspace/ui/tokens.css';
 
 @layer base {
-	:root {
-		color-scheme: light dark;
-	}
-
 	body {
-		@apply min-h-dvh bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+		@apply min-h-dvh antialiased;
 	}
 }

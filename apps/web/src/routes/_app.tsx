@@ -15,7 +15,7 @@ const SignedInLayout = () => {
 					ShowStream
 				</Link>
 				<div className="flex items-center gap-3">
-					<span className="text-sm opacity-70">{user.username}</span>
+					<span className="text-sm text-muted-foreground">{user.username}</span>
 					<button type="button" className="underline" disabled={logout.isPending} onClick={() => logout.mutate()}>
 						Log out
 					</button>

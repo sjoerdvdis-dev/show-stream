@@ -19,7 +19,7 @@ export const MovieList = () => {
 					<Link to="/watch/$id" params={{ id: details.id }} className="underline">
 						{details.title}
 					</Link>
-					{transcodeStatus ? <span className="text-sm opacity-70">{transcodeStatus}</span> : null}
+					{transcodeStatus ? <span className="text-sm text-muted-foreground">{transcodeStatus}</span> : null}
 				</li>
 			))}
 		</ul>
