@@ -14,15 +14,16 @@ x-health-timing: &health-timing
   start_period: 60s
 
 services:
-  # The only published service. Its data volume holds the certificates and the internal CA.
+  # The only published service. It serves apps/web, which its image holds with the Caddyfile, and
+  # its data volume holds the certificates and the internal CA.
   caddy:
-    image: caddy:2.11.7-alpine
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
     restart: always
     logging: *logging
     depends_on:
       api:
-        condition: service_healthy
-      next-client:
         condition: service_healthy
     ports:
       - "80:80"
@@ -31,7 +32,6 @@ services:
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
       TLS_MODE: ${TLS_MODE:-internal}
     volumes:
-      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
     healthcheck:
@@ -97,17 +97,6 @@ services:
     healthcheck:
       <<: *health-timing
       test: ["CMD-SHELL", "find /tmp/worker-heartbeat -mmin -1 | grep -q ."]
-  next-client:
-    build:
-      context: .
-      dockerfile: ./apps/next-client/Dockerfile
-    restart: always
-    logging: *logging
-    expose:
-      - "3000"
-    healthcheck:
-      <<: *health-timing
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
 
 volumes:
   sqlite-data:
