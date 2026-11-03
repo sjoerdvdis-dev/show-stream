@@ -1,5 +1,5 @@
-// Preloaded into the worker through NODE_OPTIONS, so that a scan can identify titles with no
-// network. It knows the folders in compose.yml, and has no match for "Unknown Film".
+// Preloaded into the worker through NODE_OPTIONS, so that a scan can identify titles and store
+// their art with no network. It knows the folders in compose.yml, and has no match for "Unknown Film".
 const movies = {
 	'Demo Movie': 550001,
 	'Corrupt Movie': 550003,
@@ -40,8 +40,14 @@ const answers = [
 
 const realFetch = globalThis.fetch;
 
+/** The start of a JPEG, which is all a scan needs to store an image. */
+const image = () => new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), { headers: { 'content-type': 'image/jpeg' } });
+
 globalThis.fetch = async (input, init) => {
 	const url = new URL(input instanceof Request ? input.url : input);
+	if (url.hostname === 'image.tmdb.org') {
+		return image();
+	}
 	if (url.hostname !== 'api.themoviedb.org') {
 		return realFetch(input, init);
 	}
