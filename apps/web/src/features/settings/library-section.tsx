@@ -24,14 +24,18 @@ const countLabels: [keyof ScanCounts, string][] = [
 const formatTime = (time: string) =>
 	new Date(time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
+/** Each status, before the scan's time: when it finished, or, while it has no result, when it was asked for. */
 const statusText: Record<Scan['status'], string> = {
-	queued: 'The scan is waiting for the worker.',
-	running: 'Scanning the library.',
+	queued: 'The scan is waiting for the worker. Asked for',
+	running: 'Scanning the library. Asked for',
 	done: 'Last scan finished',
 	failed: 'Last scan failed',
 };
 
-/** What the latest scan did: its status and time, why it failed, its counts and the folders it could not add. */
+/**
+ * What the latest scan did: its status and time, why it failed, its counts and the folders it could
+ * not add. The counts are all zero until it finishes, so they show only then.
+ */
 const ScanResult = ({ scan }: { scan: Scan }) => {
 	const { counts, error, errors } = scan;
 	// The API caps the list of problems, and the counts keep the true totals.
@@ -41,13 +45,7 @@ const ScanResult = ({ scan }: { scan: Scan }) => {
 	return (
 		<div className="flex flex-col gap-3">
 			<p role="status">
-				{active ? (
-					<span>{statusText[scan.status]}</span>
-				) : (
-					<span>
-						{statusText[scan.status]} <time dateTime={scan.time}>{formatTime(scan.time)}</time>.
-					</span>
-				)}
+				{statusText[scan.status]} <time dateTime={scan.time}>{formatTime(scan.time)}</time>.
 			</p>
 			{error ? <p className="break-words text-destructive">{error}</p> : null}
 			{active ? null : (

@@ -134,7 +134,7 @@ describe('the library section', () => {
 
 		await user.click(library.getByRole('button', { name: 'Scan library' }));
 
-		expect(await library.findByText('The scan is waiting for the worker.')).toBeTruthy();
+		expect(await library.findByText(/^The scan is waiting for the worker\. Asked for/)).toBeTruthy();
 		expect(api.scanRequests).toBe(1);
 		const busy = library.getByRole('button', { name: 'Scan library' }) as HTMLButtonElement;
 		expect(busy.disabled).toBe(true);
@@ -143,7 +143,7 @@ describe('the library section', () => {
 		expect(within(busy).queryByRole('status')).toBeNull();
 
 		api.scan = { ...api.scan!, status: 'running' };
-		expect(await library.findByText('Scanning the library.')).toBeTruthy();
+		expect(await library.findByText(/^Scanning the library\. Asked for/)).toBeTruthy();
 		expect((library.getByRole('button', { name: 'Scan library' }) as HTMLButtonElement).disabled).toBe(true);
 
 		api.scan = finishedScan;
@@ -184,13 +184,18 @@ describe('the library section', () => {
 		expect(library.getByText('The media folder is missing')).toBeTruthy();
 	});
 
-	it('disables Scan library while a scan another tab started is running', async () => {
+	it('shows when a scan another tab started was asked for, and disables Scan library while it runs', async () => {
 		startFakeApi({ signedIn: true, scan: { ...finishedScan, status: 'running' } });
 
 		openApp('/settings');
 		const library = await findSection('Library');
 
-		await library.findByText('Scanning the library.');
+		const status = await library.findByText(/^Scanning the library\. Asked for/);
+		const askedFor = new Date(finishedScan.time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+		expect(status.textContent).toBe(`Scanning the library. Asked for ${askedFor}.`);
+		expect(status.querySelector('time')?.dateTime).toBe(finishedScan.time);
+		// The counts are all zero until the scan finishes, so they wait for it.
+		expect(library.queryByText('Found', { selector: 'dt' })).toBeNull();
 		expect((library.getByRole('button', { name: 'Scan library' }) as HTMLButtonElement).disabled).toBe(true);
 	});
 
