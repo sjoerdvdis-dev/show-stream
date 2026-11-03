@@ -15,6 +15,6 @@ export const movieLibrary: LibrarySource = {
 /** One movie's full payload, for its page. */
 export const movieQuery = (id: number) =>
 	queryOptions({
-		queryKey: [...libraryKey, 'movies', 'detail', id],
+		queryKey: [...libraryKey, movieLibrary.key, 'detail', id],
 		queryFn: () => api.movie({ params: { id } }),
 	});

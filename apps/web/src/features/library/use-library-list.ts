@@ -3,7 +3,7 @@ import type { ImageKind, LibraryFacets, LibraryPage, LibraryQueryInput } from '@
 import { useEffect, useRef, useState } from 'react';
 import { countActiveFilters, filterKeys, libraryDefaults, type LibrarySearch } from '@/features/library/library-search';
 
-/** Every query of the library starts with this, so that a notification can refresh them all. */
+/** Every query of the library starts with this, so that Play and Retry can refresh them all. */
 export const libraryKey = ['library'] as const;
 
 /** One media type's library: how to ask the API for it, and where its titles and art are. */
@@ -18,6 +18,11 @@ export type LibrarySource = {
 	href: (id: number) => string;
 	imageUrl: (id: number, kind: ImageKind) => string;
 };
+
+/** Every page of a library's list, whatever its search. */
+export const libraryListKey = (source: Pick<LibrarySource, 'key'>) => [...libraryKey, source.key, 'list'] as const;
+
+export const libraryFacetsKey = (source: Pick<LibrarySource, 'key'>) => [...libraryKey, source.key, 'facets'] as const;
 
 /** Changes the URL's search. `replace` changes the current history entry instead of adding one. */
 export type SearchUpdater = (
@@ -70,12 +75,12 @@ export const useLibraryList = ({
 	onSearchChange: SearchUpdater;
 }) => {
 	const results = useQuery({
-		queryKey: [...libraryKey, source.key, 'list', search],
+		queryKey: [...libraryListKey(source), search],
 		queryFn: () => source.list(search),
 		// The last page stays on screen while the next one loads, so the grid does not flash.
 		placeholderData: keepPreviousData,
 	});
-	const facets = useQuery({ queryKey: [...libraryKey, source.key, 'facets'], queryFn: source.facets });
+	const facets = useQuery({ queryKey: libraryFacetsKey(source), queryFn: source.facets });
 
 	// The search box's text, which leads the URL while the user types.
 	const [searchText, setSearchText] = useState(search.q ?? '');

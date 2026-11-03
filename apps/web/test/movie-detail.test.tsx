@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { startFakeApi, type FakeMovie } from './support/fake-api';
+import { fakeSocket } from './support/fake-socket';
 import { currentPath, openApp } from './support/render-app';
 
 const heat: FakeMovie = {
@@ -53,6 +54,18 @@ describe("a movie's page", () => {
 		expect(await screen.findByText('Preparing Heat again. You will be told when it is ready.')).toBeTruthy();
 		expect(await screen.findByRole('button', { name: 'Preparing Heat' })).toBeTruthy();
 		expect(api.movies[0]?.status).toBe('in progress');
+	});
+
+	it('shows the new status when a notification says the title is ready', async () => {
+		const api = startFakeApi({ signedIn: true, movies: [{ ...heat, status: 'in progress' }] });
+
+		openApp('/movies/949');
+
+		await screen.findByRole('button', { name: 'Preparing Heat' });
+		api.movies[0]!.status = 'ready';
+		act(() => fakeSocket.receive('notification', { type: 'transcode:ready', data: { id: 949, title: 'Heat' } }));
+
+		expect(await screen.findByRole('button', { name: 'Play Heat' })).toBeTruthy();
 	});
 
 	it('says so when the title is not in the library', async () => {
