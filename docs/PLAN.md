@@ -520,7 +520,7 @@ Screens      thin route files in apps/web
 
 ### 9.3 Color tokens
 
-The tokens are in [`DESIGN.md`](../DESIGN.md), with one table for both themes, and `packages/ui/src/styles/tokens.css` ships them. That table is the only copy, and a test fails when it and the stylesheet disagree.
+[`DESIGN.md`](../DESIGN.md) is the one place the docs list the token values, with one table for both themes. `packages/ui/src/styles/tokens.css` ships them, and `packages/ui/test/design-md.test.ts` fails when the two disagree.
 
 They follow the direction in [section 9.1](#91-direction): OKLCH values on a cool neutral at hue 265, one amber accent, and `success`, `warning`, `info` and `destructive` for status. `overlay` is a scrim over posters and video, dark in both themes. `accent` and `input` map to `secondary` and `border`, and `ring` maps to `primary`.
 
