@@ -134,6 +134,7 @@ describe('the notification socket', () => {
 		fakeSocket.receive('notification', { type: 'unknown' });
 		await screen.findByRole('heading', { name: 'No movies yet' });
 
-		expect(document.querySelector('[data-sonner-toast]')).toBeNull();
+		const notifications = screen.getByRole('region', { name: /Notifications/ });
+		expect(within(notifications).queryAllByRole('listitem')).toHaveLength(0);
 	});
 });
