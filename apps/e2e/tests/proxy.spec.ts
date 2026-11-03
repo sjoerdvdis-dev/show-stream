@@ -141,7 +141,7 @@ test('streams are not compressed, while the rest of the API is', async ({ reques
 	};
 
 	expect(await compressed(`/streams/${movieId}/playlist.m3u8`)).toBeUndefined();
-	expect(await compressed('/api/movies')).toBeDefined();
+	expect(await compressed('/api/library/movies')).toBeDefined();
 });
 
 // Last in the run: it uses up this address's failed logins, so that no later login could pass.
