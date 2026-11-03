@@ -1,0 +1,3 @@
+# Own player controls on hls.js, not media-chrome
+
+`VideoPlayer` and `PlayerControls` in `packages/ui` are our own controls on `hls.js`, built from the Base UI primitives and the theme's tokens, and `media-chrome` is not used. Its controls are web components in a shadow DOM, so they cannot be made from the primitives, take Tailwind utilities or be tested by role in jsdom like every other pattern, and they would be the second component library that `docs/PLAN.md` rules out. The cost is that we own the shortcuts, auto-hide, fullscreen and, later, tracks, casting and the Media Session, which Phases 3 and 4 add to the same controls.
