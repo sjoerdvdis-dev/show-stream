@@ -43,6 +43,38 @@ describe('the typed client against the real API', () => {
 		expect(movies[0]?.transcodeStatus).toBe('not ready');
 	});
 
+	it('lists a page of the library, with no query', async () => {
+		const page = await client.libraryMovies();
+
+		expect(page).toMatchObject({ total: 1, page: 1, pageSize: 24 });
+		expect(page.items[0]).toMatchObject({ id: movie.id, title: 'Client Movie', status: 'not ready' });
+	});
+
+	it('sends a query, with lists, numbers and zero', async () => {
+		await seedMovie(api, 4003, 'Client Drama', { genres: [{ id: 18, name: 'Drama' }], vote_average: 0 });
+		await seedMovie(api, 4004, 'Client Comedy', { genres: [{ id: 35, name: 'Comedy' }], vote_average: 9 });
+
+		const page = await client.libraryMovies({
+			query: { q: 'client', genre: ['Drama', 'Comedy'], ratingMax: 0, sort: 'rating', order: 'desc', pageSize: 5 },
+		});
+
+		expect(page.items.map(({ title }) => title)).toEqual(['Client Drama']);
+		expect(page).toMatchObject({ total: 1, pageSize: 5 });
+	});
+
+	it('reports a query the API refuses, with its details', async () => {
+		const error = await failureOf(client.libraryMovies({ query: { pageSize: 500 } }));
+
+		expect(error).toMatchObject({ status: 400, code: 'invalid_request' });
+		expect(error.details).toEqual([{ path: 'pageSize', message: 'Page size must be at most 100' }]);
+	});
+
+	it('reads the facets', async () => {
+		const facets = await client.libraryMovieFacets();
+
+		expect(facets.statuses['not ready']).toBeGreaterThan(0);
+	});
+
 	it('lists shows', async () => {
 		expect(await client.shows()).toEqual({ shows: [] });
 	});
