@@ -75,7 +75,7 @@ components:
 
 # Design System: ShowStream
 
-Written with `/impeccable document` on 2026-11-03 from the shipped code: `packages/ui/src/styles/tokens.css` and the preview at `/dev/theme` in `apps/web`. The direction comes from `docs/PLAN.md` section 9.1. No one was available to name the qualitative language, so the North Star, the color names and the named rules below are proposals, not confirmed by the maintainer.
+Written with `/impeccable document` on 2026-11-03 from the shipped code: `packages/ui/src/styles/tokens.css` and the preview that is now the Theme part of `/dev/components` in `apps/web`. The direction comes from `docs/PLAN.md` section 9.1. No one was available to name the qualitative language, so the North Star, the color names and the named rules below are proposals, not confirmed by the maintainer.
 
 The color values live only in `packages/ui/src/styles/tokens.css`, which this file points to rather than copies. To change a color, or to switch to another theme, edit or paste the variables there, then run `pnpm --filter @workspace/ui test`, which checks contrast and gamut. Change this file only when a role changes.
 
@@ -99,7 +99,7 @@ The interface is an operating tool: people browse a library and press Play. Prec
 
 ## Colors
 
-A cool, near-neutral blue-gray at hue 265 carries every surface, with one amber accent and four status colors. The values, in OKLCH and all in the sRGB gamut, are in [`tokens.css`](packages/ui/src/styles/tokens.css), and `/dev/theme` under `pnpm dev` shows each one in both themes.
+A cool, near-neutral blue-gray at hue 265 carries every surface, with one amber accent and four status colors. The values, in OKLCH and all in the sRGB gamut, are in [`tokens.css`](packages/ui/src/styles/tokens.css), and `/dev/components` under `pnpm dev` shows each one in both themes.
 
 The theme is shadcn's: every variable a shadcn theme defines has its own value in `:root` and in `.dark`, and `@theme inline` maps each to a Tailwind color, as `bg-card` or `text-muted-foreground`. ShowStream adds its own colors the way shadcn documents for new ones, in a second pair of blocks that a pasted theme leaves alone.
 
@@ -196,7 +196,7 @@ Gently rounded corners from one radius, `0.6rem` (`--radius`). Steps derive from
 
 ## Components
 
-The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kept close to upstream, and `/dev/primitives` under `pnpm dev` shows each one in both themes. They style through Tailwind utilities on the variables above, and merge classes with `cn()`. Upstream gives floating layers, such as menus, popovers, selects and sheets, a small shadow, which they keep for now against the Tonal Lift Rule above; the maintainer decides whether it stays. Patterns arrive in Phase 2 item 4. Until the screens move to the primitives in item 6, the descriptions below are of the plain elements `apps/web` uses.
+The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kept close to upstream, and `/dev/components` under `pnpm dev` shows each one, and every pattern, in both themes. They style through Tailwind utilities on the variables above, and merge classes with `cn()`. Upstream gives floating layers, such as menus, popovers, selects and sheets, a small shadow, which they keep for now against the Tonal Lift Rule above; the maintainer decides whether it stays. The patterns in `packages/ui/src/patterns` build on them, as the last part of this section describes. Until the screens move to the patterns in item 6, the descriptions of buttons, cards and fields below are of the plain elements `apps/web` uses.
 
 ### Buttons
 
@@ -221,6 +221,16 @@ The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kep
 - **Style:** a 1px `input` stroke on a transparent fill, medium radius, `0.5rem 0.75rem` padding.
 - **Focus:** the global ring.
 - **Error:** the stroke turns `destructive`, and the message below it is `destructive` text at label size.
+
+### Patterns
+
+- **Poster card** (`MediaCard`): the poster at 2:3 with the large radius and a `border` ring, the title in label type and the year in `muted-foreground` below. The ring turns `ring` on hover. A status badge sits at the top left of the poster and a round Play at the bottom right, beside the link rather than inside it.
+- **Status badge** (`StatusBadge`): an outline badge on an opaque `card` fill, so that it reads on artwork without a scrim. The word is `foreground`, and only the icon takes `success`, `warning`, `info` or `destructive`.
+- **Missing art** (`MediaImage`): a `muted` fill at the art's own size, with a film icon and the title in `muted-foreground`.
+- **Hero** (`MediaHero`): the backdrop fills the section and fades into `background` from the bottom on a phone and from the left on a wide screen, so the title, details and actions sit on the page's own color. The poster shows beside the text from `md` up.
+- **Player**: controls sit on an `overlay` gradient from the bottom, in `overlay-foreground`, with the time in Geist Mono and `tabular-nums`. They hide after 3 seconds of playback.
+- **States**: empty and error states center an icon, a title and a short line, with one action. Loading keeps the layout with `muted` skeletons in the same grid.
+- **Navigation**: a sidebar that collapses to icons on a wide screen, and a bottom bar on a phone, with the current item in `primary`.
 
 ### Focus ring
 

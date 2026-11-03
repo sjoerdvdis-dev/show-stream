@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, and `packages/ui` has shadcn's primitives on Base UI. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, and `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows. Next:
 
-1. **Continue Phase 2 at item 4, the patterns** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 2 at items 5 and 6, the server-side library queries and the screens on the patterns** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -53,8 +53,9 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed. `/impeccable init` wrote `PRODUCT.md`, and the Impeccable hook stays off (D1) |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
-| Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the theme the shadcn way, every variable with its own value in both themes, `DESIGN.md` names their roles, and a test checks the variable set, contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview at `/dev/theme`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
-| shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/primitives` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
+| Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the theme the shadcn way, every variable with its own value in both themes, `DESIGN.md` names their roles, and a test checks the variable set, contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview, now the Theme part of `/dev/components`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
+| shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
+| Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data. The screens move to the patterns in item 6 |
 | `apps/web` | Done for Phase 2 item 1. A static Vite SPA with setup, login, sessions, the 401 path, an authenticated socket, and a thin library and player. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
@@ -114,8 +115,8 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Forms | `react-hook-form`, `@hookform/resolvers` | 7.91.0, 7.0.1 | In use in `apps/web` |
 | Validation | `zod`, shared through `packages/contract` | 4.6.7 | In use |
 | Large lists | `@tanstack/react-virtual` | 3.14.25 | Installed in spike |
-| Video | `hls.js` | 1.7.4 | In use today |
-| Player controls | `media-chrome` | 4.19.4 | Planned; confirm when building S8 |
+| Video | `hls.js` | 1.7.4 | In use in `apps/web`, and in `packages/ui` behind `VideoPlayer` |
+| Player controls | `media-chrome` | 4.19.4 | **Rejected** in item 4 ([ADR 0010](./adr/0010-own-player-controls-on-hls-js.md)). Its controls are web components in a shadow DOM, so they cannot be built from the Base UI primitives, styled with the tokens' utilities or tested by role like the other patterns, and it would be a second component library. `PlayerControls` in `packages/ui` is our own, on `hls.js` |
 | Real time | `socket.io-client` | 4.8.4 | In use today |
 | Toasts | `sonner` | 2.0.8 | In use |
 | Class names | `cn`, behind `cn()` in `@workspace/ui/lib/utils` | 0.5.1 | In use in `packages/ui`, from `shadcn migrate cn` |
@@ -155,7 +156,7 @@ The spike did not test a full app, Base UI beyond a dialog, or browser behavior 
 | Vite proxy with `Host` kept | Pass. Login, the `Origin` check and the socket's WebSocket upgrade all work through it |
 | `hls.js` debug | Pass. Off in a build, on under `pnpm dev` |
 
-Every primitive of `packages/ui` was checked in Chromium on 2026-11-03 at `/dev/primitives`, against `pnpm dev`, at 390 and 1280 wide, in both themes, by keyboard and with reduced motion.
+Every primitive of `packages/ui` was checked in Chromium on 2026-11-03 at `/dev/primitives`, against `pnpm dev`, at 390 and 1280 wide, in both themes, by keyboard and with reduced motion. The patterns were checked the same way at `/dev/components` the same day, and `VideoPlayer` played a title the worker had prepared, through `/streams`, with every keyboard shortcut.
 
 Still not tested: the PWA build of a full app, and `apps/web` behind Caddy, which is item 7.
 
@@ -179,8 +180,7 @@ apps/web/src/
 | `/search` | Search | `/dashboard/search` |
 | `/settings` | Settings | `/dashboard/settings` |
 | `/watch/$id` | Player | `/video/$id` |
-| `/dev/theme` | Theme preview, under `pnpm dev` only. Item 4 folds it into `/dev/components` | New |
-| `/dev/primitives` | Every primitive in both themes, under `pnpm dev` only. Item 4 folds it into `/dev/components` | New |
+| `/dev/components` | Every token, primitive and pattern in both themes, from fixture data, under `pnpm dev` only. It took in `/dev/theme` and `/dev/primitives` | New |
 
 In development, Vite proxies `/api`, `/socket` and `/streams` to the API, so cookies behave as they do behind Caddy.
 
@@ -533,7 +533,7 @@ They follow the direction in [section 9.1](#91-direction): OKLCH values on a coo
 
 A test in the required check reads the stylesheet and asserts that the variable set matches shadcn's, that each has its own value in both themes and a Tailwind color, and, in both themes: text pairs at 4.5:1 or better, foreground on background at 7:1 or better, status colors, charts and the focus ring at 3:1 or better, and every color in the sRGB gamut.
 
-The rendered preview at `/dev/theme` is for the maintainer's review. Until it is approved, the tokens are provisional and E1 stays open in [open-decisions.md](./open-decisions.md). A change after review is an edit to `tokens.css`.
+The rendered preview, the Theme part of `/dev/components`, is for the maintainer's review. Until it is approved, the tokens are provisional and E1 stays open in [open-decisions.md](./open-decisions.md). A change after review is an edit to `tokens.css`.
 
 ### 9.4 Typography
 
@@ -541,7 +541,7 @@ One family: Geist Sans for UI and Geist Mono for technical data, self-hosted thr
 
 ### 9.5 Components
 
-**Primitives kept:** all 16 moved to Base UI, except `form`, which the base styles replace with `field`. **Added:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar, and `textarea` and `input-group`, which `command` needs. `/dev/primitives` shows them all. Done in item 3.
+**Primitives kept:** all 16 moved to Base UI, except `form`, which the base styles replace with `field`. **Added:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar, and `textarea` and `input-group`, which `command` needs. `/dev/components` shows them all. Done in item 3.
 
 | Pattern | Replaces | Used by |
 |---|---|---|
@@ -560,6 +560,15 @@ One family: Geist Sans for UI and Geist Mono for technical data, self-hosted thr
 Logic in `use-movies-browser.tsx` becomes a generic list hook over server queries, which is what lets Shows reuse the Movies screen.
 
 A dev-only `/dev/components` route shows every pattern in both themes.
+
+**Status:** done in item 4. How the patterns work:
+
+- **Data through props.** Patterns never fetch, route or open sockets. Navigation goes through `AppLink`, which renders the link the app gives `LinkProvider`: `apps/web` gives TanStack Router's `Link`, so `packages/ui` has no router. The transcode status type comes from `@workspace/contract`.
+- **States.** `MediaGrid`, `MediaRow`, `MediaHero`, `DataTable` and `FacetFilter` take `loading`, `error` and `empty`, and compose `LoadingGrid`, `ErrorState` and `EmptyState`. A title's own failure is `failureReason`, apart from a failed load.
+- **Status.** `StatusBadge` names each status with an icon, a tooltip and the failure's reason for screen readers. It is opaque, so it reads on a poster, and only its icon takes the status color, which the contrast test checks at 3:1. `PlayButton` plays a ready or not-ready title, waits while one is prepared, and offers Retry on a failed one when the screen passes `onRetry`.
+- **Filters.** `FilterBar` holds search, sort and a Filters button that counts the active filters, opening them in a popover, or in a sheet from the bottom on a phone. `DateRangeFilter` uses native date fields and emits ISO `YYYY-MM-DD`, and rejects a reversed range, which fixes finding 29 for `apps/web`. The screen does the filtering and sorting, and `DataTable` only asks for a sort.
+- **Player.** `VideoPlayer` reports a 401 from `hls.js` through `onUnauthorized` and a fatal error through `onFatalError`, and takes `debug`, which `apps/web` sets to `import.meta.env.DEV`. `PlayerControls` has Space or K, the arrows, M and F, hides after 3 seconds of playback, and listens on the document, so a page has one player.
+- **Shell.** `AppShell` shows `NavSidebar`, which collapses to icons, on a wide screen, and the `MobileNav` bottom bar with a More sheet for the footer on a phone. The bottom bar fits about four items at 390px.
 
 ### 9.6 Updating shadcn
 
@@ -744,8 +753,10 @@ Checked on 2026-11-02:
    **Status:** done, except the maintainer's review of the preview. `PRODUCT.md` and `DESIGN.md` are at the root, the tokens are in `packages/ui`, and `apps/web` uses them with Geist and a theme provider. Its screens have no raw colors, and their look stays plain until item 6.
 3. Update shadcn and migrate primitives to Base UI.
 
-   **Status:** done. `packages/ui` has every primitive on Base UI, plus the ones [section 9.5](#95-components) adds, with keyboard tests and `/dev/primitives`. The theme follows shadcn's variables, so a pasted shadcn theme works. The Next client kept its look: its browser tests pass, and screenshots of the movie browser before and after match.
+   **Status:** done. `packages/ui` has every primitive on Base UI, plus the ones [section 9.5](#95-components) adds, with keyboard tests and a preview, now in `/dev/components`. The theme follows shadcn's variables, so a pasted shadcn theme works. The Next client kept its look: its browser tests pass, and screenshots of the movie browser before and after match.
 4. Build the patterns and `/dev/components`.
+
+   **Status:** done. Every pattern in [section 9.5](#95-components) is in `packages/ui/src/patterns`, with component tests, and `apps/web`'s signed-in layout uses `AppShell`. `/dev/components` replaced `/dev/theme` and `/dev/primitives`. `media-chrome` was rejected for own controls on `hls.js` ([ADR 0010](./adr/0010-own-player-controls-on-hls-js.md)). The Next client is unchanged.
 5. Add the API image cache and server-side library queries.
 6. Rebuild Login, Setup, Movies, Movie detail, Player and Settings on the patterns, including everything item 8 added to the Next client:
    - The `failed` status, with its icon, tooltip and an option in the status filter.
@@ -860,4 +871,4 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | The `public` and `tailscale` HTTPS modes have only passed `caddy validate` | Run each once. Only the maintainer can, because they need a real domain or tailnet |
 | Electron and full-app PWA behavior are planned, not prototyped | Each gets a test in its phase |
 | Moving auth while the Next client still runs | Done in item 7. The browser tests now run through Caddy |
-| `media-chrome` may not suit the player | Confirm in S8; fall back to custom controls on `hls.js` |
+| `media-chrome` may not suit the player | Resolved in Phase 2 item 4: rejected for own controls on `hls.js` ([ADR 0010](./adr/0010-own-player-controls-on-hls-js.md)). Native HLS in Safari cannot report a 401, so there a lost session shows as a playback error, and Safari is not tested |

@@ -32,7 +32,7 @@ pnpm dev
 | Client | Open | Notes |
 |---|---|---|
 | `apps/next-client` | <http://localhost:3000> | What Compose serves today |
-| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Thin library and player so far, and it prepares no titles. <http://127.0.0.1:5173/dev/theme> previews the design tokens in both themes |
+| `apps/web` | <http://127.0.0.1:5173> | Replaces Next in Phase 2. Thin library and player so far, and it prepares no titles. <http://127.0.0.1:5173/dev/components> previews the design tokens, primitives and patterns in both themes |
 
 A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
 
@@ -111,7 +111,7 @@ Almost every route needs a session, so a test starts with `api.createOwner()` an
 
 **Design token tests** read `packages/ui/src/styles/tokens.css` and check that it defines every variable a shadcn theme does, each with its own value in both themes, and their contrast and sRGB gamut. They also check that no primitive uses a raw color.
 
-**Component tests** in `packages/ui/test/components` render the primitives in `jsdom` and drive them by keyboard, as a user does: focus traps and Escape, arrow keys and typeahead, toggles, command filtering and calendar dates. Check how they look in Chromium at `/dev/primitives`.
+**Component tests** in `packages/ui/test/components` render the primitives and patterns in `jsdom` and drive them by keyboard, as a user does: focus traps and Escape, arrow keys and typeahead, toggles, command filtering, calendar dates, filters and the player's shortcuts. Check how they look in Chromium at `/dev/components`.
 
 **Browser tests** build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 

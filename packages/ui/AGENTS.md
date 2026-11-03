@@ -1,13 +1,13 @@
 # UI
 
-The design system: the theme, shadcn primitives on Base UI, and patterns from Phase 2 item 4. [`DESIGN.md`](../../DESIGN.md) at the root says what each color is for, and `docs/PLAN.md` section 9 holds the direction.
+The design system: the theme, shadcn primitives on Base UI, and the product patterns built on them. [`DESIGN.md`](../../DESIGN.md) at the root says what each color is for, and `docs/PLAN.md` section 9 holds the direction.
 
 ```text
 Theme        src/styles/tokens.css: shadcn's CSS variables in both themes, fonts, radius
    ↓
 Primitives   src/components: shadcn's base-nova style on Base UI
    ↓
-Patterns     src/patterns, from item 4
+Patterns     src/patterns: product components on the primitives
    ↓
 Screens      thin route files in apps/web
 ```
@@ -40,5 +40,16 @@ Screens      thin route files in apps/web
 - ESLint rules are off only in the upstream files that break them, listed in `eslint.config.js`.
 - Base UI tabs activate manually: arrow keys move focus, and Enter or Space shows the panel.
 - Component tests drive a primitive by role, label and keyboard, with `@testing-library/user-event`, and check what a user notices. `test/components/setup.ts` gives jsdom what Base UI and cmdk ask for.
-- Every pattern handles loading, empty and error states, works by keyboard and at phone width, in dark and light. Icons come from `lucide-react` only.
 - The Next client has its own copy of the old Radix primitives and stylesheet. Nothing here serves it.
+
+## Patterns
+
+- One file per group in `src/patterns`, exported as `@workspace/ui/patterns/<file>`, such as `@workspace/ui/patterns/media-card`. `docs/PLAN.md` section 9.5 lists them, and `/dev/components` in `apps/web` shows each one in its states. Add a new pattern there too.
+- A pattern composes primitives and semantic tokens only, with classes merged by `cn()` and `className` passed through. `test/no-raw-colors.test.ts` checks `src/patterns` too. A new color goes in `tokens.css` the shadcn way, never in a pattern. No shadows, as `DESIGN.md` says. Icons come from `lucide-react` only.
+- Props in, callbacks out. A pattern never fetches, routes or opens a socket. Links go through `AppLink` from `patterns/link`, which renders whatever the app gives `LinkProvider`, so nothing here depends on a router. Domain types, such as `TranscodeStatus`, come from `@workspace/contract` with `import type`.
+- Every pattern that shows data has loading, empty and error states, through `loading`, `empty` and `error` props that compose `LoadingGrid`, `EmptyState` and `ErrorState` from `patterns/states`. `error` is always a failed load. A title's own failure is `failureReason`.
+- A screen sorts and filters. `DataTable` and `FilterBar` only say what the user asked for.
+- Every pattern works by keyboard, with visible focus, at 390px wide, in dark and light.
+- `tokens.css` names `src/patterns` with `@source`, so that an app's Tailwind build sees their classes. A new folder of classes needs the same.
+- `VideoPlayer` is the only place `hls.js` is used here. It takes `debug`, which an app sets from its build mode, and reports a 401 through `onUnauthorized`, so the app keeps one path back to login. Its shortcuts listen on the document, so a page shows one player. The controls are our own, not `media-chrome` ([ADR 0010](../../docs/adr/0010-own-player-controls-on-hls-js.md)).
+- Tests in `test/components/patterns` render a pattern as a screen would, with props, and check by role, label and keyboard what a user sees. jsdom has no playback, so the player tests stub the media element and mock `hls.js`.
