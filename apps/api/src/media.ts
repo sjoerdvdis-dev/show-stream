@@ -6,6 +6,7 @@ import { findLatestScan, findMovie, findStoredImage, libraryFacets, listLibrary,
 import type { ImageKind, LibraryFacets, LibraryPage, LibraryQuery } from '@workspace/contract/library';
 import type { Response } from 'express';
 import { config } from './config';
+import { sendFile } from './send-file';
 import type {
 	MovieAPIData,
 	MovieMetadata,
@@ -54,22 +55,13 @@ export const sendMovieImage = async ({ id, kind, res }: { id: number; kind: Imag
 		throw notFound('Image');
 	}
 
-	await new Promise<void>((resolve, reject) => {
-		res.sendFile(
-			file,
-			// Headers given here are only sent with the file, so a 404 is never cached.
-			{ root: config.mediaFolder, cacheControl: false, headers: { 'Cache-Control': imageCacheControl } },
-			(error: (Error & { code?: string; status?: number }) | undefined) => {
-				if (!error || error.code === 'ECONNABORTED') {
-					resolve();
-				} else if (error.status === 404) {
-					reject(notFound('Image'));
-				} else {
-					reject(error);
-				}
-			},
-		);
-	});
+	await sendFile(
+		res,
+		file,
+		// Headers given here are only sent with the file, so a 404 is never cached.
+		{ root: config.mediaFolder, cacheControl: false, headers: { 'Cache-Control': imageCacheControl } },
+		'Image',
+	);
 };
 
 // /movies
