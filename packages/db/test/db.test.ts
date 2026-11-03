@@ -24,6 +24,8 @@ import {
 	getSetting,
 	hasOwner,
 	isDatabaseMigrated,
+	libraryFacets,
+	listLibrary,
 	listMovies,
 	listShows,
 	markTranscodeDone,
@@ -213,6 +215,60 @@ describe('database', () => {
 				saveMovie(db, { tmdbId: 7, path: 'movies/Seven', metadata });
 
 				expect(findMovie(db, 7)?.metadata).toEqual(metadata);
+			});
+		});
+
+		describe('library', () => {
+			const everything = { sort: 'title', order: 'asc', page: 1, pageSize: 10 } as const;
+			const show = (tmdbId: number, title: string, genres: string[] = []) =>
+				saveMedia(db, {
+					type: 'show',
+					tmdbId,
+					title,
+					year: 2020,
+					path: `shows/${title}`,
+					metadata: { details: { name: title, genres: genres.map((name, id) => ({ id, name })) } },
+				});
+
+			it('lists, searches and counts one media type, so that shows can use it too', () => {
+				saveMovie(db, { tmdbId: 1, path: 'movies/Dark', metadata: movieMetadata(1, 'Dark Movie') });
+				show(1, 'Dark Show', ['Mystery']);
+				show(2, 'Light Show', ['Comedy']);
+
+				expect(listLibrary(db, 'show', everything)).toMatchObject({
+					items: [{ id: 1, title: 'Dark Show', genres: ['Mystery'] }, { title: 'Light Show' }],
+					total: 2,
+				});
+				expect(listLibrary(db, 'show', { ...everything, q: 'dark' }).items.map(({ title }) => title)).toEqual([
+					'Dark Show',
+				]);
+				expect(libraryFacets(db, 'show')).toMatchObject({
+					year: { min: 2020, max: 2020 },
+					genres: [
+						{ name: 'Comedy', count: 1 },
+						{ name: 'Mystery', count: 1 },
+					],
+					statuses: { 'not ready': 2 },
+				});
+			});
+
+			it('leaves out a title with no TMDB ID, which no route could reach', () => {
+				saveMedia(db, { type: 'movie', title: 'Home Video', path: 'movies/One', metadata: {} });
+
+				expect(listLibrary(db, 'movie', everything)).toEqual({ items: [], total: 0 });
+				expect(libraryFacets(db, 'movie').statuses['not ready']).toBe(0);
+			});
+
+			it('drops the genres and search entry of a removed title', () => {
+				const metadata = movieMetadata(1, 'Dark Movie');
+				metadata.details.genres = [{ id: 18, name: 'Drama' }];
+				saveMovie(db, { tmdbId: 1, path: 'movies/Dark', metadata });
+				expect(rowCount(db, 'media_genres')).toBe(1);
+
+				db.$client.prepare('DELETE FROM media').run();
+
+				expect(rowCount(db, 'media_genres')).toBe(0);
+				expect(rowCount(db, 'media_search')).toBe(0);
 			});
 		});
 
