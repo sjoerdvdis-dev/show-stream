@@ -180,7 +180,7 @@ ShowStream's own:
 
 ## Layout
 
-Single-column screens centered in a container, with a `1rem` side gutter at every width. Signed-in screens cap at `56rem`, forms at `24rem`, and the preview at `72rem`. Grids step from one column on phones to two at `640px` and three at `1024px`, which are Tailwind's `sm` and `lg`. Sections are `3rem` apart, and related items `0.5rem` to `1rem`. Everything works at 390px wide with no horizontal scroll.
+`PageContainer` gives every page its width: `max-w-3xl` for text and forms, `max-w-7xl` for libraries, and the full width for heroes and the player, with a `1rem` side gutter, `2rem` from `md`. The poster grid has 2 columns on a phone, and steps to 3, 4, 5 and 6 at `sm`, `md`, `lg` and `xl`. Sections are `3rem` apart, and related items `0.5rem` to `1rem`. Everything works at 390px wide with no horizontal scroll.
 
 ## Elevation & Depth
 
@@ -234,7 +234,7 @@ The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kep
 
 ### Focus ring
 
-Every focusable element shows a 2px `ring` outline, offset by 2px, on `:focus-visible`. It is the accent, so it reads at 3:1 or better on every surface.
+Primitives and patterns use shadcn's ring on `:focus-visible`: 3px of `ring` at 50%, with a border in `ring` on fields and buttons. Plain elements keep the 2px `ring` outline, offset by 2px, from the base styles in `tokens.css`. `ring` is the accent, and the contrast test checks that it reads at 3:1 or better on every surface.
 
 ### Browser surfaces
 
