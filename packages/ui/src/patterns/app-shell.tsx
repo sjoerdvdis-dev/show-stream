@@ -114,7 +114,9 @@ export const AppShell = ({ items, brand, footer, label, children }: NavProps & {
 	return (
 		<SidebarProvider>
 			{isMobile ? null : <NavSidebar items={items} brand={brand} footer={footer} label={label} />}
-			<SidebarInset className={cn(isMobile && 'pb-[calc(4rem+env(safe-area-inset-bottom))]')}>{children}</SidebarInset>
+			<SidebarInset className={cn('min-w-0', isMobile && 'pb-[calc(4rem+env(safe-area-inset-bottom))]')}>
+				{children}
+			</SidebarInset>
 			{isMobile ? <MobileNav items={items} brand={brand} footer={footer} label={label} /> : null}
 		</SidebarProvider>
 	);

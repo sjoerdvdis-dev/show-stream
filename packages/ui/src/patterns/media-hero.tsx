@@ -29,7 +29,7 @@ type MediaHeroProps = { className?: string } & (
 
 const heroClassName = 'relative isolate flex min-h-[28rem] items-end overflow-hidden md:min-h-[34rem]';
 const contentClassName = 'flex w-full flex-col gap-6 px-4 pt-32 pb-8 md:flex-row md:items-end md:px-8 md:pb-10';
-const posterClassName = 'hidden w-48 shrink-0 rounded-lg shadow-lg ring-1 ring-border md:block lg:w-56';
+const posterClassName = 'hidden w-48 shrink-0 rounded-lg ring-1 ring-border md:block lg:w-56';
 
 /**
  * The top of a title's page: the backdrop large behind the title, with the poster, details, status

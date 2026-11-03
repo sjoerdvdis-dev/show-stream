@@ -61,7 +61,7 @@ export const MediaCard = ({
 		{status || onPlay ? (
 			<div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-2/3 flex-col justify-between p-2">
 				{status ? (
-					<StatusBadge status={status} failureReason={failureReason} className="pointer-events-auto shadow-sm" />
+					<StatusBadge status={status} failureReason={failureReason} className="pointer-events-auto" />
 				) : (
 					<span />
 				)}
@@ -72,7 +72,7 @@ export const MediaCard = ({
 						onPlay={onPlay}
 						onRetry={onRetry}
 						size="icon"
-						className="pointer-events-auto self-end shadow-md"
+						className="pointer-events-auto self-end"
 					/>
 				) : null}
 			</div>

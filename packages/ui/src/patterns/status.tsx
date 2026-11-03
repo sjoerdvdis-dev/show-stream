@@ -5,30 +5,30 @@ import { Button } from '@workspace/ui/components/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@workspace/ui/components/tooltip';
 import { cn } from '@workspace/ui/lib/utils';
 
-const statuses: Record<TranscodeStatus, { label: string; meaning: string; icon: LucideIcon; className: string }> = {
+const statuses: Record<TranscodeStatus, { label: string; meaning: string; icon: LucideIcon; iconClassName: string }> = {
 	'not ready': {
 		label: 'Not ready',
 		meaning: 'Not prepared yet. Play prepares it.',
 		icon: CircleDashed,
-		className: 'bg-info/15 text-info',
+		iconClassName: 'text-info',
 	},
 	'in progress': {
 		label: 'Preparing',
 		meaning: 'Being prepared for playback.',
 		icon: LoaderCircle,
-		className: 'bg-warning/15 text-warning',
+		iconClassName: 'text-warning',
 	},
 	ready: {
 		label: 'Ready',
 		meaning: 'Ready to play.',
 		icon: CircleCheck,
-		className: 'bg-success/15 text-success',
+		iconClassName: 'text-success',
 	},
 	failed: {
 		label: 'Failed',
 		meaning: 'Preparing it failed.',
 		icon: CircleAlert,
-		className: 'bg-destructive/15 text-destructive',
+		iconClassName: 'text-destructive',
 	},
 };
 
@@ -42,17 +42,22 @@ type StatusBadgeProps = {
 
 /**
  * A title's transcode status, with an icon, and a tooltip that says what it means. The reason for
- * a failure is also in the text that assistive technology reads.
+ * a failure is also in the text that assistive technology reads. The badge is opaque, so it reads
+ * on a poster too. Only the icon takes the status color, which is checked at 3:1 rather than the
+ * 4.5:1 that text needs.
  */
 export const StatusBadge = ({ status = 'not ready', failureReason, className }: StatusBadgeProps) => {
-	const { label, meaning, icon: Icon, className: statusClassName } = statuses[status];
+	const { label, meaning, icon: Icon, iconClassName } = statuses[status];
 	const detail = status === 'failed' && failureReason ? failureReason : meaning;
-	const spinClassName = status === 'in progress' ? 'motion-safe:animate-spin' : undefined;
 
 	return (
 		<Tooltip>
-			<TooltipTrigger render={<Badge className={cn(statusClassName, className)} />}>
-				<Icon aria-hidden="true" data-icon="inline-start" className={spinClassName} />
+			<TooltipTrigger render={<Badge variant="outline" className={cn('bg-card', className)} />}>
+				<Icon
+					aria-hidden="true"
+					data-icon="inline-start"
+					className={cn(iconClassName, status === 'in progress' && 'motion-safe:animate-spin')}
+				/>
 				{label}
 				<span className="sr-only">{detail}</span>
 			</TooltipTrigger>
