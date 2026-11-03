@@ -127,8 +127,8 @@ export const transcodeRetry = async (params: { id: number; userId: number }): Pr
 
 const toNotification = (transcode: FinishedTranscode): APINotification =>
 	transcode.status === 'done'
-		? { type: 'transcode:ready', data: { title: transcode.title } }
-		: { type: 'transcode:failed', data: { title: transcode.title, error: transcode.error } };
+		? { type: 'transcode:ready', data: { id: transcode.tmdbId, title: transcode.title } }
+		: { type: 'transcode:failed', data: { id: transcode.tmdbId, title: transcode.title, error: transcode.error } };
 
 /**
  * The worker cannot reach sockets, so the API looks for what it has finished. This keeps

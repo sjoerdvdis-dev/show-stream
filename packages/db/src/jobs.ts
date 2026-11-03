@@ -202,7 +202,12 @@ export const recoverJobs = (db: Database, maxAttempts: number): Job[] =>
 		{ behavior: 'immediate' },
 	);
 
-export type FinishedTranscode = { title: string; requestedBy: number[] } & (
+export type FinishedTranscode = {
+	/** The title's TMDB ID, which routes use. Only a title without one is null, and no route can transcode that. */
+	tmdbId: number | null;
+	title: string;
+	requestedBy: number[];
+} & (
 	| { status: 'done' }
 	| { status: 'failed'; error: string }
 );
@@ -217,6 +222,7 @@ export const takeFinishedTranscodes = (db: Database): FinishedTranscode[] =>
 					status: jobs.status,
 					error: jobs.error,
 					payload: jobs.payload,
+					tmdbId: media.tmdbId,
 					title: media.title,
 				})
 				.from(jobs)
@@ -236,11 +242,11 @@ export const takeFinishedTranscodes = (db: Database): FinishedTranscode[] =>
 					.run();
 			}
 
-			return finished.map(({ status, error, title, payload }) => {
+			return finished.map(({ status, error, tmdbId, title, payload }) => {
 				const requestedBy = payload.requestedBy ?? [];
 				return status === 'failed'
-					? { status, error: error ?? 'The job failed.', title, requestedBy }
-					: { status: 'done' as const, title, requestedBy };
+					? { status, error: error ?? 'The job failed.', tmdbId, title, requestedBy }
+					: { status: 'done' as const, tmdbId, title, requestedBy };
 			});
 		},
 		{ behavior: 'immediate' },

@@ -87,15 +87,18 @@ export type ScanAPIData = z.infer<typeof scanResponseSchema>;
 /**
  * Notifications
  */
+/** The title's TMDB ID, as its routes use it. Null only for a title without one, which cannot be transcoded. */
+const notifiedTitleId = z.number().nullable();
+
 export const notificationTranscodeReadySchema = z.object({
 	type: z.literal('transcode:ready'),
-	data: z.object({ title: z.string() }),
+	data: z.object({ id: notifiedTitleId, title: z.string() }),
 });
 export type NotificationTranscodeReady = z.infer<typeof notificationTranscodeReadySchema>;
 
 export const notificationTranscodeFailedSchema = z.object({
 	type: z.literal('transcode:failed'),
-	data: z.object({ title: z.string(), error: z.string() }),
+	data: z.object({ id: notifiedTitleId, title: z.string(), error: z.string() }),
 });
 export type NotificationTranscodeFailed = z.infer<typeof notificationTranscodeFailedSchema>;
 
