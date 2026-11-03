@@ -5,44 +5,35 @@ import postcss from 'postcss';
 /** The stylesheet that apps import, so that tests never check a copy. */
 const stylesheet = path.resolve(import.meta.dirname, '../../src/styles/tokens.css');
 
+const parse = () => postcss.parse(readFileSync(stylesheet, 'utf8'));
+
 export type Theme = 'light' | 'dark';
 
-/** The custom properties a theme ends up with: `:root` rules for light, then `.dark` rules on top for dark. */
-export const readTheme = (theme: Theme): Map<string, string> => {
+/** The custom properties declared in top-level rules for `selector`, in every such block. */
+export const readBlock = (selector: ':root' | '.dark'): Map<string, string> => {
 	const declared = new Map<string, string>();
-	const root = postcss.parse(readFileSync(stylesheet, 'utf8'));
-	const applyRulesFor = (selector: string) =>
-		root.walkRules((rule) => {
-			if (rule.parent?.type !== 'root' || !rule.selectors.includes(selector)) {
-				return;
-			}
-			rule.walkDecls(/^--/, (decl) => {
-				declared.set(decl.prop.slice(2), decl.value);
-			});
+	parse().walkRules((rule) => {
+		if (rule.parent?.type !== 'root' || !rule.selectors.includes(selector)) {
+			return;
+		}
+		rule.walkDecls(/^--/, (decl) => {
+			declared.set(decl.prop.slice(2), decl.value);
 		});
-	applyRulesFor(':root');
-	if (theme === 'dark') {
-		applyRulesFor('.dark');
-	}
+	});
 	return declared;
 };
 
-/** A token's value, following `var()` references to the value they end at. */
-export const resolve = (tokens: Map<string, string>, name: string, seen: string[] = []): string => {
-	const value = tokens.get(name);
-	if (value === undefined) {
-		throw new Error(`--${name} is not defined`);
-	}
-	const reference = /^var\(--([\w-]+)\)$/.exec(value);
-	if (!reference) {
-		return value;
-	}
-	if (seen.includes(name)) {
-		throw new Error(`--${name} refers to itself`);
-	}
-	return resolve(tokens, reference[1]!, [...seen, name]);
-};
+/** The custom properties a theme ends up with: `:root` for light, then `.dark` on top for dark. */
+export const readTheme = (theme: Theme): Map<string, string> =>
+	theme === 'light' ? readBlock(':root') : new Map([...readBlock(':root'), ...readBlock('.dark')]);
 
-/** The tokens with a color of their own, rather than a reference to another. */
-export const ownColors = (tokens: Map<string, string>) =>
-	[...tokens].filter(([, value]) => value.startsWith('oklch(')).map(([name]) => name);
+/** What `@theme inline` declares, such as `color-card` and `radius-lg`. */
+export const readThemeInline = (): Map<string, string> => {
+	const declared = new Map<string, string>();
+	parse().walkAtRules('theme', (atRule) => {
+		atRule.walkDecls(/^--/, (decl) => {
+			declared.set(decl.prop.slice(2), decl.value);
+		});
+	});
+	return declared;
+};

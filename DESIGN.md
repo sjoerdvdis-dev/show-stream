@@ -1,39 +1,6 @@
 ---
 name: ShowStream
 description: A self-hosted media server whose interface stays quiet so that posters carry the color.
-colors:
-  dark-background: "oklch(0.145 0.012 265)"
-  dark-card: "oklch(0.185 0.014 265)"
-  dark-popover: "oklch(0.205 0.015 265)"
-  dark-muted: "oklch(0.225 0.015 265)"
-  dark-secondary: "oklch(0.255 0.016 265)"
-  dark-border: "oklch(0.32 0.016 265)"
-  dark-foreground: "oklch(0.97 0.004 265)"
-  dark-muted-foreground: "oklch(0.74 0.014 265)"
-  dark-primary: "oklch(0.8 0.145 70)"
-  dark-primary-foreground: "oklch(0.2 0.04 60)"
-  dark-destructive: "oklch(0.68 0.19 25)"
-  dark-destructive-foreground: "oklch(0.16 0.03 25)"
-  dark-success: "oklch(0.76 0.15 155)"
-  dark-warning: "oklch(0.84 0.15 90)"
-  dark-info: "oklch(0.74 0.12 240)"
-  light-background: "oklch(0.985 0.002 265)"
-  light-card: "oklch(1 0 265)"
-  light-popover: "oklch(1 0 265)"
-  light-muted: "oklch(0.955 0.005 265)"
-  light-secondary: "oklch(0.945 0.005 265)"
-  light-border: "oklch(0.895 0.007 265)"
-  light-foreground: "oklch(0.2 0.015 265)"
-  light-muted-foreground: "oklch(0.47 0.016 265)"
-  light-primary: "oklch(0.5 0.115 60)"
-  light-primary-foreground: "oklch(0.985 0.01 70)"
-  light-destructive: "oklch(0.52 0.19 27)"
-  light-destructive-foreground: "oklch(0.985 0.005 27)"
-  light-success: "oklch(0.47 0.105 155)"
-  light-warning: "oklch(0.5 0.105 75)"
-  light-info: "oklch(0.48 0.115 245)"
-  overlay: "oklch(0.145 0.012 265)"
-  overlay-foreground: "oklch(0.97 0.004 265)"
 typography:
   display:
     fontFamily: "Geist Variable, ui-sans-serif, system-ui, sans-serif"
@@ -77,31 +44,31 @@ spacing:
   section: "3rem"
 components:
   button-primary:
-    backgroundColor: "{colors.dark-primary}"
-    textColor: "{colors.dark-primary-foreground}"
+    backgroundColor: "var(--primary)"
+    textColor: "var(--primary-foreground)"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "0.5rem 0.75rem"
   button-secondary:
-    backgroundColor: "{colors.dark-secondary}"
-    textColor: "{colors.dark-foreground}"
+    backgroundColor: "var(--secondary)"
+    textColor: "var(--foreground)"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "0.5rem 0.75rem"
   button-destructive:
-    backgroundColor: "{colors.dark-destructive}"
-    textColor: "{colors.dark-destructive-foreground}"
+    backgroundColor: "var(--destructive)"
+    textColor: "var(--destructive-foreground)"
     typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "0.5rem 0.75rem"
   input:
-    textColor: "{colors.dark-foreground}"
+    textColor: "var(--foreground)"
     typography: "{typography.body}"
     rounded: "{rounded.md}"
     padding: "0.5rem 0.75rem"
   card:
-    backgroundColor: "{colors.dark-card}"
-    textColor: "{colors.dark-foreground}"
+    backgroundColor: "var(--card)"
+    textColor: "var(--foreground)"
     rounded: "{rounded.lg}"
     padding: "1rem"
 ---
@@ -110,7 +77,7 @@ components:
 
 Written with `/impeccable document` on 2026-11-03 from the shipped code: `packages/ui/src/styles/tokens.css` and the preview at `/dev/theme` in `apps/web`. The direction comes from `docs/PLAN.md` section 9.1. No one was available to name the qualitative language, so the North Star, the color names and the named rules below are proposals, not confirmed by the maintainer.
 
-The frontmatter mirrors `tokens.css`, and `packages/ui/test/design-md.test.ts` fails when they differ. To change a token, edit `tokens.css`, then this file.
+The color values live only in `packages/ui/src/styles/tokens.css`, which this file points to rather than copies. To change a color, or to switch to another theme, edit or paste the variables there, then run `pnpm --filter @workspace/ui test`, which checks contrast and gamut. Change this file only when a role changes.
 
 ## Overview
 
@@ -132,29 +99,40 @@ The interface is an operating tool: people browse a library and press Play. Prec
 
 ## Colors
 
-A cool, near-neutral blue-gray at hue 265 carries every surface, with one amber accent and four status colors. Values are OKLCH, all in the sRGB gamut. Hex values below are rounded conversions.
+A cool, near-neutral blue-gray at hue 265 carries every surface, with one amber accent and four status colors. The values, in OKLCH and all in the sRGB gamut, are in [`tokens.css`](packages/ui/src/styles/tokens.css), and `/dev/theme` under `pnpm dev` shows each one in both themes.
 
-| Token | Role | Dark | Dark hex | Light | Light hex |
-|---|---|---|---|---|---|
-| `background` | The page | `oklch(0.145 0.012 265)` | `#080a0f` | `oklch(0.985 0.002 265)` | `#f9fafb` |
-| `card` | Raised panels and cards | `oklch(0.185 0.014 265)` | `#101319` | `oklch(1 0 265)` | `#ffffff` |
-| `popover` | Menus and dialogs | `oklch(0.205 0.015 265)` | `#14171e` | `oklch(1 0 265)` | `#ffffff` |
-| `muted` | Quiet fills, empty art | `oklch(0.225 0.015 265)` | `#181c23` | `oklch(0.955 0.005 265)` | `#eef0f4` |
-| `secondary` | Secondary buttons, hover fills | `oklch(0.255 0.016 265)` | `#1f232b` | `oklch(0.945 0.005 265)` | `#ebedf0` |
-| `border` | Lines and field strokes | `oklch(0.32 0.016 265)` | `#2f333b` | `oklch(0.895 0.007 265)` | `#dadce1` |
-| `foreground` | Text | `oklch(0.97 0.004 265)` | `#f4f5f8` | `oklch(0.2 0.015 265)` | `#13161d` |
-| `muted-foreground` | Metadata and hints | `oklch(0.74 0.014 265)` | `#a6abb4` | `oklch(0.47 0.016 265)` | `#565b64` |
-| `primary` | The accent | `oklch(0.8 0.145 70)` | `#f9ac46` | `oklch(0.5 0.115 60)` | `#915006` |
-| `primary-foreground` | Text on the accent | `oklch(0.2 0.04 60)` | `#231103` | `oklch(0.985 0.01 70)` | `#fff9f3` |
-| `destructive` | Errors, and actions that cannot be undone | `oklch(0.68 0.19 25)` | `#f75d59` | `oklch(0.52 0.19 27)` | `#be2323` |
-| `destructive-foreground` | Text on destructive | `oklch(0.16 0.03 25)` | `#180807` | `oklch(0.985 0.005 27)` | `#fdf9f8` |
-| `success` | Ready, done | `oklch(0.76 0.15 155)` | `#52cd86` | `oklch(0.47 0.105 155)` | `#196c40` |
-| `warning` | In progress, needs attention | `oklch(0.84 0.15 90)` | `#f0c543` | `oklch(0.5 0.105 75)` | `#865901` |
-| `info` | Neutral news, queued | `oklch(0.74 0.12 240)` | `#5cb4ef` | `oklch(0.48 0.115 245)` | `#0e629a` |
-| `overlay` | Scrim over posters and video, in both themes | `oklch(0.145 0.012 265)` | `#080a0f` | `oklch(0.145 0.012 265)` | `#080a0f` |
-| `overlay-foreground` | Text on the scrim, in both themes | `oklch(0.97 0.004 265)` | `#f4f5f8` | `oklch(0.97 0.004 265)` | `#f4f5f8` |
+The theme is shadcn's: every variable a shadcn theme defines has its own value in `:root` and in `.dark`, and `@theme inline` maps each to a Tailwind color, as `bg-card` or `text-muted-foreground`. ShowStream adds its own colors the way shadcn documents for new ones, in a second pair of blocks that a pasted theme leaves alone.
 
-These follow other tokens, in both themes: `card-foreground`, `popover-foreground` and `secondary-foreground` are `foreground`. The shadcn names map too: `accent` is `secondary`, `accent-foreground` is `secondary-foreground`, `input` is `border`, and `ring` is `primary`.
+| Variable | Role |
+|---|---|
+| `background` | The page |
+| `card` | Raised panels and cards |
+| `popover` | Menus and dialogs |
+| `muted` | Quiet fills, empty art |
+| `secondary` | Secondary buttons, hover fills |
+| `accent` | Hover and highlighted fills in menus and lists. The same value as `secondary` |
+| `border` | Lines |
+| `input` | Field strokes. The same value as `border` |
+| `foreground` | Text |
+| `card-foreground`, `popover-foreground`, `secondary-foreground`, `accent-foreground` | Text on those surfaces. The same value as `foreground` |
+| `muted-foreground` | Metadata and hints |
+| `primary` | The accent |
+| `primary-foreground` | Text on the accent |
+| `ring` | The focus ring. The same value as `primary` |
+| `destructive` | Errors, and actions that cannot be undone |
+| `chart-1` to `chart-5` | Series in charts, each at 3:1 or better on every surface. `chart-1` is the accent |
+| `sidebar`, `sidebar-foreground`, `sidebar-primary`, `sidebar-primary-foreground`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring` | The sidebar primitive. The same values as `card`, `foreground`, `primary`, `primary-foreground`, `secondary`, `foreground`, `border` and `primary` |
+
+ShowStream's own:
+
+| Variable | Role |
+|---|---|
+| `destructive-foreground` | Text on destructive |
+| `success` | Ready, done |
+| `warning` | In progress, needs attention |
+| `info` | Neutral news, queued |
+| `overlay` | Scrim over posters and video, dark in both themes |
+| `overlay-foreground` | Text on the scrim, in both themes |
 
 ### Primary
 
@@ -177,7 +155,7 @@ These follow other tokens, in both themes: `card-foreground`, `popover-foregroun
 
 **The Poster Owns the Color Rule.** Surfaces stay neutral at hue 265. Color comes from artwork, and from status only when there is a status to report.
 
-**The One Place Rule.** The accent is the block marked "The accent" in `tokens.css`. Change it there, and `ring` and every accent use follow. The contrast test checks the result.
+**The One Place Rule.** Every color is a variable in `tokens.css`, and nowhere else. The accent appears in `primary`, `ring`, `chart-1`, `sidebar-primary` and `sidebar-ring`, so change them together. The contrast test checks the result.
 
 ## Typography
 
@@ -218,7 +196,7 @@ Gently rounded corners from one radius, `0.6rem` (`--radius`). Steps derive from
 
 ## Components
 
-Primitives move to Base UI in Phase 2 item 3, and patterns arrive in item 4. Until then, these are the plain elements `apps/web` and the preview use.
+The primitives in `@workspace/ui` are shadcn's `base-nova` style on Base UI, kept close to upstream, and `/dev/primitives` under `pnpm dev` shows each one in both themes. They style through Tailwind utilities on the variables above, and merge classes with `cn()`. Upstream gives floating layers, such as menus, popovers, selects and sheets, a small shadow, which they keep for now against the Tonal Lift Rule above; the maintainer decides whether it stays. Patterns arrive in Phase 2 item 4. Until the screens move to the primitives in item 6, the descriptions below are of the plain elements `apps/web` uses.
 
 ### Buttons
 

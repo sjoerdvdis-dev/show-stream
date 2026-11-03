@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Slider as SliderPrimitive } from "@base-ui/react/slider"
-import { cn } from "cn"
+import { cn } from "@workspace/ui/lib/utils"
 
 /**
  * A range slider with a label on each thumb. Based on shadcn's slider, with the label and its

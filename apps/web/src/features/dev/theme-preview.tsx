@@ -9,7 +9,7 @@ import { ThemeSwitch } from './theme-switch';
  * Phase 2 item 4 folds it into `/dev/components`.
  */
 
-const tokenGroups: { title: string; tokens: { name: string; note?: string }[] }[] = [
+const tokenGroups: { title: string; tokens: { name: string }[] }[] = [
 	{
 		title: 'Surfaces',
 		tokens: [{ name: 'background' }, { name: 'card' }, { name: 'popover' }, { name: 'muted' }, { name: 'secondary' }],
@@ -19,14 +19,14 @@ const tokenGroups: { title: string; tokens: { name: string; note?: string }[] }[
 		tokens: [
 			{ name: 'foreground' },
 			{ name: 'muted-foreground' },
-			{ name: 'card-foreground', note: 'foreground' },
-			{ name: 'popover-foreground', note: 'foreground' },
-			{ name: 'secondary-foreground', note: 'foreground' },
+			{ name: 'card-foreground' },
+			{ name: 'popover-foreground' },
+			{ name: 'secondary-foreground' },
 		],
 	},
 	{
 		title: 'Accent',
-		tokens: [{ name: 'primary' }, { name: 'primary-foreground' }, { name: 'ring', note: 'primary' }],
+		tokens: [{ name: 'primary' }, { name: 'primary-foreground' }, { name: 'ring' }],
 	},
 	{
 		title: 'Status',
@@ -39,12 +39,24 @@ const tokenGroups: { title: string; tokens: { name: string; note?: string }[] }[
 		],
 	},
 	{
-		title: 'Lines and shadcn names',
+		title: 'Lines and hover fills',
+		tokens: [{ name: 'border' }, { name: 'input' }, { name: 'accent' }, { name: 'accent-foreground' }],
+	},
+	{
+		title: 'Charts',
+		tokens: [{ name: 'chart-1' }, { name: 'chart-2' }, { name: 'chart-3' }, { name: 'chart-4' }, { name: 'chart-5' }],
+	},
+	{
+		title: 'Sidebar',
 		tokens: [
-			{ name: 'border' },
-			{ name: 'input', note: 'border' },
-			{ name: 'accent', note: 'secondary' },
-			{ name: 'accent-foreground', note: 'secondary-foreground' },
+			{ name: 'sidebar' },
+			{ name: 'sidebar-foreground' },
+			{ name: 'sidebar-primary' },
+			{ name: 'sidebar-primary-foreground' },
+			{ name: 'sidebar-accent' },
+			{ name: 'sidebar-accent-foreground' },
+			{ name: 'sidebar-border' },
+			{ name: 'sidebar-ring' },
 		],
 	},
 	{
@@ -110,7 +122,7 @@ const Swatches = ({ values }: { values: Record<string, string> }) => (
 			<div key={title} className="flex flex-col gap-2">
 				<h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
 				<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-					{tokens.map(({ name, note }) => (
+					{tokens.map(({ name }) => (
 						<li key={name} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
 							<span
 								aria-hidden="true"
@@ -120,7 +132,6 @@ const Swatches = ({ values }: { values: Record<string, string> }) => (
 							<span className="flex min-w-0 flex-col">
 								<span className="font-mono text-sm">--{name}</span>
 								<span className="truncate font-mono text-xs text-muted-foreground">
-									{note ? `= ${note} · ` : ''}
 									{values[name] ?? ''}
 								</span>
 							</span>
