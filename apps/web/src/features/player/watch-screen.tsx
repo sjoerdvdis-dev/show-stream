@@ -8,7 +8,7 @@ import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
 import { EmptyState, ErrorState, LoadingStatus } from '@workspace/ui/patterns/states';
 import { PlayButton, StatusBadge } from '@workspace/ui/patterns/status';
 import { VideoPlayer } from '@workspace/ui/patterns/video-player';
-import { CircleAlert, CircleDashed, LoaderCircle, type LucideIcon } from 'lucide-react';
+import { Clapperboard } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { MovieNotFound } from '@/features/library/movie-not-found';
 import { movieQuery } from '@/features/library/movies';
@@ -23,14 +23,12 @@ const Stage = ({ children }: { children: ReactNode }) => (
 	<Card className="min-h-64 w-full justify-center md:aspect-video">{children}</Card>
 );
 
-const notReadyStates = {
-	'not ready': {
-		icon: CircleDashed,
-		text: 'It has not been prepared for playback yet. Play prepares it, and you are told when it is ready.',
-	},
-	'in progress': { icon: LoaderCircle, text: 'It is being prepared for playback. It plays here once it is ready.' },
-	failed: { icon: CircleAlert, text: 'Preparing it failed. Retry prepares it again.' },
-} satisfies Record<Exclude<TranscodeStatus, 'ready'>, { icon: LucideIcon; text: string }>;
+/** What each status means here. The badge beside it shows the status itself, with its icon. */
+const notReadyText: Record<Exclude<TranscodeStatus, 'ready'>, string> = {
+	'not ready': 'It has not been prepared for playback yet. Play prepares it, and you are told when it is ready.',
+	'in progress': 'It is being prepared for playback. It plays here once it is ready.',
+	failed: 'Preparing it failed. Retry prepares it again.',
+};
 
 type NotReadyProps = {
 	id: number;
@@ -49,11 +47,11 @@ const NotReady = ({ id, title, status, failureReason }: NotReadyProps) => {
 	return (
 		<Stage>
 			<EmptyState
-				icon={notReadyStates[status].icon}
+				icon={Clapperboard}
 				title={`${title} is not ready to play`}
 				description={
 					<>
-						{notReadyStates[status].text}
+						{notReadyText[status]}
 						{reason ? <span className="mt-2 block break-words text-foreground">{reason}</span> : null}
 					</>
 				}
