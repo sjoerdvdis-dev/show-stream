@@ -10,7 +10,7 @@ import {
 	transcodePlaylistResponseSchema,
 	transcodeRequestResponseSchema,
 } from './api-types.js';
-import { libraryPageSchema, libraryQuerySchema } from './library.js';
+import { libraryFacetsSchema, libraryPageSchema, libraryQuerySchema } from './library.js';
 
 export type Endpoint = {
 	method: 'GET' | 'POST';
@@ -110,6 +110,7 @@ export const endpoints = {
 		response: z.instanceof(Blob),
 	},
 	libraryMovies: { method: 'GET', path: '/library/movies', query: libraryQuerySchema, response: libraryPageSchema },
+	libraryMovieFacets: { method: 'GET', path: '/library/movies/facets', response: libraryFacetsSchema },
 	movies: { method: 'GET', path: '/movies', response: moviesResponseSchema },
 	shows: { method: 'GET', path: '/shows', response: showsResponseSchema },
 	movie: { method: 'GET', path: '/movie/:id', params: titleParams, response: movieResponseSchema },

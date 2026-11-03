@@ -1,14 +1,13 @@
+import type { LibraryPage } from '@workspace/contract/library';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startApi, type TestApi, type TestClient } from './support/api';
 import { clearLibrary, seedMovie, setTranscodeJob } from './support/seed';
-
-type Page = { items: { id: number; title: string }[]; total: number; page: number; pageSize: number };
 
 describe('the paged library list', () => {
 	let api: TestApi;
 	let owner: TestClient;
 
-	const list = async (query = ''): Promise<Page> => {
+	const list = async (query = ''): Promise<LibraryPage> => {
 		const response = await owner.get(`/library/movies${query}`);
 		expect(response.status).toBe(200);
 		return response.json();
@@ -210,6 +209,42 @@ describe('the paged library list', () => {
 
 		it('combines with filters and sorting', async () => {
 			expect(await titles('?q=knight&sort=title&order=desc')).toEqual(['The Dark Knight', 'Knight and Day']);
+		});
+	});
+
+	describe('facets', () => {
+		const facets = async () => {
+			const response = await owner.get('/library/movies/facets');
+			expect(response.status).toBe(200);
+			return response.json();
+		};
+
+		it('are empty for an empty library, with no infinite ranges (finding 32)', async () => {
+			expect(await facets()).toEqual({
+				year: null,
+				releaseDate: null,
+				runtime: null,
+				rating: null,
+				genres: [],
+				statuses: { 'not ready': 0, 'in progress': 0, ready: 0, failed: 0 },
+			});
+		});
+
+		it('give the ranges, genres and statuses of the whole library', async () => {
+			await seedFour();
+
+			expect(await facets()).toEqual({
+				year: { min: 1999, max: 2010 },
+				releaseDate: { min: '1999-12-31', max: '2010-01-15' },
+				runtime: { min: 90, max: 150 },
+				rating: { min: 6, max: 8.5 },
+				genres: [
+					{ name: 'Action', count: 1 },
+					{ name: 'Comedy', count: 1 },
+					{ name: 'Drama', count: 2 },
+				],
+				statuses: { 'not ready': 1, 'in progress': 1, ready: 1, failed: 1 },
+			});
 		});
 	});
 

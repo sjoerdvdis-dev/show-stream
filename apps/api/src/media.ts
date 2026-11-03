@@ -2,8 +2,8 @@ import path from 'path';
 import fs from 'fs';
 import { db } from './db';
 import { ApiFailure, notFound } from './errors';
-import { findLatestScan, findMovie, listLibrary, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
-import type { LibraryPage, LibraryQuery } from '@workspace/contract/library';
+import { findLatestScan, findMovie, libraryFacets, listLibrary, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
+import type { LibraryFacets, LibraryPage, LibraryQuery } from '@workspace/contract/library';
 import type {
 	MovieAPIData,
 	MovieMetadata,
@@ -32,6 +32,10 @@ export const getLibraryMovies = async (query: LibraryQuery): Promise<LibraryPage
 	page: query.page,
 	pageSize: query.pageSize,
 });
+
+// GET /library/movies/facets
+// -> what the movie filters can offer
+export const getLibraryMovieFacets = async (): Promise<LibraryFacets> => libraryFacets(db, 'movie');
 
 // /movies
 // -> metadata of all movies

@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { MediaType, TranscodeStatus } from '@workspace/contract/api-types';
-import type { LibraryItem, LibraryQuery, LibrarySort } from '@workspace/contract/library';
+import type { LibraryFacets, LibraryItem, LibraryQuery, LibrarySort } from '@workspace/contract/library';
 import type { Database } from './connection.js';
 import { jobs, media, mediaGenres } from './schema.js';
 
@@ -125,4 +125,63 @@ export const listLibrary = (db: Database, type: MediaType, query: LibraryQuery):
 		}));
 
 		return { items, total };
+	});
+
+const rangeOf = <T>(min: T | null, max: T | null) => (min === null || max === null ? null : { min, max });
+
+/** Every status, so that one no title has still counts 0. */
+const noStatuses = (): LibraryFacets['statuses'] => ({ 'not ready': 0, 'in progress': 0, ready: 0, failed: 0 });
+
+/**
+ * What the filters can offer, from every listed title of a media type. A range is null when no
+ * title has a value, so an empty library gives no bounds rather than infinite ones.
+ */
+export const libraryFacets = (db: Database, type: MediaType): LibraryFacets =>
+	db.transaction((tx) => {
+		const listed = and(eq(media.type, type), isNotNull(media.tmdbId));
+
+		const [bounds] = tx
+			.select({
+				yearMin: sql<number | null>`min(${media.year})`,
+				yearMax: sql<number | null>`max(${media.year})`,
+				releaseDateMin: sql<string | null>`min(${media.releaseDate})`,
+				releaseDateMax: sql<string | null>`max(${media.releaseDate})`,
+				runtimeMin: sql<number | null>`min(${media.runtime})`,
+				runtimeMax: sql<number | null>`max(${media.runtime})`,
+				ratingMin: sql<number | null>`min(${media.voteAverage})`,
+				ratingMax: sql<number | null>`max(${media.voteAverage})`,
+			})
+			.from(media)
+			.where(listed)
+			.all();
+
+		const genres = tx
+			.select({ name: mediaGenres.genre, count: count() })
+			.from(mediaGenres)
+			.innerJoin(media, eq(media.id, mediaGenres.mediaId))
+			.where(listed)
+			.groupBy(mediaGenres.genre)
+			.orderBy(asc(mediaGenres.genre))
+			.all();
+
+		const statuses = noStatuses();
+		const statusCounts = tx
+			.select({ status: transcodeStatus, count: count() })
+			.from(media)
+			.leftJoin(jobs, transcodeJobOfTitle)
+			.where(listed)
+			.groupBy(transcodeStatus)
+			.all();
+		for (const { status, count: titles } of statusCounts) {
+			statuses[status] = titles;
+		}
+
+		return {
+			year: rangeOf(bounds?.yearMin ?? null, bounds?.yearMax ?? null),
+			releaseDate: rangeOf(bounds?.releaseDateMin ?? null, bounds?.releaseDateMax ?? null),
+			runtime: rangeOf(bounds?.runtimeMin ?? null, bounds?.runtimeMax ?? null),
+			rating: rangeOf(bounds?.ratingMin ?? null, bounds?.ratingMax ?? null),
+			genres,
+			statuses,
+		};
 	});

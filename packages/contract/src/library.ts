@@ -148,3 +148,20 @@ export const libraryPageSchema = z.object({
 	pageSize: z.number(),
 });
 export type LibraryPage = z.infer<typeof libraryPageSchema>;
+
+const rangeOf = <T extends z.ZodType>(value: T) =>
+	z.object({ min: value, max: value }).nullable().describe('Null when no title has a value');
+
+/** What the filters can offer, from the whole library of one media type. */
+export const libraryFacetsSchema = z.object({
+	year: rangeOf(z.number()),
+	/** `YYYY-MM-DD`. */
+	releaseDate: rangeOf(z.string()),
+	runtime: rangeOf(z.number()),
+	rating: rangeOf(z.number()),
+	/** By name. */
+	genres: z.array(z.object({ name: z.string(), count: z.number() })),
+	/** Every status, with 0 for those no title has. */
+	statuses: z.record(transcodeStatusSchema, z.number()),
+});
+export type LibraryFacets = z.infer<typeof libraryFacetsSchema>;
