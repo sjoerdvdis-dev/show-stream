@@ -33,3 +33,7 @@ Uses the default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` at the root plus `docs/adr/`. See `docs/agents/domain.md`.
+
+### Design docs
+
+`PRODUCT.md` and `DESIGN.md` at the root ground UI work. Use the tokens in `DESIGN.md` rather than new colors.

@@ -1,14 +1,14 @@
 # ShowStream Plan
 
-Last updated: 2026-11-02. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
+Last updated: 2026-11-03. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
 
 ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize and clean up, rebuild on a stable foundation, then add features one at a time.
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started, and `apps/web` exists with login working end to end. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts. Next:
 
-1. **Continue Phase 2 at item 2, tokens and fonts** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Continue Phase 2 at item 3, shadcn on Base UI** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -51,10 +51,11 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Port 5000 closed to the host | Committed and tested |
 | Real `docker-compose.yml` with Chromium playback | Passes with fake secrets and throwaway data. A clean copy with no `.env`, no setup script and no network of its own reaches `/setup` in Chromium over HTTPS |
 | Playwright MCP | Configured in `.mcp.json` and tested; needs approval on first use |
-| Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed |
+| Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed. `/impeccable init` wrote `PRODUCT.md`, and the Impeccable hook stays off (D1) |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
+| Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the tokens in both themes, `DESIGN.md` describes them, and a test checks their contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview at `/dev/theme`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
 | `apps/web` | Done for Phase 2 item 1. A static Vite SPA with setup, login, sessions, the 401 path, an authenticated socket, and a thin library and player. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db` and `packages/logger` written; the rest arrive with their apps and packages |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
 **Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
 
@@ -120,7 +121,8 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Dates | `date-fns`, `react-day-picker` | 4.4.0, 10.0.2 | In use today, bump pending |
 | Local UI state | `zustand` | 5.0.16 | Player preferences only |
 | Debounce | `use-debounce` | 10.1.1 | In use today |
-| Fonts | `@fontsource-variable/geist` | 5.3.0 | Tested |
+| Fonts | `@fontsource-variable/geist`, `@fontsource-variable/geist-mono` | 5.3.0 | In use in `apps/web`, through `packages/ui` |
+| Color math in tests | `culori` | 4.0.2 | In use in the `packages/ui` contrast test |
 | PWA | `vite-plugin-pwa` | 2.0.0 | Tested, service worker generated |
 | Desktop | `electron`, `electron-builder` | 45.2.1, 26.18.0 | Planned |
 | Unit tests | `vitest`, with `jsdom` 30.1.3 in `apps/web` | 5.0.5 | In use |
@@ -158,7 +160,7 @@ Still not tested: Base UI beyond a dialog, the PWA build of a full app, and `app
 ```text
 apps/web/src/
 ├── routes/        File-based routes; thin
-├── features/      auth, library, player, settings
+├── features/      auth, library, player, settings, dev
 ├── lib/           query client, socket, theme
 └── main.tsx
 ```
@@ -173,6 +175,7 @@ apps/web/src/
 | `/search` | Search | `/dashboard/search` |
 | `/settings` | Settings | `/dashboard/settings` |
 | `/watch/$id` | Player | `/video/$id` |
+| `/dev/theme` | Theme preview, under `pnpm dev` only. Item 4 folds it into `/dev/components` | New |
 
 In development, Vite proxies `/api`, `/socket` and `/streams` to the API, so cookies behave as they do behind Caddy.
 
@@ -419,9 +422,9 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 43 | MongoDB could not start on a fresh `./data` | Gone with the MongoDB container. The image gives `/data` to UID 1000 | Done |
 | 44 | UID 1000 is hardcoded | `PUID` and `PGID`. The image starts as root, takes what the app writes, and drops with `su-exec` | Done |
 | 45 | Compose used to publish ports 5000 and 27017 | Closed; dev-only ports live in the dev file | Done |
-| 46 | `--font-sans` points at an undefined `--font-geist-sans`, and Zain loads but no class uses it | One font setup ([section 9.4](#94-typography)). Check the rendered font first | 2 |
+| 46 | `--font-sans` points at an undefined `--font-geist-sans`, and Zain loads but no class uses it | One font setup ([section 9.4](#94-typography)). Done in `apps/web`, which renders Geist from its own origin. The Next client keeps its fonts until item 8 deletes it | 2 |
 | 47 | `PlayButton` is duplicated in two files | One shared pattern | 2 |
-| 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens | 2 |
+| 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens. They exist in `tokens.css`, and `apps/web` has no raw colors, which a test checks. The Next client keeps its own until item 8 | 2 |
 | 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | [Section 9.6](#96-updating-shadcn) | 2 |
 | 50 | No project licence | Apache-2.0, with a `NOTICE` that requires attribution | Done |
 | 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Add `.next/**` to the ignores | Done |
@@ -517,31 +520,17 @@ Screens      thin route files in apps/web
 
 ### 9.3 Color tokens
 
-Contrast is checked by script. All pairs pass: text at 4.5:1 or better, foreground on background at 7:1 or better, status colors at 3:1 or better. All values are in the sRGB gamut.
+The tokens are in [`DESIGN.md`](../DESIGN.md), with one table for both themes, and `packages/ui/src/styles/tokens.css` ships them. That table is the only copy, and a test fails when it and the stylesheet disagree.
 
-| Token | Dark | Dark hex | Light | Light hex |
-|---|---|---|---|---|
-| `background` | `oklch(.145 .012 265)` | `#080a0f` | `oklch(.985 .002 265)` | `#f9fafb` |
-| `card` | `oklch(.185 .014 265)` | `#101319` | `oklch(1 0 265)` | `#ffffff` |
-| `popover` | `oklch(.205 .015 265)` | `#14171e` | `oklch(1 0 265)` | `#ffffff` |
-| `muted` | `oklch(.225 .015 265)` | `#181c23` | `oklch(.955 .005 265)` | `#eef0f4` |
-| `secondary` | `oklch(.255 .016 265)` | `#1f232b` | `oklch(.945 .005 265)` | `#ebedf0` |
-| `border` | `oklch(.32 .016 265)` | `#2f333b` | `oklch(.895 .007 265)` | `#dadce1` |
-| `foreground` | `oklch(.97 .004 265)` | `#f4f5f8` | `oklch(.2 .015 265)` | `#13161d` |
-| `muted-foreground` | `oklch(.74 .014 265)` | `#a6abb4` | `oklch(.47 .016 265)` | `#565b64` |
-| `primary` | `oklch(.8 .145 70)` | `#f9ac46` | `oklch(.5 .115 60)` | `#915006` |
-| `primary-foreground` | `oklch(.2 .04 60)` | `#231103` | `oklch(.985 .01 70)` | `#fff9f3` |
-| `destructive` | `oklch(.68 .19 25)` | `#f75d59` | `oklch(.52 .19 27)` | `#be2323` |
-| `destructive-foreground` | `oklch(.16 .03 25)` | `#180807` | `oklch(.985 .005 27)` | `#fdf9f8` |
-| `success` | `oklch(.76 .15 155)` | `#52cd86` | `oklch(.47 .105 155)` | `#196c40` |
-| `warning` | `oklch(.84 .15 90)` | `#f0c543` | `oklch(.5 .105 75)` | `#865901` |
-| `info` | `oklch(.74 .12 240)` | `#5cb4ef` | `oklch(.48 .115 245)` | `#0e629a` |
+They follow the direction in [section 9.1](#91-direction): OKLCH values on a cool neutral at hue 265, one amber accent, and `success`, `warning`, `info` and `destructive` for status. `overlay` is a scrim over posters and video, dark in both themes. `accent` and `input` map to `secondary` and `border`, and `ring` maps to `primary`.
 
-Also add an `overlay` token for scrims over posters, replacing `bg-neutral-950/25` and `/75`. `accent` and `input` map to `secondary` and `border`, `ring` maps to `primary`. A rendered preview is reviewed before this is final.
+A test in the required check reads the stylesheet and asserts, in both themes: text pairs at 4.5:1 or better, foreground on background at 7:1 or better, status colors and the focus ring at 3:1 or better, and every value in the sRGB gamut.
+
+The rendered preview at `/dev/theme` is for the maintainer's review. Until it is approved, the tokens are provisional and E1 stays open in [open-decisions.md](./open-decisions.md). A change after review is an edit to `tokens.css` and `DESIGN.md`.
 
 ### 9.4 Typography
 
-One family: Geist Sans for UI and Geist Mono for technical data, self-hosted through `@fontsource-variable/geist`. Remove Zain. Text sizes come from the Tailwind scale. Keep the `0.6rem` radius.
+One family: Geist Sans for UI and Geist Mono for technical data, self-hosted through `@fontsource-variable/geist` and `@fontsource-variable/geist-mono`. Vite bundles them, so no font CDN is asked. Text sizes come from the Tailwind scale, and the radius is `0.6rem`. `apps/web` has this, and Zain goes with the Next client in item 8.
 
 ### 9.5 Components
 
@@ -591,7 +580,7 @@ Installed at project scope in `.claude/skills/`. `skills-lock.json` records hash
 |---|---|---|
 | Matt Pocock skills | 27 skills, excluding `deprecated`, `in-progress` and `misc` | Configured for GitHub Issues in `docs/agents/` |
 | shadcn | `shadcn`, `migrate-radix-to-base` | Used in Phase 2 |
-| Impeccable | 4.8.0, with 4 agents in `.claude/agents/` | Installed without hooks, telemetry off. Run `/impeccable init` in Phase 2 |
+| Impeccable | 4.8.0, with 4 agents in `.claude/agents/` | Installed without hooks, telemetry off. `/impeccable init` wrote `PRODUCT.md` and `/impeccable document` wrote `DESIGN.md` in Phase 2 item 2 |
 
 The Impeccable engine binary is ignored by git. Its wrapper downloads the engine when missing, so a fresh clone fetches it on first use.
 
@@ -746,6 +735,8 @@ Checked on 2026-11-02:
 
    **Status:** done. `apps/web` covers all of the above, with a thin `/movies` and `/watch/$id` that item 6 replaces. `apps/e2e` stays on Next until item 7 moves it.
 2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
+
+   **Status:** done, except the maintainer's review of the preview. `PRODUCT.md` and `DESIGN.md` are at the root, the tokens are in `packages/ui`, and `apps/web` uses them with Geist and a theme provider. Its screens have no raw colors, and their look stays plain until item 6.
 3. Update shadcn and migrate primitives to Base UI.
 4. Build the patterns and `/dev/components`.
 5. Add the API image cache and server-side library queries.
@@ -756,7 +747,12 @@ Checked on 2026-11-02:
    - The `transcode:failed` notification as a toast.
    - A Library section in Settings for admins: a Scan library button, disabled while a scan is queued or running, with the status, time, counts, reason and problems of the latest scan. Without it, a new install cannot fill its library.
 7. Switch Caddy to serve `apps/web`.
-8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules.
+8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules. With them go what only the Next client uses:
+   - `packages/ui/src/styles/globals.css`, with its old tokens, and its `./globals.css` export.
+   - `packages/ui/postcss.config.mjs`, its `./postcss.config` export and `@tailwindcss/postcss`.
+   - Zain and the `next/font` setup, which leave with `apps/next-client/app/layout.tsx`.
+   - `next-themes`, in `packages/ui` and `apps/next-client`.
+   - `tailwindcss-animate`, unless item 3 has already replaced it with `tw-animate-css`.
 
 **Done when:** today's features work on the new patterns in both themes, at phone and desktop widths, and no Next.js code remains.
 
