@@ -1,6 +1,10 @@
+import { useQuery } from '@tanstack/react-query';
+import { useRouteContext } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
+import { ApiError } from '@workspace/api-client';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
+import { endpoints } from '@workspace/contract/endpoints';
 import { Button } from '@workspace/ui/components/button';
 import { Input } from '@workspace/ui/components/input';
 import { Label } from '@workspace/ui/components/label';
@@ -16,12 +20,13 @@ import { ConfirmDialog, SettingsSection } from '@workspace/ui/patterns/settings'
 import { EmptyState, ErrorState, LoadingGrid } from '@workspace/ui/patterns/states';
 import { PlayButton, StatusBadge } from '@workspace/ui/patterns/status';
 import { VideoPlayer } from '@workspace/ui/patterns/video-player';
+import { playlistQuery } from '@/features/player/player';
 import poster from './poster.svg';
 import { Section } from './section';
 
 /**
  * Every pattern from `@workspace/ui/patterns`, in its main states, from fixture data rather than the
- * API, on `/dev/components`, which only `pnpm dev` serves. Keep this module free of top-level side
+ * API, except the player, which asks the API for a prepared title's playlist, on `/dev/components`, which only `pnpm dev` serves. Keep this module free of top-level side
  * effects, or the build keeps them.
  */
 
@@ -338,43 +343,80 @@ const Filters = () => {
 	);
 };
 
-/** Plays a title the API has prepared, through the Vite proxy at `/streams`, so it needs a session. */
+/** What the API answers for a title's playlist, as text, until there is one to play. */
+const PreparedTitle = ({ id }: { id: number }) => {
+	const { onSessionLost } = useRouteContext({ from: '__root__' });
+	const { data, error, isPending } = useQuery(playlistQuery(id));
+
+	if (isPending) return <p className="text-sm text-muted-foreground">Loading…</p>;
+	if (error) {
+		const notReady = error instanceof ApiError && error.code === 'not_found';
+		return (
+			<p role="alert" className="text-sm text-destructive">
+				{notReady ? 'This title is not ready to play.' : 'Could not load this title.'}
+			</p>
+		);
+	}
+
+	return (
+		<VideoPlayer
+			src={data.playlistUrl}
+			title="A prepared title"
+			// eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite sets DEV, and it is false in a build.
+			debug={import.meta.env.DEV}
+			onUnauthorized={onSessionLost}
+			onFatalError={(reason) => toast.error(`Playback failed: ${reason}`)}
+			className="max-w-4xl"
+		/>
+	);
+};
+
+/**
+ * Plays a title the API has prepared. It asks the API for the playlist, as `/watch/$id` does, so it
+ * needs a session, and a 401 from the API or the stream goes to login.
+ */
 const Player = () => {
-	const [id, setId] = useState('');
-	const [src, setSrc] = useState<string>();
+	const [input, setInput] = useState('');
+	const [id, setId] = useState<number>();
+	const [inputError, setInputError] = useState<string>();
 
 	const load = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		setSrc(id ? `/streams/${encodeURIComponent(id)}/playlist.m3u8` : undefined);
+		const parsed = endpoints.transcodePlaylist.params.safeParse({ id: input });
+		setInputError(parsed.success ? undefined : parsed.error.issues[0]?.message);
+		setId(parsed.success ? parsed.data.id : undefined);
 	};
 
 	return (
 		<div className="flex flex-col gap-4">
-			<form onSubmit={load} className="flex max-w-sm flex-wrap items-end gap-2">
+			<form onSubmit={load} noValidate className="flex max-w-sm flex-wrap items-end gap-2">
 				<div className="flex flex-1 flex-col gap-1.5">
 					<Label htmlFor="player-title">TMDB id of a prepared title</Label>
-					<Input id="player-title" inputMode="numeric" value={id} onChange={(event) => setId(event.target.value)} />
+					<Input
+						id="player-title"
+						inputMode="numeric"
+						value={input}
+						aria-invalid={Boolean(inputError) || undefined}
+						aria-describedby={inputError ? 'player-title-error' : undefined}
+						onChange={(event) => setInput(event.target.value)}
+					/>
 				</div>
 				<Button type="submit" variant="outline">
 					Load
 				</Button>
+				{inputError ? (
+					<p id="player-title-error" className="basis-full text-sm text-destructive">
+						{inputError}
+					</p>
+				) : null}
 			</form>
-			{src ? (
-				<VideoPlayer
-					key={src}
-					src={src}
-					title="A prepared title"
-					// eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite sets DEV, and it is false in a build.
-					debug={import.meta.env.DEV}
-					onUnauthorized={() => toast.error('The stream answered 401. Log in, then load it again.')}
-					onFatalError={(reason) => toast.error(`Playback failed: ${reason}`)}
-					className="max-w-4xl"
-				/>
-			) : (
+			{id === undefined ? (
 				<p className="max-w-prose text-sm text-muted-foreground">
-					Log in at <code className="font-mono">/login</code> first, then give the id of a movie whose status is ready.
-					Space or K plays, the arrows seek and change the volume, M mutes and F goes full screen.
+					Give the id of a movie whose status is ready. Without a session, Load goes to login and comes back here. Space
+					or K plays, the arrows seek and change the volume, M mutes and F goes full screen.
 				</p>
+			) : (
+				<PreparedTitle key={id} id={id} />
 			)}
 		</div>
 	);
