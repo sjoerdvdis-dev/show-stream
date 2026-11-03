@@ -19,6 +19,7 @@ Screens      thin route files in apps/web
 - `test/tokens.test.ts` checks that the variable set matches a current shadcn theme, that each has a value in both themes and a Tailwind color, and contrast and the sRGB gamut for every color. When shadcn adds a variable, add it to the list in that test and to `tokens.css`.
 - ShowStream's own colors, such as `success` and `overlay`, sit in their own `:root` and `.dark` blocks, as shadcn documents for new colors, and in `@theme inline`. A new one needs both themes, a contrast pair in the test, and a row in `DESIGN.md`.
 - The accent appears in `primary`, `ring`, `chart-1`, `sidebar-primary` and `sidebar-ring`. Change them together.
+- `src/styles/shadcn.css` is shadcn's own `tailwind.css`, copied from the `shadcn` package so that its CLI does not ship as a dependency. After a shadcn update, copy it again.
 - `DESIGN.md` names each color's role, and points here for the values, so a value change needs no edit there.
 - `tokens.css` keeps only base styles that use its variables. The primitives rely on the app's stylesheet to end animations at once under reduced motion, as `apps/web/src/index.css` does, so a new app must copy that rule.
 

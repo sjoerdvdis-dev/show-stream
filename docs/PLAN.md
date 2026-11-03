@@ -108,7 +108,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Routing | `@tanstack/react-router`, `@tanstack/router-plugin` | 1.170.46, 1.168.48 | In use in `apps/web` |
 | Server state | `@tanstack/react-query` | 5.105.1 | In use in `apps/web` |
 | Styling | `tailwindcss`, `@tailwindcss/vite` | 4.3.3 | In use in `apps/web` |
-| Primitives | `@base-ui/react` through shadcn, `base-nova` style | 1.9.0, `shadcn` 4.23.0 | In use in `packages/ui` |
+| Primitives | `@base-ui/react` through shadcn, `base-nova` style | 1.9.0, shadcn CLI 4.23.0 through `pnpm dlx` | In use in `packages/ui` |
 | Animation | `tw-animate-css` | 1.4.0 | In use in `packages/ui` |
 | Icons | `lucide-react` | 1.66.0 | In use in `packages/ui` and `apps/web`. The Next client keeps 0.477.0 |
 | Forms | `react-hook-form`, `@hookform/resolvers` | 7.91.0, 7.0.1 | In use in `apps/web` |
@@ -567,7 +567,7 @@ A dev-only `/dev/components` route shows every pattern in both themes.
 
 1. `pnpm dlx shadcn@latest info` from `apps/web` and `packages/ui` showed `new-york` on Radix, and no `components.json` in `apps/web`.
 2. Both `components.json` files share `base-nova`, `iconLibrary: lucide`, `baseColor: zinc`, an empty `tailwind.config` and `rsc: false`, and `shadcn info` reads them so. `apps/web`'s puts primitives in `packages/ui`.
-3. `tw-animate-css` and `shadcn/tailwind.css` replace `tailwindcss-animate`.
+3. `tw-animate-css` and shadcn's `tailwind.css` replace `tailwindcss-animate`. The latter is copied into `packages/ui/src/styles/shadcn.css`, because importing it from the `shadcn` package shipped the CLI and a low `pnpm audit --prod` advisory in `deepmerge` with it.
 4. `shadcn migrate cn` moved `cn()` to the `cn` package. Primitives import it from `@workspace/ui/lib/utils`.
 5. The Radix primitives moved to the Next client unchanged. `packages/ui` took each one from the `base-nova` registry, one commit per component, with keyboard tests, so `asChild` became `render` with upstream's own code. `packages/ui/AGENTS.md` lists the few intended differences from upstream, which `add --diff` shows.
 6. `dual-range-slider` is not in the registry. It is the base-nova slider with its labels kept.
