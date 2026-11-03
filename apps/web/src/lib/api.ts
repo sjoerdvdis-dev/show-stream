@@ -9,6 +9,8 @@ export const api = createApiClient(apiBase);
 
 export const isUnauthorized = (error: unknown) => error instanceof ApiError && error.status === 401;
 
+export const isNotFound = (error: unknown) => error instanceof ApiError && error.code === 'not_found';
+
 /**
  * Where a browser loads a movie's stored art, for an `<img>`, which cannot go through `api`. The
  * path comes from the contract. A title without that art answers 404, and `MediaImage` falls back.

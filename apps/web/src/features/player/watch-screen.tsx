@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import { ApiError } from '@workspace/api-client';
 import type { TranscodeStatus } from '@workspace/contract/api-types';
 import { Card } from '@workspace/ui/components/card';
 import { Skeleton } from '@workspace/ui/components/skeleton';
@@ -14,9 +13,7 @@ import { MovieNotFound } from '@/features/library/movie-not-found';
 import { movieQuery } from '@/features/library/movies';
 import { usePlay, useRetry } from '@/features/library/use-play';
 import { playlistQuery } from '@/features/player/queries';
-import { movieImageUrl } from '@/lib/api';
-
-const isNotFound = (error: unknown) => error instanceof ApiError && error.code === 'not_found';
+import { isNotFound, movieImageUrl } from '@/lib/api';
 
 /** The player's box, so that loading, a title that is not ready and the video take the same place. */
 const Stage = ({ children }: { children: ReactNode }) => (

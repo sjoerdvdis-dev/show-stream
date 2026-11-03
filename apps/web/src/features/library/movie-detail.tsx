@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { ApiError } from '@workspace/api-client';
 import type { MovieMetadata } from '@workspace/contract/api-types';
 import { MediaHero } from '@workspace/ui/patterns/media-hero';
 import { BackLink, PageContainer } from '@workspace/ui/patterns/page';
@@ -7,7 +6,7 @@ import { PlayButton } from '@workspace/ui/patterns/status';
 import { MovieNotFound } from '@/features/library/movie-not-found';
 import { movieQuery } from '@/features/library/movies';
 import { usePlay, useRetry } from '@/features/library/use-play';
-import { movieImageUrl } from '@/lib/api';
+import { isNotFound, movieImageUrl } from '@/lib/api';
 
 const formatRuntime = (minutes: number) => {
 	const hours = Math.floor(minutes / 60);
@@ -30,7 +29,7 @@ export const MovieDetail = ({ id }: { id: number }) => {
 	const play = usePlay();
 	const retry = useRetry();
 
-	if (error instanceof ApiError && error.code === 'not_found') return <MovieNotFound />;
+	if (isNotFound(error)) return <MovieNotFound />;
 
 	const back = (
 		<PageContainer className="pb-0 md:pb-0">
