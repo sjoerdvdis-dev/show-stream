@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, and the API serves a paged, searchable library and each title's stored art. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web`'s Movies and movie pages are on the patterns. Next:
 
-1. **Continue Phase 2 at item 6, the screens on the patterns** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Finish Phase 2 item 6 with Player, Settings, Login and Setup** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -56,8 +56,8 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the theme the shadcn way, every variable with its own value in both themes, `DESIGN.md` names their roles, and a test checks the variable set, contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview, now the Theme part of `/dev/components`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
 | shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
 | Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. The screens move to the patterns in item 6 |
-| Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web` uses none of it until item 6 |
-| `apps/web` | Done for Phase 2 item 1. A static Vite SPA with setup, login, sessions, the 401 path, an authenticated socket, and a thin library and player. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
+| Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web`'s Movies screen uses all of it |
+| `apps/web` | Done for Phase 2 item 1, and item 6 has started. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. Notifications refresh what is on screen, with no polling. The player is still thin. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
 **Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
@@ -176,7 +176,7 @@ apps/web/src/
 | `/setup` | First-run owner account | New |
 | `/login` | Login | `/login` |
 | `/` | Home | `/dashboard` |
-| `/movies`, `/movies/$id` | Movie library, detail | `/dashboard/movies` |
+| `/movies`, `/movies/$id` | Movie library, detail. Search, sort, filters and the page live in the URL, validated with the contract's library query | `/dashboard/movies` |
 | `/shows`, `/shows/$id` | Show library, detail | `/dashboard/shows` |
 | `/search` | Search | `/dashboard/search` |
 | `/settings` | Settings | `/dashboard/settings` |
@@ -184,6 +184,8 @@ apps/web/src/
 | `/dev/components` | Every token, primitive and pattern in both themes, from fixture data, under `pnpm dev` only. It took in `/dev/theme` and `/dev/primitives` | New |
 
 In development, Vite proxies `/api`, `/socket` and `/streams` to the API, so cookies behave as they do behind Caddy.
+
+The router keeps query values as text, with a repeated key for a list, as the API reads them, so `?genre=Drama&genre=Crime` is what a user shares. A library route reads them with the contract's library query schema, one value at a time, so a bad value falls back to its default, and defaults never appear in the URL.
 
 ## 5. Architecture
 
@@ -392,13 +394,13 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 
 | # | Problem | Fix | Phase |
 |---|---|---|---|
-| 17 | Polling the whole library | Socket events invalidate queries | 2 |
+| 17 | Polling the whole library | Socket events invalidate queries. Done in `apps/web`: `transcode:ready` and `transcode:failed` refresh every library query, and nothing polls. The Next client polls until item 8 | 2 |
 | 18 | Fake technical details | Real `ffprobe` data | 4 |
-| 19 | Fragile image URLs | `MediaImage` with a fallback. The API's half is done: a scan stores each title's art, the API serves it, and a title without art is a 404, so `apps/web` need never send a browser to TMDB | 2 |
-| 29 | Date filter format bug | Typed date range. The API's half is done: release dates are ISO dates that the contract validates | 2 |
-| 30 | "Popularity" sorts by vote count | Server-side sort on the correct field. The API's half is done: `sort=popularity` sorts by TMDB popularity | 2 |
-| 31 | `.sort()` mutates shared arrays | Sorting moves to the server. The API's half is done | 2 |
-| 32 | Empty library gives `-Infinity` | Facets come from the API. The API's half is done: a range with no values is `null` | 2 |
+| 19 | Fragile image URLs | `MediaImage` with a fallback. Done in `apps/web`, whose art comes only from the API's image endpoint, falling back for a title without art. The Next client loads TMDB until item 8 | 2 |
+| 29 | Date filter format bug | Typed date range. Done in `apps/web`, whose `DateRangeFilter` sends ISO dates that the contract validates | 2 |
+| 30 | "Popularity" sorts by vote count | Server-side sort on the correct field. Done in `apps/web`, whose sort is the API's, by TMDB popularity | 2 |
+| 31 | `.sort()` mutates shared arrays | Sorting moves to the server. Done in `apps/web`, which sorts nothing itself | 2 |
+| 32 | Empty library gives `-Infinity` | Facets come from the API. Done in `apps/web`, which leaves out a range the facets give as `null` | 2 |
 | 33 | hls.js debug on in production | Dev only. Done in `apps/web`, and Next keeps it until item 8 deletes it | 2 |
 | 34 | Socket 308 on each request | Direct `/socket` route through Caddy. `pnpm dev` keeps the 308 | Done |
 
@@ -549,18 +551,19 @@ One family: Geist Sans for UI and Geist Mono for technical data, self-hosted thr
 | Pattern | Replaces | Used by |
 |---|---|---|
 | `AppShell`, `NavSidebar`, `MobileNav` | `dashboard/sidebar.tsx`, layouts | All signed-in screens |
-| `PageContainer`, `PageHeader` | `media-page.tsx` | All screens |
+| `PageContainer`, `PageHeader`, `BackLink` | `media-page.tsx` | All screens |
 | `MediaCard`, `MediaGrid`, `MediaRow` | `media-card.tsx`, `media-card-container.tsx` | Home, Movies, Shows, Search |
 | `MediaImage` | Inline image URLs | Everywhere with art |
 | `MediaHero` | `movies/[id]/page.tsx` | Movie, Show details |
 | `PlayButton`, `StatusBadge` | Two `PlayButton`s, `transcode-status-icon.tsx` | Cards, details |
 | `FilterBar`, `FilterPanel`, `SearchInput`, `SortSelect` | `media-browser.tsx` (449 lines) | Any list |
+| `Pager` | New, in item 6 | Any list the server pages |
 | `RangeFilter`, `DateRangeFilter`, `FacetFilter` | Filter components in `media-browser.tsx` | Any list |
 | `VideoPlayer`, `PlayerControls` | `hls-player.tsx` | Player |
 | `EmptyState`, `ErrorState`, `LoadingGrid`, `LoadingStatus` | New | Every data view |
 | `SettingsSection`, `ConfirmDialog`, `DataTable` | New | Settings, Admin |
 
-Logic in `use-movies-browser.tsx` becomes a generic list hook over server queries, which is what lets Shows reuse the Movies screen.
+Logic in `use-movies-browser.tsx` becomes a generic list hook over server queries, which is what lets Shows reuse the Movies screen. Done in item 6: `useLibraryList` in `apps/web/src/features/library` takes a source, such as the movie library, and the route's search, and `LibraryScreen` is built on it.
 
 A dev-only `/dev/components` route shows every pattern in both themes.
 
@@ -572,7 +575,8 @@ A dev-only `/dev/components` route shows every pattern in both themes.
 - **Filters.** `FilterBar` holds search, sort and a Filters button that counts the active filters, opening them in a popover on a wide screen as well, so the bar keeps one height whatever the number of filters, and in a sheet from the bottom on a phone. `DateRangeFilter` uses native date fields and emits ISO `YYYY-MM-DD`, and rejects a reversed range, which fixes finding 29 for `apps/web`. The screen does the filtering and sorting, and `DataTable` only asks for a sort.
 - **Player.** `VideoPlayer` reports a 401 from `hls.js` through `onUnauthorized` and a fatal error through `onFatalError`, and takes `debug`, which `apps/web` sets to `import.meta.env.DEV`. `PlayerControls` has Space or K, the arrows, M and F, hides after 3 seconds of playback, and listens on the document, so a page has one player.
 - **Shell.** `AppShell` shows `NavSidebar`, which collapses to icons, on a wide screen, and the `MobileNav` bottom bar with a More sheet for the footer on a phone. The bottom bar fits about four items at 390px.
-- **Preview and the player route.** `/dev/components` renders fixture data, except its player, which asks the API for a prepared title's playlist, so it needs a session and a 401 goes to login. `/watch/$id` still uses `features/player/hls-player.tsx` until item 6, which moves it to `VideoPlayer` and decides whether the player keeps the shell.
+- **Preview and the player route.** `/dev/components` renders fixture data, except its player, which asks the API for a prepared title's playlist, so it needs a session and a 401 goes to login. `/watch/$id` still uses `features/player/hls-player.tsx` until the second ticket of item 6, which moves it to `VideoPlayer` and decides whether the player keeps the shell.
+- **Paging.** `Pager` has Previous and Next around "Page 2 of 5", and hides at one page. Item 6 added it, and `BackLink`, which a title's page shows above its hero.
 
 ### 9.6 Updating shadcn
 
@@ -751,7 +755,7 @@ Checked on 2026-11-02:
    - Connecting the notification socket at `/socket`, the path Caddy routes to the API, only once there is a session, and disconnecting it on leaving.
    - Asking for streams at `/streams` rather than `/api/streams`, which Caddy serves too.
 
-   **Status:** done. `apps/web` covers all of the above, with a thin `/movies` and `/watch/$id` that item 6 replaces. `apps/e2e` stays on Next until item 7 moves it.
+   **Status:** done. `apps/web` covers all of the above, with a thin `/movies`, which item 6 replaced, and `/watch/$id`, which item 6 replaces. `apps/e2e` stays on Next until item 7 moves it.
 2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
 
    **Status:** done, except the maintainer's review of the preview. `PRODUCT.md` and `DESIGN.md` are at the root, the tokens are in `packages/ui`, and `apps/web` uses them with Geist and a theme provider. Its screens have no raw colors, and their look stays plain until item 6.
@@ -770,13 +774,17 @@ Checked on 2026-11-02:
    - A failure toast with the reason and a Retry action when a failed title is played from a card.
    - The `transcode:failed` notification as a toast.
    - A Library section in Settings for admins: a Scan library button, disabled while a scan is queued or running, with the status, time, counts, reason and problems of the latest scan. Without it, a new install cannot fill its library.
+
+   Home, Search and Shows are stubs in the Next client, so they are not rebuilt here, and wait for Phases 5 and 6.
+
+   **Status:** in progress, in two tickets. The first is done: the shell has Movies and Settings, Movies and a movie's page are on the patterns, and the failed status, the failure's reason with Retry on the movie's page, the failure toast with Retry from a card and the `transcode:failed` toast are all in `apps/web`. Notifications carry the title's ID, so a toast can play or retry it. The thin `/movies` from item 1 is gone. The second ticket rebuilds Player, Settings with the Library section, Login and Setup.
 7. Switch Caddy to serve `apps/web`.
 8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules. With them go what only the Next client uses:
    - What item 3 moved from `packages/ui` into the Next client, which leaves with it: the Radix primitives in `apps/next-client/components/ui/` (button, calendar, card, command, dialog, drawer, dropdown-menu, dual-range-slider, form, input, label, popover, radio-group, select, sonner and tooltip), `apps/next-client/lib/utils.ts`, the old stylesheet at `apps/next-client/styles/globals.css`, and `apps/next-client/postcss.config.mjs`.
    - With them, the Next client's Radix packages, except those `cmdk` pulls in for `packages/ui`, and `vaul`, `tailwindcss-animate`, `class-variance-authority`, `clsx`, `tailwind-merge`, `@tailwindcss/postcss`, `lucide-react` 0.477.0 and `react-day-picker` 9, which only it uses.
    - Zain and the `next/font` setup, which leave with `apps/next-client/app/layout.tsx`.
    - `next-themes`, in `apps/next-client`.
-   - The API's endpoints for the Next client, which `/library` replaces: `GET /movies`, `GET /shows` and `GET /movie/:id`, with their entries in `packages/contract`, their response schemas and handlers, and `listMovies` and `listShows` in `packages/db`. Item 6 moves `apps/web` off `GET /movies` first, and if its detail page still needs `GET /movie/:id`, it moves that under `/library` too.
+   - The API's endpoints for the Next client, which `/library` replaces: `GET /movies`, `GET /shows` and `GET /movie/:id`, with their entries in `packages/contract`, their response schemas and handlers, and `listMovies` and `listShows` in `packages/db`. Item 6 moved `apps/web` off `GET /movies`. Its movie page still uses `GET /movie/:id`, as the spec for item 6 chose, so this item moves that under `/library` before deleting it.
 
 **Done when:** today's features work on the new patterns in both themes, at phone and desktop widths, and no Next.js code remains.
 
