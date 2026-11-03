@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, exists, gte, inArray, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { MediaType, TranscodeStatus } from '@workspace/contract/api-types';
 import type { LibraryItem, LibraryQuery, LibrarySort } from '@workspace/contract/library';
 import type { Database } from './connection.js';
@@ -63,9 +63,7 @@ const filtersOf = (type: MediaType, query: LibraryQuery) => {
 	if (query.ratingMax !== undefined) add(lte(media.voteAverage, query.ratingMax));
 	if (query.genre?.length) {
 		add(
-			exists(
-				sql`SELECT 1 FROM ${mediaGenres} WHERE ${mediaGenres.mediaId} = ${media.id} AND ${inArray(mediaGenres.genre, query.genre)}`,
-			),
+			sql`EXISTS (SELECT 1 FROM ${mediaGenres} WHERE ${mediaGenres.mediaId} = ${media.id} AND ${inArray(mediaGenres.genre, query.genre)})`,
 		);
 	}
 	if (query.status?.length) add(inArray(transcodeStatus, query.status));

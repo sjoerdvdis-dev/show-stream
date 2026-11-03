@@ -173,6 +173,21 @@ export const clearLibrary = (api: TestApi) => {
 	withDatabase(api.databasePath, (db) => db.$client.prepare('DELETE FROM media').run());
 };
 
+/**
+ * Gives a title a transcode job in this state, as the worker would leave it. Nobody waits on
+ * it. A `queued` job would be taken by the worker, so use `running` for a title in progress.
+ */
+export const setTranscodeJob = (api: TestApi, movie: SeededMovie, status: 'running' | 'done' | 'failed') => {
+	withDatabase(api.databasePath, (db) =>
+		db.$client
+			.prepare(
+				`INSERT INTO jobs (type, media_id, status, error, announced)
+				SELECT 'transcode', id, ?, ?, 1 FROM media WHERE type = 'movie' AND tmdb_id = ?`,
+			)
+			.run(status, status === 'failed' ? 'A seeded failure' : null, movie.id),
+	);
+};
+
 /** Writes a file that has a video extension but is not a video. */
 export const addCorruptVideo = async (api: TestApi, movie: SeededMovie) => {
 	await writeFile(path.join(api.mediaFolder, movie.folder, 'corrupt.mp4'), 'This is not a video.');

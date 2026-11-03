@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startApi, type TestApi, type TestClient } from './support/api';
-import { clearLibrary, seedMovie } from './support/seed';
+import { clearLibrary, seedMovie, setTranscodeJob } from './support/seed';
 
 type Page = { items: { id: number; title: string }[]; total: number; page: number; pageSize: number };
 
@@ -41,33 +41,46 @@ describe('the paged library list', () => {
 		expect(await titles()).toEqual(['alien', 'Brazil', 'Casablanca']);
 	});
 
-	describe('sorting', () => {
-		// Popularity and vote count run in opposite directions, so a sort on the wrong one shows (finding 30).
-		beforeEach(async () => {
-			await seedMovie(api, 1, 'Alpha', {
-				release_date: '2001-05-01',
-				runtime: 100,
-				vote_average: 7,
-				popularity: 50,
-				vote_count: 500,
-			});
-			await seedMovie(api, 2, 'Bravo', {
-				release_date: '1999-12-31',
-				runtime: 90,
-				vote_average: 8.5,
-				popularity: 10,
-				vote_count: 1000,
-			});
-			await seedMovie(api, 3, 'Charlie', {
-				release_date: '2010-01-15',
-				runtime: 150,
-				vote_average: 6,
-				popularity: 99,
-				vote_count: 1,
-			});
-			// TMDB knows nothing about this one, so it sorts last either way.
-			await seedMovie(api, 4, 'Delta', { release_date: '' });
+	/**
+	 * Four titles whose values all differ. Popularity and vote count run in opposite directions,
+	 * so that a sort on the wrong one shows (finding 30). TMDB knows nothing about Delta.
+	 */
+	const seedFour = async () => {
+		const alpha = await seedMovie(api, 1, 'Alpha', {
+			release_date: '2001-05-01',
+			runtime: 100,
+			vote_average: 7,
+			popularity: 50,
+			vote_count: 500,
+			genres: [
+				{ id: 18, name: 'Drama' },
+				{ id: 28, name: 'Action' },
+			],
 		});
+		const bravo = await seedMovie(api, 2, 'Bravo', {
+			release_date: '1999-12-31',
+			runtime: 90,
+			vote_average: 8.5,
+			popularity: 10,
+			vote_count: 1000,
+			genres: [{ id: 35, name: 'Comedy' }],
+		});
+		const charlie = await seedMovie(api, 3, 'Charlie', {
+			release_date: '2010-01-15',
+			runtime: 150,
+			vote_average: 6,
+			popularity: 99,
+			vote_count: 1,
+			genres: [{ id: 18, name: 'Drama' }],
+		});
+		await seedMovie(api, 4, 'Delta', { release_date: '' });
+		setTranscodeJob(api, alpha, 'failed');
+		setTranscodeJob(api, bravo, 'running');
+		setTranscodeJob(api, charlie, 'done');
+	};
+
+	describe('sorting', () => {
+		beforeEach(seedFour);
 
 		it.each([
 			['title', 'asc', ['Alpha', 'Bravo', 'Charlie', 'Delta']],
@@ -96,12 +109,50 @@ describe('the paged library list', () => {
 				releaseDate: '2001-05-01',
 				runtime: 100,
 				rating: 7,
-				genres: [],
-				status: 'not ready',
+				genres: ['Action', 'Drama'],
+				status: 'failed',
 				hasPoster: false,
 				hasBackdrop: false,
 			});
 			expect(items[3]).toMatchObject({ title: 'Delta', year: null, releaseDate: null, runtime: null, rating: null });
+		});
+	});
+
+	describe('filtering', () => {
+		beforeEach(seedFour);
+
+		it.each([
+			['a lowest year, which it includes', '?yearMin=2001', ['Alpha', 'Charlie']],
+			['a highest year, which it includes', '?yearMax=2001', ['Alpha', 'Bravo']],
+			['a release date range, which includes both ends', '?releaseDateFrom=2001-05-01&releaseDateTo=2010-01-15', ['Alpha', 'Charlie']],
+			['a release date one day after a title', '?releaseDateFrom=2001-05-02', ['Charlie']],
+			['a release date one day before a title', '?releaseDateTo=2001-04-30', ['Bravo']],
+			['a runtime range', '?runtimeMin=90&runtimeMax=100', ['Alpha', 'Bravo']],
+			['a lowest rating', '?ratingMin=7', ['Alpha', 'Bravo']],
+			['a highest rating just under a title', '?ratingMax=6.99', ['Charlie']],
+			['one genre', '?genre=Drama', ['Alpha', 'Charlie']],
+			['any of several genres', '?genre=Comedy&genre=Action', ['Alpha', 'Bravo']],
+			['a genre nobody has', '?genre=Western', []],
+			['the failed status', '?status=failed', ['Alpha']],
+			['the not ready status, for a title with no job', '?status=not%20ready', ['Delta']],
+			['any of several statuses', '?status=in%20progress&status=ready', ['Bravo', 'Charlie']],
+			['filters together', '?genre=Drama&yearMin=2005', ['Charlie']],
+		])('filters by %s', async (_case, query, expected) => {
+			const result = await list(query);
+
+			expect(result.items.map(({ title }) => title)).toEqual(expected);
+			expect(result.total).toBe(expected.length);
+		});
+
+		it('gives each item its genres and its playback status', async () => {
+			const { items } = await list();
+
+			expect(items.map(({ genres, status }) => ({ genres, status }))).toEqual([
+				{ genres: ['Action', 'Drama'], status: 'failed' },
+				{ genres: ['Comedy'], status: 'in progress' },
+				{ genres: ['Drama'], status: 'ready' },
+				{ genres: [], status: 'not ready' },
+			]);
 		});
 	});
 
