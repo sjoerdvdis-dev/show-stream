@@ -9,6 +9,7 @@ import { MediaCard, MediaGrid } from '@workspace/ui/patterns/media-card';
 import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
 import { Pager } from '@workspace/ui/patterns/pager';
 import type { ComponentProps } from 'react';
+import { canManageLibrary } from '@/features/auth/roles';
 import {
 	fromSortChoice,
 	rangeFilters,
@@ -127,7 +128,7 @@ const useEmptyState = (list: List, noun: string): ComponentProps<typeof MediaGri
 				) : null,
 		};
 	}
-	if (user.role === 'owner' || user.role === 'admin') {
+	if (canManageLibrary(user)) {
 		return {
 			title: `No ${noun} yet`,
 			description: `Scan the library in Settings to add the ${noun} in your media folder.`,
