@@ -9,59 +9,47 @@ import { ThemeSwitch } from './theme-switch';
  * Phase 2 item 4 folds it into `/dev/components`.
  */
 
-const tokenGroups: { title: string; tokens: { name: string }[] }[] = [
+const tokenGroups: { title: string; tokens: string[] }[] = [
 	{
 		title: 'Surfaces',
-		tokens: [{ name: 'background' }, { name: 'card' }, { name: 'popover' }, { name: 'muted' }, { name: 'secondary' }],
+		tokens: ['background', 'card', 'popover', 'muted', 'secondary'],
 	},
 	{
 		title: 'Text',
-		tokens: [
-			{ name: 'foreground' },
-			{ name: 'muted-foreground' },
-			{ name: 'card-foreground' },
-			{ name: 'popover-foreground' },
-			{ name: 'secondary-foreground' },
-		],
+		tokens: ['foreground', 'muted-foreground', 'card-foreground', 'popover-foreground', 'secondary-foreground'],
 	},
 	{
 		title: 'Accent',
-		tokens: [{ name: 'primary' }, { name: 'primary-foreground' }, { name: 'ring' }],
+		tokens: ['primary', 'primary-foreground', 'ring'],
 	},
 	{
 		title: 'Status',
-		tokens: [
-			{ name: 'destructive' },
-			{ name: 'destructive-foreground' },
-			{ name: 'success' },
-			{ name: 'warning' },
-			{ name: 'info' },
-		],
+		tokens: ['destructive', 'destructive-foreground', 'success', 'warning', 'info'],
 	},
 	{
 		title: 'Lines and hover fills',
-		tokens: [{ name: 'border' }, { name: 'input' }, { name: 'accent' }, { name: 'accent-foreground' }],
+		tokens: ['border', 'input', 'accent', 'accent-foreground'],
 	},
 	{
 		title: 'Charts',
-		tokens: [{ name: 'chart-1' }, { name: 'chart-2' }, { name: 'chart-3' }, { name: 'chart-4' }, { name: 'chart-5' }],
+		tokens: ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'],
 	},
 	{
 		title: 'Sidebar',
 		tokens: [
-			{ name: 'sidebar' },
-			{ name: 'sidebar-foreground' },
-			{ name: 'sidebar-primary' },
-			{ name: 'sidebar-primary-foreground' },
-			{ name: 'sidebar-accent' },
-			{ name: 'sidebar-accent-foreground' },
-			{ name: 'sidebar-border' },
-			{ name: 'sidebar-ring' },
+			'sidebar',
+			'sidebar-foreground',
+			'sidebar-primary',
+			'sidebar-primary-foreground',
+			'sidebar-accent',
+			'sidebar-accent-foreground',
+			'sidebar-border',
+			'sidebar-ring',
 		],
 	},
 	{
 		title: 'Overlay',
-		tokens: [{ name: 'overlay' }, { name: 'overlay-foreground' }],
+		tokens: ['overlay', 'overlay-foreground'],
 	},
 ];
 
@@ -102,7 +90,7 @@ const subscribeToRootClass = (onChange: () => void) => {
 const useTokenValues = (): Record<string, string> => {
 	useSyncExternalStore(subscribeToRootClass, () => document.documentElement.className);
 	const style = getComputedStyle(document.documentElement);
-	const tokenNames = [...tokenGroups.flatMap(({ tokens }) => tokens.map(({ name }) => name)), 'radius'];
+	const tokenNames = [...tokenGroups.flatMap(({ tokens }) => tokens), 'radius'];
 	return Object.fromEntries(tokenNames.map((name) => [name, style.getPropertyValue(`--${name}`).trim()]));
 };
 
@@ -122,7 +110,7 @@ const Swatches = ({ values }: { values: Record<string, string> }) => (
 			<div key={title} className="flex flex-col gap-2">
 				<h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
 				<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-					{tokens.map(({ name }) => (
+					{tokens.map((name) => (
 						<li key={name} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
 							<span
 								aria-hidden="true"
