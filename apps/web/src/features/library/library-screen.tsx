@@ -9,7 +9,14 @@ import { MediaCard, MediaGrid } from '@workspace/ui/patterns/media-card';
 import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
 import { Pager } from '@workspace/ui/patterns/pager';
 import type { ComponentProps } from 'react';
-import { fromSortChoice, sortChoices, toSortChoice, type LibrarySearch } from '@/features/library/library-search';
+import {
+	fromSortChoice,
+	rangeFilters,
+	sortChoices,
+	toSortChoice,
+	type LibrarySearch,
+	type RangeFilterSpec,
+} from '@/features/library/library-search';
 import { useLibraryList, type LibrarySource, type SearchUpdater } from '@/features/library/use-library-list';
 import { usePlay } from '@/features/library/use-play';
 
@@ -31,11 +38,31 @@ const fromRange = (bounds: { min: number; max: number }, [low, high]: [number, n
 
 type List = ReturnType<typeof useLibraryList>;
 
+/** A numeric range's slider, over the library's facet. A range no title has a value for is left out. */
+const LibraryRange = ({ list, range }: { list: List; range: RangeFilterSpec }) => {
+	const bounds = list.facets.data?.[range.facet];
+	if (!bounds) return null;
+	return (
+		<RangeFilter
+			label={range.label}
+			min={bounds.min}
+			max={bounds.max}
+			step={range.step}
+			value={toRange(bounds, list.search[range.min], list.search[range.max])}
+			formatValue={range.format}
+			onChange={(value) => {
+				const [low, high] = fromRange(bounds, value, range.decimals);
+				list.setFiltersSoon({ [range.min]: low, [range.max]: high });
+			}}
+		/>
+	);
+};
+
 /** The filters a library's facets allow. A range no title has a value for is left out. */
 const LibraryFilters = ({ list }: { list: List }) => {
-	const { facets, search, setFilters, setFiltersSoon } = list;
+	const { facets, search, setFilters } = list;
 	const facetError = facets.isError ? 'Could not load the filters.' : undefined;
-	const { year, releaseDate, runtime, rating } = facets.data ?? {};
+	const releaseDate = facets.data?.releaseDate;
 
 	return (
 		<>
@@ -60,18 +87,7 @@ const LibraryFilters = ({ list }: { list: List }) => {
 				onRetry={() => void facets.refetch()}
 				emptyText="No genres yet."
 			/>
-			{year ? (
-				<RangeFilter
-					label="Year"
-					min={year.min}
-					max={year.max}
-					value={toRange(year, search.yearMin, search.yearMax)}
-					onChange={(value) => {
-						const [yearMin, yearMax] = fromRange(year, value);
-						setFiltersSoon({ yearMin, yearMax });
-					}}
-				/>
-			) : null}
+			<LibraryRange list={list} range={rangeFilters.year} />
 			{releaseDate ? (
 				<DateRangeFilter
 					label="Release date"
@@ -82,34 +98,8 @@ const LibraryFilters = ({ list }: { list: List }) => {
 					onChange={({ from, to }) => setFilters({ releaseDateFrom: from, releaseDateTo: to })}
 				/>
 			) : null}
-			{runtime ? (
-				<RangeFilter
-					label="Runtime"
-					min={runtime.min}
-					max={runtime.max}
-					step={5}
-					value={toRange(runtime, search.runtimeMin, search.runtimeMax)}
-					formatValue={(minutes) => `${minutes} min`}
-					onChange={(value) => {
-						const [runtimeMin, runtimeMax] = fromRange(runtime, value);
-						setFiltersSoon({ runtimeMin, runtimeMax });
-					}}
-				/>
-			) : null}
-			{rating ? (
-				<RangeFilter
-					label="Rating"
-					min={rating.min}
-					max={rating.max}
-					step={0.1}
-					value={toRange(rating, search.ratingMin, search.ratingMax)}
-					formatValue={(value) => value.toFixed(1)}
-					onChange={(value) => {
-						const [ratingMin, ratingMax] = fromRange(rating, value, 1);
-						setFiltersSoon({ ratingMin, ratingMax });
-					}}
-				/>
-			) : null}
+			<LibraryRange list={list} range={rangeFilters.runtime} />
+			<LibraryRange list={list} range={rangeFilters.rating} />
 		</>
 	);
 };

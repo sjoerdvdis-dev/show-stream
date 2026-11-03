@@ -48,27 +48,57 @@ export const validateLibrarySearch = (raw: Record<string, unknown>): LibrarySear
 	return result as LibrarySearch;
 };
 
+/** A numeric range in the Filters panel: a slider over one of the library's facets, held in two search keys. */
+export type RangeFilterSpec = {
+	label: string;
+	facet: 'year' | 'runtime' | 'rating';
+	min: Extract<Key, `${string}Min`>;
+	max: Extract<Key, `${string}Max`>;
+	step: number;
+	/** The URL keeps a value rounded to this many decimals. */
+	decimals: number;
+	format: (value: number) => string;
+};
+
+/** The numeric ranges, by facet. The release date is a range of dates, with a control of its own. */
+export const rangeFilters = {
+	year: { label: 'Year', facet: 'year', min: 'yearMin', max: 'yearMax', step: 1, decimals: 0, format: String },
+	runtime: {
+		label: 'Runtime',
+		facet: 'runtime',
+		min: 'runtimeMin',
+		max: 'runtimeMax',
+		step: 5,
+		decimals: 0,
+		format: (minutes) => `${minutes} min`,
+	},
+	rating: {
+		label: 'Rating',
+		facet: 'rating',
+		min: 'ratingMin',
+		max: 'ratingMax',
+		step: 0.1,
+		decimals: 1,
+		format: (value) => value.toFixed(1),
+	},
+} satisfies { [F in RangeFilterSpec['facet']]: RangeFilterSpec & { facet: F } };
+
+const ranges: RangeFilterSpec[] = Object.values(rangeFilters);
+
 /** The filters a user sets in the Filters panel, apart from search and sort. */
-export const filterKeys = [
-	'yearMin',
-	'yearMax',
+export const filterKeys: Key[] = [
+	...ranges.flatMap(({ min, max }) => [min, max]),
 	'releaseDateFrom',
 	'releaseDateTo',
-	'runtimeMin',
-	'runtimeMax',
-	'ratingMin',
-	'ratingMax',
 	'genre',
 	'status',
-] as const satisfies Key[];
+];
 
 /** How many filter groups are set: a range counts once, whichever end is set. */
 export const countActiveFilters = (search: LibrarySearch) =>
 	[
-		search.yearMin !== undefined || search.yearMax !== undefined,
+		...ranges.map(({ min, max }) => search[min] !== undefined || search[max] !== undefined),
 		search.releaseDateFrom !== undefined || search.releaseDateTo !== undefined,
-		search.runtimeMin !== undefined || search.runtimeMax !== undefined,
-		search.ratingMin !== undefined || search.ratingMax !== undefined,
 		Boolean(search.genre?.length),
 		Boolean(search.status?.length),
 	].filter(Boolean).length;
