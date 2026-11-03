@@ -65,7 +65,7 @@ export const NavSidebar = ({ items, brand, footer, label = 'Main', className }: 
 );
 
 const mobileNavItemClassName =
-	'flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-md px-1 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:text-primary [&_svg]:size-5 [&_svg]:shrink-0';
+	'flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-md px-1 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:text-primary [&_svg]:size-5 [&_svg]:shrink-0';
 
 /** The phone navigation: a bottom bar of the same items, with the brand and footer in a More sheet. */
 export const MobileNav = ({ items, brand, footer, label = 'Main', className }: NavProps & { className?: string }) => (
