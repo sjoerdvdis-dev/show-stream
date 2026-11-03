@@ -15,6 +15,19 @@ globalThis.ResizeObserver ??= class {
 };
 Element.prototype.scrollIntoView ??= () => {};
 
+// The sidebar's useIsMobile asks for this, and reads window.innerWidth for the answer.
+window.matchMedia ??= (query: string) =>
+	({
+		matches: false,
+		media: query,
+		onchange: null,
+		addEventListener() {},
+		removeEventListener() {},
+		addListener() {},
+		removeListener() {},
+		dispatchEvent: () => false,
+	}) satisfies MediaQueryList;
+
 afterEach(() => {
 	cleanup();
 });
