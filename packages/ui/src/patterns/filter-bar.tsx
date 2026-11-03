@@ -104,18 +104,17 @@ export const SortSelect = <T extends string>({
 type FilterPanelProps = {
 	children: ReactNode;
 	onClear?: () => void;
-	clearLabel?: string;
 	className?: string;
 };
 
 /** The filters of a list, stacked, with Clear filters when the screen can reset them. */
-export const FilterPanel = ({ children, onClear, clearLabel = 'Clear filters', className }: FilterPanelProps) => (
+export const FilterPanel = ({ children, onClear, className }: FilterPanelProps) => (
 	<div className={cn('flex flex-col gap-6', className)}>
 		{children}
 		{onClear ? (
 			<Button variant="outline" size="sm" className="self-start" onClick={onClear}>
 				<FilterXIcon aria-hidden="true" />
-				{clearLabel}
+				Clear filters
 			</Button>
 		) : null}
 	</div>

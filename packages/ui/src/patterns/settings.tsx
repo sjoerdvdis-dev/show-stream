@@ -51,7 +51,6 @@ type ConfirmDialogProps = {
 	title: string;
 	description?: ReactNode;
 	confirmLabel?: string;
-	cancelLabel?: string;
 	/** Shows the confirm button in the destructive color, for an action that cannot be undone. */
 	destructive?: boolean;
 	/**
@@ -68,7 +67,6 @@ export const ConfirmDialog = ({
 	title,
 	description,
 	confirmLabel = 'Confirm',
-	cancelLabel = 'Cancel',
 	destructive = false,
 	onConfirm,
 	className,
@@ -98,7 +96,7 @@ export const ConfirmDialog = ({
 					{description ? <AlertDialogDescription>{description}</AlertDialogDescription> : null}
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>
+					<AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						variant={destructive ? 'destructive' : 'default'}
 						disabled={pending}

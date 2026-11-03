@@ -11,7 +11,6 @@ const renderConfirm = (onConfirm: () => void | Promise<void>) =>
 			title="Delete Ada?"
 			description="She can no longer sign in."
 			confirmLabel="Delete"
-			cancelLabel="Keep"
 			destructive
 			onConfirm={onConfirm}
 		/>,
@@ -50,7 +49,7 @@ describe('ConfirmDialog', () => {
 		trigger.focus();
 		await user.keyboard('{Enter}');
 		const dialog = await screen.findByRole('alertdialog');
-		const cancel = within(dialog).getByRole('button', { name: 'Keep' });
+		const cancel = within(dialog).getByRole('button', { name: 'Cancel' });
 		while (document.activeElement !== cancel) {
 			await user.tab();
 		}

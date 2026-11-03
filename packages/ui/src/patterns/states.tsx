@@ -41,16 +41,11 @@ export const EmptyState = ({ icon = Inbox, action, ...props }: StateProps & { ac
 );
 
 /** A data view that failed to load. With `onRetry` it offers Try again. */
-export const ErrorState = ({
-	icon = CircleAlert,
-	onRetry,
-	retryLabel = 'Try again',
-	...props
-}: StateProps & { onRetry?: () => void; retryLabel?: string }) => (
+export const ErrorState = ({ icon = CircleAlert, onRetry, ...props }: StateProps & { onRetry?: () => void }) => (
 	<StateLayout role="alert" icon={icon} {...props}>
 		{onRetry ? (
 			<Button variant="outline" onClick={onRetry}>
-				{retryLabel}
+				Try again
 			</Button>
 		) : null}
 	</StateLayout>
