@@ -79,10 +79,11 @@ const toRange = (from: string, to: string): DateRange => ({
 export const DateRangeFilter = ({ label, value, onChange, className }: DateRangeFilterProps) => {
 	const id = useId();
 	const [draft, setDraft] = useState({ from: value.from ?? '', to: value.to ?? '' });
-	const [shown, setShown] = useState(value);
+	// The range last agreed with the screen, whether it came in as `value` or went out through `onChange`.
+	const [syncedRange, setSyncedRange] = useState(value);
 	// A new value from the screen replaces whatever the user left half-typed.
-	if (shown.from !== value.from || shown.to !== value.to) {
-		setShown(value);
+	if (syncedRange.from !== value.from || syncedRange.to !== value.to) {
+		setSyncedRange(value);
 		setDraft({ from: value.from ?? '', to: value.to ?? '' });
 	}
 	const reversed = Boolean(draft.from && draft.to && draft.from > draft.to);
@@ -93,7 +94,7 @@ export const DateRangeFilter = ({ label, value, onChange, className }: DateRange
 		setDraft(next);
 		if (next.from && next.to && next.from > next.to) return;
 		const range = toRange(next.from, next.to);
-		setShown(range);
+		setSyncedRange(range);
 		onChange(range);
 	};
 

@@ -122,7 +122,7 @@ const pressesWithSpace = (target: EventTarget | null) =>
 const sliderValue = (value: number | readonly number[]) => (typeof value === 'number' ? value : (value[0] ?? 0));
 
 /** Shows the controls, and hides them again after a while unless something wakes them. */
-const useWakeful = () => {
+const useAutoHide = () => {
 	const [awake, setAwake] = useState(true);
 	const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 	const wake = useCallback(() => {
@@ -188,7 +188,7 @@ type PlayerControlsProps = {
 export const PlayerControls = ({ media, container, title, className }: PlayerControlsProps) => {
 	const { paused, currentTime, duration, volume, muted } = useMediaState(media);
 	const fullscreen = useFullscreen(container);
-	const { awake, wake } = useWakeful();
+	const { awake, wake } = useAutoHide();
 	// The slider names its thumb from a label element, not from `aria-label`.
 	const seekLabelId = useId();
 	const volumeLabelId = useId();
@@ -340,8 +340,8 @@ export const VideoPlayer = ({
 	const [failedSrc, setFailedSrc] = useState<string>();
 	const failed = failedSrc === src;
 	const reportUnauthorized = useEffectEvent(() => onUnauthorized());
-	const reportFatal = useEffectEvent((failed: string, reason: string) => {
-		setFailedSrc(failed);
+	const reportFatal = useEffectEvent((failingSrc: string, reason: string) => {
+		setFailedSrc(failingSrc);
 		onFatalError(reason);
 	});
 

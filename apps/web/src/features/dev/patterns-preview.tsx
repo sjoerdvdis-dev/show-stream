@@ -55,8 +55,8 @@ const movies: Movie[] = [
 
 const statuses: (TranscodeStatus | undefined)[] = ['not ready', 'in progress', 'ready', 'failed'];
 
-const played = (title: string) => toast.success(`Play ${title}`);
-const retried = (title: string) => toast.info(`Retry ${title}`);
+const toastPlay = (title: string) => toast.success(`Play ${title}`);
+const toastRetry = (title: string) => toast.info(`Retry ${title}`);
 
 /** Picks which state a pattern shows. */
 const StatePicker = <T extends string>({
@@ -114,8 +114,8 @@ const renderCard = (movie: Movie) => (
 		image={movie.image}
 		status={movie.status}
 		failureReason={movie.failureReason}
-		onPlay={() => played(movie.title)}
-		onRetry={() => retried(movie.title)}
+		onPlay={() => toastPlay(movie.title)}
+		onRetry={() => toastRetry(movie.title)}
 	/>
 );
 
@@ -147,11 +147,11 @@ const Status = () => (
 					key={status}
 					title="Heat"
 					status={status}
-					onPlay={() => played('Heat')}
-					onRetry={() => retried('Heat')}
+					onPlay={() => toastPlay('Heat')}
+					onRetry={() => toastRetry('Heat')}
 				/>
 			))}
-			<PlayButton title="Heat" status="ready" onPlay={() => played('Heat')} disabled />
+			<PlayButton title="Heat" status="ready" onPlay={() => toastPlay('Heat')} disabled />
 		</div>
 		<div className="flex flex-wrap items-center gap-2">
 			{statuses.map((status) => (
@@ -160,8 +160,8 @@ const Status = () => (
 					title="Heat"
 					status={status}
 					size="icon"
-					onPlay={() => played('Heat')}
-					onRetry={() => retried('Heat')}
+					onPlay={() => toastPlay('Heat')}
+					onRetry={() => toastRetry('Heat')}
 				/>
 			))}
 		</div>
@@ -246,8 +246,8 @@ const Hero = () => {
 								<PlayButton
 									title="The Dark Knight"
 									status={status}
-									onPlay={() => played('The Dark Knight')}
-									onRetry={() => retried('The Dark Knight')}
+									onPlay={() => toastPlay('The Dark Knight')}
+									onRetry={() => toastRetry('The Dark Knight')}
 								/>
 								<Button variant="secondary" size="lg">
 									Details
