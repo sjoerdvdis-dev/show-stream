@@ -53,7 +53,9 @@ const isoDate = z
 
 const wholeNumber = (label: string) => z.number({ error: `${label} must be a number` }).int(`${label} must be whole`);
 
-const year = queryNumber(wholeNumber('Year').min(0).max(9999)).optional();
+const year = queryNumber(
+	wholeNumber('Year').min(0, 'Year is from 0 to 9999').max(9999, 'Year is from 0 to 9999'),
+).optional();
 const runtime = queryNumber(wholeNumber('Runtime').min(0, 'Runtime cannot be negative')).optional();
 const rating = queryNumber(
 	z.number({ error: 'Rating must be a number' }).min(0, 'Rating is from 0 to 10').max(10, 'Rating is from 0 to 10'),
@@ -80,7 +82,11 @@ const ranges = [
 const libraryQueryShape = z
 	.strictObject({
 		/** Matches the start of each word in the title, in any order. */
-		q: z.string().trim().max(200, 'Search for at most 200 characters').optional(),
+		q: z
+			.string({ error: 'Search must be text, given once' })
+			.trim()
+			.max(200, 'Search for at most 200 characters')
+			.optional(),
 		sort: librarySortSchema.default('title'),
 		order: sortOrderSchema.default('asc'),
 		yearMin: year,
@@ -91,7 +97,7 @@ const libraryQueryShape = z
 		runtimeMax: runtime,
 		ratingMin: rating,
 		ratingMax: rating,
-		genre: queryList(z.string()).optional(),
+		genre: queryList(z.string({ error: 'Genre must be text' })).optional(),
 		status: queryList(transcodeStatusSchema).optional(),
 		page: queryNumber(wholeNumber('Page').min(1, 'Pages start at 1')).default(1),
 		pageSize: queryNumber(
