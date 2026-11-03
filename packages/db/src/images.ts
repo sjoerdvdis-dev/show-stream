@@ -18,9 +18,11 @@ export const storedImageFolder = (type: MediaType, tmdbId: number) =>
 export const storedImagePath = (type: MediaType, tmdbId: number, kind: ImageKind, format: ImageFormat) =>
 	path.join(storedImageFolder(type, tmdbId), `${kind}.${format}`);
 
-const formatColumns = { poster: media.posterFormat, backdrop: media.backdropFormat } as const;
-
-const formatFields = { poster: 'posterFormat', backdrop: 'backdropFormat' } as const;
+/** The column of `media` that holds the format of each kind of image. */
+const formatFields: Record<ImageKind, 'posterFormat' | 'backdropFormat'> = {
+	poster: 'posterFormat',
+	backdrop: 'backdropFormat',
+};
 
 /** Records that a title's image is stored in this format. */
 export const recordStoredImage = (db: Database, mediaId: number, kind: ImageKind, format: ImageFormat): void => {
@@ -33,7 +35,7 @@ export const recordStoredImage = (db: Database, mediaId: number, kind: ImageKind
 /** The stored image of a title, relative to the media folder, or undefined if none is stored. */
 export const findStoredImage = (db: Database, type: MediaType, tmdbId: number, kind: ImageKind): string | undefined => {
 	const row = db
-		.select({ format: formatColumns[kind] })
+		.select({ format: media[formatFields[kind]] })
 		.from(media)
 		.where(and(eq(media.type, type), eq(media.tmdbId, tmdbId)))
 		.get();
