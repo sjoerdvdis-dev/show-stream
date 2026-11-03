@@ -1,5 +1,5 @@
 import { execFile, spawnSync } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -20,6 +20,7 @@ if (!hasDocker) {
 
 type ComposeService = {
 	image?: string;
+	build?: { context: string; dockerfile: string };
 	ports?: { host_ip?: string; published: string; protocol: string }[];
 	healthcheck?: { test: string[] };
 	depends_on?: Record<string, { condition: string }>;
@@ -46,13 +47,20 @@ const publishedPorts = async (files: string[]) =>
 		)
 		.sort((a, b) => Number(a.published) - Number(b.published));
 
+/** The Caddy image that the `caddy` service's Dockerfile ends on, which needs no build of the app. */
+const caddyImage = async () => {
+	const { build } = (await composeConfig(['docker-compose.yml'])).services.caddy!;
+	const dockerfile = await readFile(path.resolve(build!.context, build!.dockerfile), 'utf8');
+	return [...dockerfile.matchAll(/^FROM\s+(\S+)/gm)].at(-1)![1]!;
+};
+
 const validate = async (environment: Record<string, string>) => {
-	const { image } = (await composeConfig(['docker-compose.yml'])).services.caddy!;
+	const image = await caddyImage();
 	await run('docker', [
 		'run', '--rm',
 		'--volume', `${path.join(root, 'infra/caddy/Caddyfile')}:/etc/caddy/Caddyfile:ro`,
 		...Object.entries(environment).flatMap(([name, value]) => ['--env', `${name}=${value}`]),
-		image!,
+		image,
 		'caddy', 'validate', '--config', '/etc/caddy/Caddyfile', '--adapter', 'caddyfile',
 	]);
 };
@@ -99,7 +107,7 @@ describe.skipIf(!hasDocker)('the Compose stack', () => {
 	it('has a health check on every service', async () => {
 		const { services } = await stack();
 
-		expect(Object.keys(services).sort()).toEqual(['api', 'caddy', 'next-client', 'worker']);
+		expect(Object.keys(services).sort()).toEqual(['api', 'caddy', 'worker']);
 		for (const service of Object.values(services)) {
 			expect(service.healthcheck?.test.length).toBeGreaterThan(0);
 		}
@@ -112,8 +120,15 @@ describe.skipIf(!hasDocker)('the Compose stack', () => {
 			Object.values(depends_on).map(({ condition }) => condition),
 		);
 		expect(new Set(conditions)).toEqual(new Set(['service_healthy']));
-		expect(Object.keys(services.caddy!.depends_on!).sort()).toEqual(['api', 'next-client']);
+		expect(Object.keys(services.caddy!.depends_on!)).toEqual(['api']);
 		expect(Object.keys(services.worker!.depends_on!)).toEqual(['api']);
+	});
+
+	it('builds Caddy with the web app inside it, so that no Node server is on the public path', async () => {
+		const { caddy } = (await stack()).services;
+
+		expect(caddy!.build?.dockerfile).toBe('./apps/web/Dockerfile');
+		expect(await caddyImage()).toMatch(/^caddy:\d+\.\d+\.\d+-alpine$/);
 	});
 
 	it('checks the API on a route that is already public', async () => {

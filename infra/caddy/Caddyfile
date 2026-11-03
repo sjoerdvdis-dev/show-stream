@@ -1,5 +1,6 @@
 # The only public entry to ShowStream. Hosts never edit this file: docker-compose.yml passes
-# SITE_ADDRESS and TLS_MODE from the environment. See docs/guides/self-hosting.md.
+# SITE_ADDRESS and TLS_MODE from the environment. apps/web/Dockerfile builds it into the Caddy
+# image, at /etc/caddy/Caddyfile, beside the app. See docs/guides/self-hosting.md.
 {
 	# The CA belongs on the devices that visit, not inside this container.
 	skip_install_trust
@@ -32,9 +33,8 @@
 {$SITE_ADDRESS:localhost} {
 	import tls-{$TLS_MODE:internal}
 
-	# Video does not compress, and every segment would pay for trying. The Next client asks for
-	# streams under /api.
-	@compressible not path /streams/* /api/streams/*
+	# Video does not compress, and every segment would pay for trying.
+	@compressible not path /streams/*
 	encode @compressible zstd gzip
 
 	# The API serves its routes at the root.
@@ -48,8 +48,43 @@
 		reverse_proxy api:5000
 	}
 
-	# apps/web replaces this with static files in Phase 2.
+	# apps/web, which apps/web/Dockerfile builds into this image. Everything else is the app.
 	handle {
-		reverse_proxy next-client:3000
+		root * /srv
+
+		# No HSTS: docs/PLAN.md section 5.6 says why. The build of apps/web fails unless script-src
+		# holds the hash of each inline script in its index.html, so change that script and this
+		# hash together. Sonner and Base UI insert style elements, which needs 'unsafe-inline' in
+		# style-src. hls.js plays from a blob: URL, and runs its worker from one.
+		header {
+			X-Content-Type-Options nosniff
+			Referrer-Policy same-origin
+			Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-zz4AjMLi52jmBZQ/Laa6IXg1raUp1iCwKaBlZBxGbHg='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		}
+
+		# Vite puts a hash of its content in the name of every file under /assets, so a file that is
+		# there never changes. Everything else, index.html above all, is asked for again each time,
+		# so that a new version shows on the next load.
+		@hashed {
+			path /assets/*
+			file
+		}
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@unhashed not {
+			path /assets/*
+			file
+		}
+		header @unhashed Cache-Control no-cache
+
+		# A missing asset stays a 404 rather than the app.
+		handle /assets/* {
+			file_server
+		}
+
+		# A deep link, such as /movies/550001, loads the app, which shows the page.
+		handle {
+			try_files {path} /index.html
+			file_server
+		}
 	}
 }

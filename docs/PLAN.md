@@ -6,9 +6,9 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns, and is what Caddy serves. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Next:
 
-1. **Phase 2 item 7: switch Caddy to serve `apps/web`** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Phase 2 item 8: delete the Next client** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -42,9 +42,9 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | SQLite and Drizzle | Done. `packages/db` owns the schema and queries, and migrations run at API startup. `pnpm dev` and `pnpm test` need no Docker |
 | Authentication | Done. The API owns sessions and first-run setup, every route needs a session unless the contract marks it public, and sockets are authenticated with per-user rooms |
 | Worker | Done. `apps/worker` runs transcodes, library scans and daily backups from a job queue in SQLite, with recovery, retry and failure reasons. An admin starts a scan and reads its result in Settings. A real TMDB token has not been tried ([section 15](#15-risks-and-unknowns)) |
-| Caddy and HTTPS | Done. Caddy is the only published service, `TLS_MODE` selects `internal`, `public` or `tailscale`, and the browser tests run through it over HTTPS. Only `internal` has been run: the other two pass `caddy validate`, and the maintainer must try them ([section 15](#15-risks-and-unknowns)) |
+| Caddy and HTTPS | Done. Caddy is the only published service, and serves `apps/web` from its own image, with security headers and a `Content-Security-Policy`. `TLS_MODE` selects `internal`, `public` or `tailscale`, and the browser tests run through it over HTTPS. Only `internal` has been run: the other two pass `caddy validate`, and the maintainer must try them ([section 15](#15-risks-and-unknowns)) |
 | Runtime secrets | Done. One optional `.env` at the root reaches the worker at runtime, and `.dockerignore` excludes every env file except the tracked `.env.production` files. `pnpm test:browser` plants fake ones and reads every built image for them |
-| Health checks | Done. All four services have one, and `depends_on` uses `service_healthy`. The API's uses `GET /auth/setup`, so the public route list stays at three |
+| Health checks | Done. All three services have one, and `depends_on` uses `service_healthy`. The API's uses `GET /auth/setup`, so the public route list stays at three |
 | Structured logs | Done. `packages/logger` gives the API and the worker JSON on stdout, `LOG_LEVEL` sets the level, no file is written, and Compose keeps three files of 10 MB per service |
 | `PUID` and `PGID` | Done. Both default to 1000. Tested on fresh volumes with other IDs on the database, cache and backups. An NFS share that refuses the change is not tested |
 | `pnpm audit --prod` | 0 advisories, down from 79 |
@@ -57,7 +57,7 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
 | Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. Every screen of `apps/web` is on them since item 6 |
 | Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web`'s Movies screen uses all of it |
-| `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It runs under `pnpm dev` beside Next, and Caddy still serves Next until item 7. Checked in Chromium, and native HLS in Safari is not tested |
+| `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It runs under `pnpm dev` beside Next, and Caddy serves its build since item 7, which the browser tests drive. Checked in Chromium, and native HLS in Safari is not tested |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
 **Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
@@ -159,7 +159,7 @@ The spike did not test a full app, Base UI beyond a dialog, or browser behavior 
 
 Every primitive of `packages/ui` was checked in Chromium on 2026-11-03 at `/dev/primitives`, against `pnpm dev`, at 390 and 1280 wide, in both themes, by keyboard and with reduced motion. The patterns were checked the same way at `/dev/components` the same day, and `VideoPlayer` played a title the worker had prepared, through `/streams`, with every keyboard shortcut.
 
-Still not tested: the PWA build of a full app, and `apps/web` behind Caddy, which is item 7.
+Still not tested: the PWA build of a full app. `apps/web` behind Caddy is tested since item 7, by `pnpm test:browser`.
 
 ### 4.5 App structure
 
@@ -246,10 +246,11 @@ Only ports 80 and 443 are public, over TCP. Port 80 only redirects to HTTPS. HTT
 |---|---|---|
 | `/api/*` | API | JSON API, with the prefix removed, because the API serves its routes at the root |
 | `/socket/*` | API | Socket.IO, authenticated at the handshake |
-| `/streams/*` | API | HLS, session checked by the API; no response compression. The Next client still asks for `/api/streams/*`, which is not compressed either |
-| Everything else | Static web app | SPA fallback to `index.html`. The Next client until Phase 2 item 7 |
+| `/streams/*` | API | HLS, session checked by the API; no response compression |
+| `/assets/*` | Static web app | Vite's hashed files, cached for a year as `immutable`. A missing one is a 404 |
+| Everything else | Static web app | A file of the build, or else `index.html`, so a deep link loads. Sent with `no-cache`, so an upgrade shows on the next load |
 
-A built Next client has no rewrites, so nothing it serves can reach the API. They exist only under `pnpm dev`, which has no Caddy.
+Caddy's image holds the build of `apps/web`, from `apps/web/Dockerfile`, so no Node server is on the public path. The app's responses send `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` and a `Content-Security-Policy` of `'self'`, with the first-paint script allowed by a hash that `vite build` checks, `'unsafe-inline'` styles for the toasts, `blob:` media and workers for `hls.js`, and `frame-ancestors 'none'`. The Vite proxy exists only under `pnpm dev`, which has no Caddy.
 
 **HTTPS on a home network:** `TLS_MODE` selects the mode, and hosts never edit the Caddyfile. `internal`, the default, needs Caddy's CA trusted on each device. `public` gets certificates automatically for a public domain. `tailscale` fetches a certificate from `tailscaled`, whose socket comes from `docker-compose.tailscale.yml`. Plain HTTP will not support a PWA. See the [self-hosting guide](./guides/self-hosting.md).
 
@@ -291,7 +292,7 @@ show-stream/
 
 | Client | How it works | Key work |
 |---|---|---|
-| Web | Static app served by Caddy | Responsive layouts |
+| Web | Static app, built into Caddy's image and served by it, with an SPA fallback and the policy in [section 5.2](#52-target-architecture) | Responsive layouts |
 | PWA | Same app plus manifest and service worker | Cache the app shell. **Never cache `/streams`.** Add Media Session controls |
 | Electron | Thin shell that asks for a server URL and loads it | `contextIsolation` on, no `nodeIntegration`, navigation limited to the chosen server |
 
@@ -735,7 +736,7 @@ Each phase ends with a working app.
 
 **Status:** done. All 9 items are finished, and no `it.fails` marker remains.
 
-The Next client stays running behind Caddy until Phase 2 replaces it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
+The Next client stayed behind Caddy until Phase 2 item 7 replaced it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
 
 **Done when:** the audit crash cases have passing tests, only 80 and 443 are public, and a fresh `docker compose up` reaches a setup screen. **This is the earliest the app may go on the internet.**
 
@@ -755,7 +756,7 @@ Checked on 2026-11-02:
    - Connecting the notification socket at `/socket`, the path Caddy routes to the API, only once there is a session, and disconnecting it on leaving.
    - Asking for streams at `/streams` rather than `/api/streams`, which Caddy serves too.
 
-   **Status:** done. `apps/web` covers all of the above, with a thin `/movies` and `/watch/$id`, which item 6 replaced. `apps/e2e` stays on Next until item 7 moves it.
+   **Status:** done. `apps/web` covers all of the above, with a thin `/movies` and `/watch/$id`, which item 6 replaced. Item 7 moved `apps/e2e` to it.
 2. Run `/impeccable init`, then add tokens and fonts, with a rendered theme preview for review.
 
    **Status:** done, except the maintainer's review of the preview. `PRODUCT.md` and `DESIGN.md` are at the root, the tokens are in `packages/ui`, and `apps/web` uses them with Geist and a theme provider. Its screens have no raw colors, and their look stays plain until item 6.
@@ -779,11 +780,14 @@ Checked on 2026-11-02:
 
    **Status:** done, in two tickets. The first put the shell, Movies and a movie's page on the patterns, with the failed status, the failure's reason with Retry on the movie's page, the failure toast with Retry from a card and the `transcode:failed` toast. Notifications carry the title's ID, so a toast can play or retry it. The second put the player on `VideoPlayer`, with the title, a way back, the keyboard shortcuts, the 401 path and the status of a title that is not ready, and rebuilt Settings, with the account and Log out, the theme, and the admin's Library section, and Login and Setup, in a card on the field primitives. The thin `/movies` and the bare player from item 1 are gone. Home, Search and Shows were stubs in the Next client, so they were not rebuilt, and wait for Phases 5 and 6. The first ticket was checked in Chromium under the dev servers with a fake TMDB, at 390 and 1280 wide, by keyboard, dark at 1280 and light at 390. The second was checked the same way on 2026-11-03, in both themes at both widths: setup, login with a wrong password, a scan from Settings, playing a prepared title by keyboard, a title prepared from the player's page that started to play when it was ready, a failed title with its reason and Retry, a session ended on the server, which returned to login and back to the player, the theme kept across a reload, logout from Settings, and Settings as a user without the Library section. The browser saw that lost session as a 401 when the player loaded its stream, not in the middle of playback, because the 30-second fixture is buffered in full at once. The jsdom test in `apps/web/test/player.test.tsx` covers a 401 after the stream has started. Safari and native HLS are not tested.
 7. Switch Caddy to serve `apps/web`.
+
+   **Status:** done. `apps/web/Dockerfile` builds the app with the repo's Node and pnpm pins and ends on the pinned Caddy image, with the build and the Caddyfile inside and no Node, and that image is the `caddy` service. Caddy serves the build with an SPA fallback, `immutable` caching for `/assets` and `no-cache` for the rest, and the headers and policy in [section 5.2](#52-target-architecture). The `next-client` service is gone from every Compose file, Caddy waits only for a healthy API, and the `/api/streams` exception from compression is gone. Zod's compiled parsers are off in `apps/web`, because they use `new Function`, which the policy forbids. `apps/e2e` drives `apps/web` through that image: setup, login and the rate limit, the library with art, a filter that survives a reload, the movie page, HLS playback and seek, a failed title with Retry, a socket toast, a scan from Settings and logout, plus the headers, a deep link on reload, and no policy violation in the console. The planted-secret check reads the Caddy image too. Checked by hand on 2026-11-03: a clean copy of the branch, with no `.env` and no setup script, started with `docker compose up --build`, and Chromium reached `/setup` on `apps/web` over HTTPS. The maintainer's own stack held ports 80 and 443 on that host, so the check published Caddy's 443 on `127.0.0.1:8443` through an override, and port 80 was not tried by hand; `pnpm test:browser` covers its redirect. Safari is not tested.
 8. Delete `apps/next-client`, `next`, `swr` and the Next ESLint rules. With them go what only the Next client uses:
    - What item 3 moved from `packages/ui` into the Next client, which leaves with it: the Radix primitives in `apps/next-client/components/ui/` (button, calendar, card, command, dialog, drawer, dropdown-menu, dual-range-slider, form, input, label, popover, radio-group, select, sonner and tooltip), `apps/next-client/lib/utils.ts`, the old stylesheet at `apps/next-client/styles/globals.css`, and `apps/next-client/postcss.config.mjs`.
    - With them, the Next client's Radix packages, except those `cmdk` pulls in for `packages/ui`, and `vaul`, `tailwindcss-animate`, `class-variance-authority`, `clsx`, `tailwind-merge`, `@tailwindcss/postcss`, `lucide-react` 0.477.0 and `react-day-picker` 9, which only it uses.
    - Zain and the `next/font` setup, which leave with `apps/next-client/app/layout.tsx`.
    - `next-themes`, in `apps/next-client`.
+   - `apps/next-client/Dockerfile`, which no Compose file uses since item 7, and the Next client's env files in the planted-secret list of `apps/e2e/run.sh`.
    - The API's endpoints for the Next client, which `/library` replaces: `GET /movies`, `GET /shows` and `GET /movie/:id`, with their entries in `packages/contract`, their response schemas and handlers, and `listMovies` and `listShows` in `packages/db`. Item 6 moved `apps/web` off `GET /movies`. Its movie page still uses `GET /movie/:id`, as the spec for item 6 chose, so this item moves that under `/library` before deleting it.
 
 **Done when:** today's features work on the new patterns in both themes, at phone and desktop widths, and no Next.js code remains.
