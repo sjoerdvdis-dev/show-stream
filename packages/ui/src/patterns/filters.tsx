@@ -56,8 +56,11 @@ export const RangeFilter = ({
 	);
 };
 
-/** A span of calendar days, each an ISO date (`YYYY-MM-DD`). A missing end is open. */
-export type DateRange = { from?: string; to?: string };
+/** A calendar day as an ISO date, `YYYY-MM-DD`. The type keeps out other text; the filter checks the digits. */
+export type IsoDate = `${number}-${number}-${number}`;
+
+/** A span of calendar days. A missing end is open. */
+export type DateRange = { from?: IsoDate; to?: IsoDate };
 
 type DateRangeFilterProps = {
 	label: string;
@@ -66,8 +69,9 @@ type DateRangeFilterProps = {
 	className?: string;
 };
 
-const isoDate = /^\d{4}-\d{2}-\d{2}$/;
-const toRange = (from: string, to: string): DateRange => ({
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+const isIsoDate = (input: string): input is IsoDate => isoDatePattern.test(input);
+const toRange = (from: IsoDate | '', to: IsoDate | ''): DateRange => ({
 	...(from ? { from } : {}),
 	...(to ? { to } : {}),
 });
@@ -78,7 +82,10 @@ const toRange = (from: string, to: string): DateRange => ({
  */
 export const DateRangeFilter = ({ label, value, onChange, className }: DateRangeFilterProps) => {
 	const id = useId();
-	const [draft, setDraft] = useState({ from: value.from ?? '', to: value.to ?? '' });
+	const [draft, setDraft] = useState<Record<'from' | 'to', IsoDate | ''>>({
+		from: value.from ?? '',
+		to: value.to ?? '',
+	});
 	// The range last agreed with the screen, whether it came in as `value` or went out through `onChange`.
 	const [syncedRange, setSyncedRange] = useState(value);
 	// A new value from the screen replaces whatever the user left half-typed.
@@ -90,7 +97,7 @@ export const DateRangeFilter = ({ label, value, onChange, className }: DateRange
 	const errorId = `${id}-error`;
 
 	const change = (end: 'from' | 'to', input: string) => {
-		const next = { ...draft, [end]: isoDate.test(input) ? input : '' };
+		const next = { ...draft, [end]: isIsoDate(input) ? input : '' };
 		setDraft(next);
 		if (next.from && next.to && next.from > next.to) return;
 		const range = toRange(next.from, next.to);
