@@ -35,11 +35,14 @@ const withDatabase = <T>(databasePath: string, use: (db: Database) => T): T => {
 	}
 };
 
-const movieRow = (id: number, title: string) => ({
+/** TMDB fields of a seeded movie, such as `runtime` or `genres`, which win over the defaults. */
+export type MovieDetails = Record<string, unknown>;
+
+const movieRow = (id: number, title: string, details: MovieDetails = {}) => ({
 	tmdbId: id,
 	path: `movies/${title} (2024)`,
 	metadata: {
-		details: { id, title, release_date: '2024-01-01' },
+		details: { id, title, release_date: '2024-01-01', ...details },
 		credits: { cast: [], crew: [] },
 		images: { posters: [], backdrops: [], logos: [] },
 	} as unknown as MovieMetadata,
@@ -51,8 +54,13 @@ const movieRow = (id: number, title: string) => ({
  * This file is the only place that touches the database directly, because a scan needs
  * TMDB, only setup creates a user, and no route shows a session's row.
  */
-export const seedMovie = async (api: TestApi, id: number, title = `Movie ${id}`): Promise<SeededMovie> => {
-	const movie = movieRow(id, title);
+export const seedMovie = async (
+	api: TestApi,
+	id: number,
+	title = `Movie ${id}`,
+	details: MovieDetails = {},
+): Promise<SeededMovie> => {
+	const movie = movieRow(id, title, details);
 	await mkdir(path.join(api.mediaFolder, movie.path), { recursive: true });
 
 	withDatabase(api.databasePath, (db) => saveMovie(db, movie));
