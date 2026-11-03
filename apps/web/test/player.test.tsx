@@ -42,7 +42,8 @@ vi.mock('hls.js', () => ({ default: fakeHls.Class }));
 
 /**
  * jsdom has no playback, so a video here keeps whether it plays and tells its listeners, as a
- * browser does. Muting is jsdom's own.
+ * browser does. Muting and volume are jsdom's own. jsdom has no layout either, and Base UI keeps a
+ * slider's thumb hidden until it has a size, so every element gets one.
  */
 const playing = new WeakSet<HTMLMediaElement>();
 const media = HTMLMediaElement.prototype;
@@ -50,6 +51,7 @@ const original = {
 	paused: Object.getOwnPropertyDescriptor(media, 'paused')!,
 	play: media.play,
 	pause: media.pause,
+	getBoundingClientRect: HTMLElement.prototype.getBoundingClientRect,
 };
 
 beforeAll(() => {
@@ -68,12 +70,14 @@ beforeAll(() => {
 		playing.delete(this);
 		this.dispatchEvent(new Event('pause'));
 	};
+	HTMLElement.prototype.getBoundingClientRect = () => DOMRect.fromRect({ width: 100, height: 20 });
 });
 
 afterAll(() => {
 	Object.defineProperty(media, 'paused', original.paused);
 	media.play = original.play;
 	media.pause = original.pause;
+	HTMLElement.prototype.getBoundingClientRect = original.getBoundingClientRect;
 });
 
 beforeEach(() => {
@@ -99,7 +103,7 @@ describe('the player', () => {
 		expect(back.getAttribute('href')).toBe('/movies/7');
 	});
 
-	it('plays, pauses and mutes by keyboard', async () => {
+	it('plays, pauses, lowers the volume and mutes by keyboard', async () => {
 		startFakeApi({ signedIn: true, movies: [readyMovie] });
 		const user = userEvent.setup();
 
@@ -110,8 +114,13 @@ describe('the player', () => {
 		expect(controls().getByRole('button', { name: 'Pause' })).toBeTruthy();
 		await user.keyboard(' ');
 		expect(controls().getByRole('button', { name: 'Play' })).toBeTruthy();
+		const volume = controls().getByRole('slider', { name: 'Volume' });
+		expect(volume.getAttribute('aria-valuenow')).toBe('100');
+		await user.keyboard('{ArrowDown}');
+		expect(volume.getAttribute('aria-valuenow')).toBe('90');
 		await user.keyboard('m');
 		expect(controls().getByRole('button', { name: 'Unmute' })).toBeTruthy();
+		expect(volume.getAttribute('aria-valuenow')).toBe('0');
 	});
 
 	it('returns to login on a 401 from a stream', async () => {
