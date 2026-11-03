@@ -1,6 +1,8 @@
-import { screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startFakeApi } from './support/fake-api';
+import { fakeSocket } from './support/fake-socket';
 import { currentPath, findLoginPage, openApp, returnPath } from './support/render-app';
 
 /** Stands in for hls.js, which needs a real browser. Playback itself is checked in one. */
@@ -38,30 +40,82 @@ const fakeHls = vi.hoisted(() => {
 
 vi.mock('hls.js', () => ({ default: fakeHls.Class }));
 
+/**
+ * jsdom has no playback, so a video here keeps whether it plays and tells its listeners, as a
+ * browser does. Muting is jsdom's own.
+ */
+const playing = new WeakSet<HTMLMediaElement>();
+const media = HTMLMediaElement.prototype;
+const original = {
+	paused: Object.getOwnPropertyDescriptor(media, 'paused')!,
+	play: media.play,
+	pause: media.pause,
+};
+
+beforeAll(() => {
+	Object.defineProperty(media, 'paused', {
+		configurable: true,
+		get(this: HTMLMediaElement) {
+			return !playing.has(this);
+		},
+	});
+	media.play = function (this: HTMLMediaElement) {
+		playing.add(this);
+		this.dispatchEvent(new Event('play'));
+		return Promise.resolve();
+	};
+	media.pause = function (this: HTMLMediaElement) {
+		playing.delete(this);
+		this.dispatchEvent(new Event('pause'));
+	};
+});
+
+afterAll(() => {
+	Object.defineProperty(media, 'paused', original.paused);
+	media.play = original.play;
+	media.pause = original.pause;
+});
+
 beforeEach(() => {
 	fakeHls.url = undefined;
+	fakeHls.config = undefined;
 	fakeHls.destroyed = 0;
 });
 
+const readyMovie = { id: 7, title: 'Demo Movie', status: 'ready' as const };
+
+const controls = () => within(screen.getByRole('group', { name: 'Player controls' }));
+
 describe('the player', () => {
-	it('asks for the playlist at /streams', async () => {
-		startFakeApi({ signedIn: true });
+	it('plays a ready title from /streams, with its name and a way back to its page', async () => {
+		startFakeApi({ signedIn: true, movies: [readyMovie] });
 
 		openApp('/watch/7');
 
+		expect(await screen.findByRole('heading', { level: 1, name: 'Demo Movie' })).toBeTruthy();
 		await waitFor(() => expect(fakeHls.url).toBe('/streams/7/playlist.m3u8'));
+		expect(fakeHls.config?.debug).toBe(true);
+		const back = within(screen.getByRole('main')).getByRole('link', { name: 'Movie details' });
+		expect(back.getAttribute('href')).toBe('/movies/7');
 	});
 
-	it('says so when a title is not prepared', async () => {
-		startFakeApi({ signedIn: true });
+	it('plays, pauses and mutes by keyboard', async () => {
+		startFakeApi({ signedIn: true, movies: [readyMovie] });
+		const user = userEvent.setup();
 
-		openApp('/watch/404');
+		openApp('/watch/7');
+		await screen.findByRole('group', { name: 'Player controls' });
 
-		expect((await screen.findByRole('alert')).textContent).toBe('This title is not ready to play.');
+		await user.keyboard('k');
+		expect(controls().getByRole('button', { name: 'Pause' })).toBeTruthy();
+		await user.keyboard(' ');
+		expect(controls().getByRole('button', { name: 'Play' })).toBeTruthy();
+		await user.keyboard('m');
+		expect(controls().getByRole('button', { name: 'Unmute' })).toBeTruthy();
 	});
 
 	it('returns to login on a 401 from a stream', async () => {
-		const api = startFakeApi({ signedIn: true });
+		const api = startFakeApi({ signedIn: true, movies: [readyMovie] });
 
 		openApp('/watch/7');
 		await waitFor(() => expect(fakeHls.url).toBeDefined());
@@ -75,12 +129,63 @@ describe('the player', () => {
 	});
 
 	it('says so when a stream fails for another reason', async () => {
-		startFakeApi({ signedIn: true });
+		startFakeApi({ signedIn: true, movies: [readyMovie] });
 
 		openApp('/watch/7');
 		await waitFor(() => expect(fakeHls.url).toBeDefined());
-		fakeHls.fail({ fatal: true, response: { code: 500 } });
+		fakeHls.fail({ fatal: true, details: 'manifestLoadError', response: { code: 500 } });
 
-		expect((await screen.findByRole('alert')).textContent).toBe('This title could not be played.');
+		expect((await screen.findByRole('alert')).textContent).toContain('This title could not be played.');
+	});
+
+	it('shows the status of a title that is not ready, and prepares it with Play', async () => {
+		const api = startFakeApi({ signedIn: true, movies: [{ id: 7, title: 'Demo Movie' }] });
+		const user = userEvent.setup();
+
+		openApp('/watch/7');
+
+		expect(await screen.findByRole('heading', { name: 'Demo Movie is not ready to play' })).toBeTruthy();
+		expect(screen.getByText('Not ready')).toBeTruthy();
+		expect(fakeHls.url).toBeUndefined();
+
+		await user.click(screen.getByRole('button', { name: 'Play Demo Movie' }));
+
+		expect(await screen.findByRole('button', { name: 'Preparing Demo Movie' })).toBeTruthy();
+		expect(api.playRequests.get(7)).toBe(1);
+	});
+
+	it('starts to play a title being prepared once it is ready', async () => {
+		const api = startFakeApi({ signedIn: true, movies: [{ id: 7, title: 'Demo Movie', status: 'in progress' }] });
+
+		openApp('/watch/7');
+		expect(await screen.findByRole('button', { name: 'Preparing Demo Movie' })).toBeTruthy();
+
+		api.movies[0]!.status = 'ready';
+		fakeSocket.receive('notification', { type: 'transcode:ready', data: { id: 7, title: 'Demo Movie' } });
+
+		await waitFor(() => expect(fakeHls.url).toBe('/streams/7/playlist.m3u8'));
+		expect(screen.queryByRole('heading', { name: 'Demo Movie is not ready to play' })).toBeNull();
+	});
+
+	it('shows why a failed title failed, with Retry', async () => {
+		startFakeApi({
+			signedIn: true,
+			movies: [{ id: 7, title: 'Demo Movie', status: 'failed', failureReason: 'Invalid data found' }],
+		});
+
+		openApp('/watch/7');
+
+		expect(await screen.findByRole('heading', { name: 'Demo Movie is not ready to play' })).toBeTruthy();
+		expect(screen.getAllByText('Invalid data found').length).toBeGreaterThan(0);
+		expect(screen.getByRole('button', { name: 'Retry Demo Movie' })).toBeTruthy();
+	});
+
+	it('says so when the title is not in the library', async () => {
+		startFakeApi({ signedIn: true });
+
+		openApp('/watch/7');
+
+		expect(await screen.findByRole('heading', { name: 'This movie is not in the library' })).toBeTruthy();
+		expect(fakeHls.url).toBeUndefined();
 	});
 });

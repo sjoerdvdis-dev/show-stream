@@ -1,12 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@workspace/api-client';
 import type { MovieMetadata } from '@workspace/contract/api-types';
-import { buttonVariants } from '@workspace/ui/components/button';
-import { AppLink } from '@workspace/ui/patterns/link';
 import { MediaHero } from '@workspace/ui/patterns/media-hero';
 import { BackLink, PageContainer } from '@workspace/ui/patterns/page';
-import { EmptyState } from '@workspace/ui/patterns/states';
 import { PlayButton } from '@workspace/ui/patterns/status';
+import { MovieNotFound } from '@/features/library/movie-not-found';
 import { movieQuery } from '@/features/library/movies';
 import { usePlay, useRetry } from '@/features/library/use-play';
 import { movieImageUrl } from '@/lib/api';
@@ -32,21 +30,7 @@ export const MovieDetail = ({ id }: { id: number }) => {
 	const play = usePlay();
 	const retry = useRetry();
 
-	if (error instanceof ApiError && error.code === 'not_found') {
-		return (
-			<PageContainer>
-				<EmptyState
-					title="This movie is not in the library"
-					description="It may have been removed, or the link may be wrong."
-					action={
-						<AppLink href="/movies" className={buttonVariants()}>
-							Browse movies
-						</AppLink>
-					}
-				/>
-			</PageContainer>
-		);
-	}
+	if (error instanceof ApiError && error.code === 'not_found') return <MovieNotFound />;
 
 	const back = (
 		<PageContainer className="pb-0 md:pb-0">

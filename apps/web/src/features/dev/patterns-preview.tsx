@@ -21,7 +21,7 @@ import { ConfirmDialog, SettingsSection } from '@workspace/ui/patterns/settings'
 import { EmptyState, ErrorState, LoadingGrid } from '@workspace/ui/patterns/states';
 import { PlayButton, StatusBadge } from '@workspace/ui/patterns/status';
 import { VideoPlayer } from '@workspace/ui/patterns/video-player';
-import { playlistQuery } from '@/features/player/player';
+import { playlistQuery } from '@/features/player/queries';
 import poster from './poster.svg';
 import { Section } from './section';
 

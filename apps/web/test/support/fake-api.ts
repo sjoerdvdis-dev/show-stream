@@ -225,7 +225,7 @@ export const startFakeApi = (state: Partial<FakeApi> = {}) => {
 		}),
 		http.get('/api/transcode/playlist/:id', ({ params }) => {
 			if (!api.signedIn) return unauthorized();
-			if (params.id === '404') {
+			if (findMovie(params.id)?.status !== 'ready') {
 				return HttpResponse.json({ code: 'not_found', message: 'Transcoding not found' }, { status: 404 });
 			}
 			return HttpResponse.json({ playlistUrl: `/streams/${String(params.id)}/playlist.m3u8` });
