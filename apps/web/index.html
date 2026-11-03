@@ -16,7 +16,10 @@
 				if (theme !== 'dark' && theme !== 'light') {
 					theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 				}
-				document.documentElement.classList.toggle('dark', theme === 'dark');
+				var root = document.documentElement;
+				root.classList.toggle('dark', theme === 'dark');
+				// Paints the canvas in the theme before the stylesheet arrives.
+				root.style.colorScheme = theme;
 			})();
 		</script>
 	</head>

@@ -133,10 +133,20 @@
 		border-color: var(--color-border);
 	}
 
+	html {
+		accent-color: var(--color-primary);
+		caret-color: var(--color-primary);
+		scrollbar-color: var(--color-border) transparent;
+	}
+
 	body {
 		background-color: var(--color-background);
 		color: var(--color-foreground);
 		font-family: var(--font-sans);
+	}
+
+	::selection {
+		background-color: color-mix(in oklab, var(--color-primary) 30%, transparent);
 	}
 
 	:focus-visible {

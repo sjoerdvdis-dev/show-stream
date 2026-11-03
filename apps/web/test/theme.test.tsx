@@ -30,7 +30,21 @@ const openPage = () =>
 		</ThemeProvider>,
 	);
 
-const looksDark = () => document.documentElement.classList.contains('dark');
+/**
+ * Whether the page is dark. The class picks the tokens, and `color-scheme` paints the canvas and
+ * the browser's own controls, which show before the stylesheet arrives, so the two must agree.
+ */
+const looksDark = () => {
+	const root = document.documentElement;
+	const dark = root.classList.contains('dark');
+	expect(root.style.colorScheme).toBe(dark ? 'dark' : 'light');
+	return dark;
+};
+
+const resetPage = () => {
+	document.documentElement.className = '';
+	document.documentElement.removeAttribute('style');
+};
 
 let system: ReturnType<typeof fakeColorScheme>;
 
@@ -41,7 +55,7 @@ beforeEach(() => {
 afterEach(() => {
 	system.restore();
 	localStorage.clear();
-	document.documentElement.className = '';
+	resetPage();
 });
 
 describe('the theme', () => {
@@ -67,7 +81,7 @@ describe('the theme', () => {
 		expect(looksDark()).toBe(true);
 
 		page.unmount();
-		document.documentElement.className = '';
+		resetPage();
 		openPage();
 
 		expect(screen.getByText('Theme: dark')).toBeTruthy();
@@ -126,7 +140,6 @@ describe('the theme before first paint', () => {
 		if (!script) {
 			throw new Error('index.html has no inline script');
 		}
-		// eslint-disable-next-line @typescript-eslint/no-implied-eval -- runs the shipped script as the browser would
 		new Function(script)();
 	};
 

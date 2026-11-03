@@ -39,9 +39,11 @@ type ThemeContext = {
 
 const ThemeContext = createContext<ThemeContext | null>(null);
 
-/** Keeps the theme choice, and puts the `dark` class on `<html>` when the page should be dark. */
+/**
+ * Keeps the theme choice, and puts the `dark` class and the matching `color-scheme` on `<html>`.
+ */
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-	const [theme, setThemeState] = useState(readStoredTheme);
+	const [theme, setTheme] = useState(readStoredTheme);
 	const [systemScheme] = useState(() => window.matchMedia(darkQuery));
 	const systemDark = useSyncExternalStore(
 		(onChange) => {
@@ -54,7 +56,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 	const resolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
 
 	useLayoutEffect(() => {
-		document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+		const root = document.documentElement;
+		root.classList.toggle('dark', resolvedTheme === 'dark');
+		// As the script in `index.html` does. It wins over the stylesheet, so it must follow the choice.
+		root.style.colorScheme = resolvedTheme;
 	}, [resolvedTheme]);
 
 	const value = useMemo(
@@ -63,7 +68,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 			resolvedTheme,
 			setTheme: (next: Theme) => {
 				storeTheme(next);
-				setThemeState(next);
+				setTheme(next);
 			},
 		}),
 		[theme, resolvedTheme],
