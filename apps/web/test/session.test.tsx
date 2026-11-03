@@ -1,9 +1,11 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { startFakeApi } from './support/fake-api';
 import { fakeSocket } from './support/fake-socket';
 import { currentPath, findLoginPage, findMoviesPage, logIn, openApp, returnPath } from './support/render-app';
+
+const backToMovies = () => within(screen.getByRole('main')).getByRole('link', { name: 'Movies' });
 
 describe('a 401 from a data call', () => {
 	it('returns to login with the return path, and keeps nothing', async () => {
@@ -13,12 +15,12 @@ describe('a 401 from a data call', () => {
 		// The library is cached once it has loaded, so leaving it and coming back would show it again.
 		openApp('/movies');
 		await user.click(await screen.findByRole('link', { name: 'First Movie' }));
-		await screen.findByRole('link', { name: 'Back to Movies' });
+		await screen.findByRole('heading', { level: 1, name: 'First Movie' });
 
 		// The session ends, and going back asks for the library again.
 		api.signedIn = false;
 		api.movies = [{ id: 2, title: 'Second Movie' }];
-		await user.click(screen.getByRole('link', { name: 'Back to Movies' }));
+		await user.click(backToMovies());
 
 		await findLoginPage();
 		expect(currentPath()).toBe('/login');
@@ -48,11 +50,11 @@ describe('a 401 from a data call', () => {
 
 		openApp('/movies');
 		await user.click(await screen.findByRole('link', { name: 'First Movie' }));
-		await screen.findByRole('link', { name: 'Back to Movies' });
+		await screen.findByRole('heading', { level: 1, name: 'First Movie' });
 		expect(fakeSocket.isOpen).toBe(true);
 
 		api.signedIn = false;
-		await user.click(screen.getByRole('link', { name: 'Back to Movies' }));
+		await user.click(backToMovies());
 
 		await findLoginPage();
 		expect(fakeSocket.isOpen).toBe(false);
@@ -105,7 +107,7 @@ describe('the notification socket', () => {
 
 		openApp('/movies');
 		await findMoviesPage();
-		fakeSocket.receive('notification', { type: 'transcode:ready', data: { title: 'Demo Movie' } });
+		fakeSocket.receive('notification', { type: 'transcode:ready', data: { id: 7, title: 'Demo Movie' } });
 
 		expect(await screen.findByText('Playback for Demo Movie is ready!')).toBeTruthy();
 	});
@@ -117,7 +119,7 @@ describe('the notification socket', () => {
 		await findMoviesPage();
 		fakeSocket.receive('notification', {
 			type: 'transcode:failed',
-			data: { title: 'Corrupt Movie', error: 'Invalid data found' },
+			data: { id: 8, title: 'Corrupt Movie', error: 'Invalid data found' },
 		});
 
 		expect(await screen.findByText('Playback preparation for Corrupt Movie failed.')).toBeTruthy();
@@ -130,7 +132,8 @@ describe('the notification socket', () => {
 		openApp('/movies');
 		await findMoviesPage();
 		fakeSocket.receive('notification', { type: 'unknown' });
+		await screen.findByRole('heading', { name: 'No movies yet' });
 
-		expect(screen.queryByRole('status')).toBeNull();
+		expect(document.querySelector('[data-sonner-toast]')).toBeNull();
 	});
 });

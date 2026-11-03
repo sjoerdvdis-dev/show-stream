@@ -1,4 +1,5 @@
 import { cleanup, configure } from '@testing-library/react';
+import { toast } from 'sonner';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { server } from './support/fake-api';
 import { resetFakeSocket } from './support/fake-socket';
@@ -15,6 +16,9 @@ configure({ asyncUtilTimeout: 15_000 });
 // Sonner and the router ask for these, and jsdom does not have them.
 window.matchMedia = () => new EventTarget() as MediaQueryList;
 window.scrollTo = () => {};
+// A toast captures the pointer to follow a swipe, which jsdom cannot.
+Element.prototype.setPointerCapture = () => {};
+Element.prototype.releasePointerCapture = () => {};
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 
@@ -24,6 +28,8 @@ beforeEach(() => {
 
 afterEach(() => {
 	cleanup();
+	// Sonner keeps its toasts in the module, and shows them again to the next test's Toaster.
+	toast.dismiss();
 	server.resetHandlers();
 });
 
