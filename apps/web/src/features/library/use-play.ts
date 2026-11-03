@@ -10,7 +10,21 @@ type Title = { id: number; title: string };
 export const actionToastMs = 10_000;
 
 /** A failure's reason can be a long ffmpeg message. The toast shows its start, and the title's page all of it. */
-export const reasonClassNames = { description: 'line-clamp-3' };
+const reasonClassNames = { description: 'line-clamp-3' };
+
+/**
+ * Says a title could not be prepared, with the reason, and a Retry action when there is a title to
+ * retry. Play and the notifications both show it.
+ */
+export const toastTranscodeFailed = (title: string, reason: string | undefined, onRetry?: () => void) => {
+	toast.error(`Playback preparation for ${title} failed.`, {
+		description: reason,
+		classNames: reasonClassNames,
+		closeButton: true,
+		duration: actionToastMs,
+		action: onRetry ? { label: 'Retry', onClick: onRetry } : undefined,
+	});
+};
 
 /** A 401 already went to `onSessionLost`, through the query client, so it needs no toast. */
 const toastFailure = (message: string, error: Error) => {
@@ -51,13 +65,7 @@ export const usePlay = () => {
 				return;
 			}
 			if (status === 'failed') {
-				toast.error(`Playback preparation for ${title.title} failed.`, {
-					description: error,
-					classNames: reasonClassNames,
-					closeButton: true,
-					duration: actionToastMs,
-					action: { label: 'Retry', onClick: () => retry(title) },
-				});
+				toastTranscodeFailed(title.title, error, () => retry(title));
 				return;
 			}
 			toast.info(`Preparing ${title.title} for playback. You will be told when it is ready.`, {

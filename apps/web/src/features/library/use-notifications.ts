@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { apiNotificationSchema, type APINotification } from '@workspace/contract/api-types';
 import { libraryKey } from '@/features/library/use-library-list';
-import { actionToastMs, reasonClassNames, useRetry } from '@/features/library/use-play';
+import { actionToastMs, toastTranscodeFailed, useRetry } from '@/features/library/use-play';
 import { openSocket } from '@/lib/socket';
 
 /**
@@ -37,13 +37,7 @@ export const useNotifications = () => {
 				});
 				return;
 			}
-			toast.error(`Playback preparation for ${title} failed.`, {
-				description: notification.data.error,
-				classNames: reasonClassNames,
-				closeButton: true,
-				duration: actionToastMs,
-				action: id === null ? undefined : { label: 'Retry', onClick: () => retry({ id, title }) },
-			});
+			toastTranscodeFailed(title, notification.data.error, id === null ? undefined : () => retry({ id, title }));
 		};
 	});
 
