@@ -1,0 +1,640 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-11-03T06:43:47.651Z",
+	"title": "Design System: ShowStream",
+	"extensions": {
+		"colorMeta": {
+			"dark-background": {
+				"role": "neutral",
+				"displayName": "Projection Black",
+				"canonical": "oklch(0.145 0.012 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0024 265)",
+					"oklch(0.27 0.0051 265)",
+					"oklch(0.39 0.0087 265)",
+					"oklch(0.51 0.012 265)",
+					"oklch(0.63 0.0111 265)",
+					"oklch(0.75 0.0075 265)",
+					"oklch(0.87 0.0039 265)",
+					"oklch(0.95 0.0024 265)"
+				]
+			},
+			"dark-card": {
+				"role": "neutral",
+				"displayName": "Stage Gray (dark)",
+				"canonical": "oklch(0.185 0.014 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0028 265)",
+					"oklch(0.27 0.0059 265)",
+					"oklch(0.39 0.0102 265)",
+					"oklch(0.51 0.014 265)",
+					"oklch(0.63 0.0129 265)",
+					"oklch(0.75 0.0088 265)",
+					"oklch(0.87 0.0046 265)",
+					"oklch(0.95 0.0028 265)"
+				]
+			},
+			"dark-popover": {
+				"role": "neutral",
+				"displayName": "Stage Gray (dark)",
+				"canonical": "oklch(0.205 0.015 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.003 265)",
+					"oklch(0.27 0.0064 265)",
+					"oklch(0.39 0.0109 265)",
+					"oklch(0.51 0.015 265)",
+					"oklch(0.63 0.0139 265)",
+					"oklch(0.75 0.0094 265)",
+					"oklch(0.87 0.0049 265)",
+					"oklch(0.95 0.003 265)"
+				]
+			},
+			"dark-muted": {
+				"role": "neutral",
+				"displayName": "Stage Gray (dark)",
+				"canonical": "oklch(0.225 0.015 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.003 265)",
+					"oklch(0.27 0.0064 265)",
+					"oklch(0.39 0.0109 265)",
+					"oklch(0.51 0.015 265)",
+					"oklch(0.63 0.0139 265)",
+					"oklch(0.75 0.0094 265)",
+					"oklch(0.87 0.0049 265)",
+					"oklch(0.95 0.003 265)"
+				]
+			},
+			"dark-secondary": {
+				"role": "neutral",
+				"displayName": "Stage Gray (dark)",
+				"canonical": "oklch(0.255 0.016 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0032 265)",
+					"oklch(0.27 0.0068 265)",
+					"oklch(0.39 0.0116 265)",
+					"oklch(0.51 0.016 265)",
+					"oklch(0.63 0.0148 265)",
+					"oklch(0.75 0.01 265)",
+					"oklch(0.87 0.0052 265)",
+					"oklch(0.95 0.0032 265)"
+				]
+			},
+			"dark-border": {
+				"role": "neutral",
+				"displayName": "Seam Gray (dark)",
+				"canonical": "oklch(0.32 0.016 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0032 265)",
+					"oklch(0.27 0.0068 265)",
+					"oklch(0.39 0.0116 265)",
+					"oklch(0.51 0.016 265)",
+					"oklch(0.63 0.0148 265)",
+					"oklch(0.75 0.01 265)",
+					"oklch(0.87 0.0052 265)",
+					"oklch(0.95 0.0032 265)"
+				]
+			},
+			"dark-foreground": {
+				"role": "neutral",
+				"displayName": "Screen White (dark)",
+				"canonical": "oklch(0.97 0.004 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0008 265)",
+					"oklch(0.27 0.0017 265)",
+					"oklch(0.39 0.0029 265)",
+					"oklch(0.51 0.004 265)",
+					"oklch(0.63 0.0037 265)",
+					"oklch(0.75 0.0025 265)",
+					"oklch(0.87 0.0013 265)",
+					"oklch(0.95 0.0008 265)"
+				]
+			},
+			"dark-muted-foreground": {
+				"role": "neutral",
+				"displayName": "Credits Gray (dark)",
+				"canonical": "oklch(0.74 0.014 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0028 265)",
+					"oklch(0.27 0.0059 265)",
+					"oklch(0.39 0.0102 265)",
+					"oklch(0.51 0.014 265)",
+					"oklch(0.63 0.0129 265)",
+					"oklch(0.75 0.0088 265)",
+					"oklch(0.87 0.0046 265)",
+					"oklch(0.95 0.0028 265)"
+				]
+			},
+			"dark-primary": {
+				"role": "primary",
+				"displayName": "Marquee Amber (dark)",
+				"canonical": "oklch(0.8 0.145 70)",
+				"tonalRamp": [
+					"oklch(0.15 0.029 70)",
+					"oklch(0.27 0.0616 70)",
+					"oklch(0.39 0.1051 70)",
+					"oklch(0.51 0.145 70)",
+					"oklch(0.63 0.1341 70)",
+					"oklch(0.75 0.0906 70)",
+					"oklch(0.87 0.0471 70)",
+					"oklch(0.95 0.029 70)"
+				]
+			},
+			"dark-primary-foreground": {
+				"role": "neutral",
+				"displayName": "Marquee Amber ink (dark)",
+				"canonical": "oklch(0.2 0.04 60)",
+				"tonalRamp": [
+					"oklch(0.15 0.008 60)",
+					"oklch(0.27 0.017 60)",
+					"oklch(0.39 0.029 60)",
+					"oklch(0.51 0.04 60)",
+					"oklch(0.63 0.037 60)",
+					"oklch(0.75 0.025 60)",
+					"oklch(0.87 0.013 60)",
+					"oklch(0.95 0.008 60)"
+				]
+			},
+			"dark-destructive": {
+				"role": "status",
+				"displayName": "Red Alert (dark)",
+				"canonical": "oklch(0.68 0.19 25)",
+				"tonalRamp": [
+					"oklch(0.15 0.038 25)",
+					"oklch(0.27 0.0808 25)",
+					"oklch(0.39 0.1378 25)",
+					"oklch(0.51 0.19 25)",
+					"oklch(0.63 0.1757 25)",
+					"oklch(0.75 0.1187 25)",
+					"oklch(0.87 0.0618 25)",
+					"oklch(0.95 0.038 25)"
+				]
+			},
+			"dark-destructive-foreground": {
+				"role": "neutral",
+				"displayName": "Red Alert ink (dark)",
+				"canonical": "oklch(0.16 0.03 25)",
+				"tonalRamp": [
+					"oklch(0.15 0.006 25)",
+					"oklch(0.27 0.0127 25)",
+					"oklch(0.39 0.0218 25)",
+					"oklch(0.51 0.03 25)",
+					"oklch(0.63 0.0277 25)",
+					"oklch(0.75 0.0187 25)",
+					"oklch(0.87 0.0097 25)",
+					"oklch(0.95 0.006 25)"
+				]
+			},
+			"dark-success": {
+				"role": "status",
+				"displayName": "Green Light (dark)",
+				"canonical": "oklch(0.76 0.15 155)",
+				"tonalRamp": [
+					"oklch(0.15 0.03 155)",
+					"oklch(0.27 0.0638 155)",
+					"oklch(0.39 0.1088 155)",
+					"oklch(0.51 0.15 155)",
+					"oklch(0.63 0.1387 155)",
+					"oklch(0.75 0.0938 155)",
+					"oklch(0.87 0.0488 155)",
+					"oklch(0.95 0.03 155)"
+				]
+			},
+			"dark-warning": {
+				"role": "status",
+				"displayName": "Amber Signal (dark)",
+				"canonical": "oklch(0.84 0.15 90)",
+				"tonalRamp": [
+					"oklch(0.15 0.03 90)",
+					"oklch(0.27 0.0638 90)",
+					"oklch(0.39 0.1088 90)",
+					"oklch(0.51 0.15 90)",
+					"oklch(0.63 0.1387 90)",
+					"oklch(0.75 0.0938 90)",
+					"oklch(0.87 0.0488 90)",
+					"oklch(0.95 0.03 90)"
+				]
+			},
+			"dark-info": {
+				"role": "status",
+				"displayName": "Cool Blue (dark)",
+				"canonical": "oklch(0.74 0.12 240)",
+				"tonalRamp": [
+					"oklch(0.15 0.024 240)",
+					"oklch(0.27 0.051 240)",
+					"oklch(0.39 0.087 240)",
+					"oklch(0.51 0.12 240)",
+					"oklch(0.63 0.111 240)",
+					"oklch(0.75 0.075 240)",
+					"oklch(0.87 0.039 240)",
+					"oklch(0.95 0.024 240)"
+				]
+			},
+			"light-background": {
+				"role": "neutral",
+				"displayName": "Paper Gray",
+				"canonical": "oklch(0.985 0.002 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0004 265)",
+					"oklch(0.27 0.0008 265)",
+					"oklch(0.39 0.0015 265)",
+					"oklch(0.51 0.002 265)",
+					"oklch(0.63 0.0018 265)",
+					"oklch(0.75 0.0013 265)",
+					"oklch(0.87 0.0007 265)",
+					"oklch(0.95 0.0004 265)"
+				]
+			},
+			"light-card": {
+				"role": "neutral",
+				"displayName": "Stage Gray (light)",
+				"canonical": "oklch(1 0 265)",
+				"tonalRamp": [
+					"oklch(0.15 0 265)",
+					"oklch(0.27 0 265)",
+					"oklch(0.39 0 265)",
+					"oklch(0.51 0 265)",
+					"oklch(0.63 0 265)",
+					"oklch(0.75 0 265)",
+					"oklch(0.87 0 265)",
+					"oklch(0.95 0 265)"
+				]
+			},
+			"light-popover": {
+				"role": "neutral",
+				"displayName": "Stage Gray (light)",
+				"canonical": "oklch(1 0 265)",
+				"tonalRamp": [
+					"oklch(0.15 0 265)",
+					"oklch(0.27 0 265)",
+					"oklch(0.39 0 265)",
+					"oklch(0.51 0 265)",
+					"oklch(0.63 0 265)",
+					"oklch(0.75 0 265)",
+					"oklch(0.87 0 265)",
+					"oklch(0.95 0 265)"
+				]
+			},
+			"light-muted": {
+				"role": "neutral",
+				"displayName": "Stage Gray (light)",
+				"canonical": "oklch(0.955 0.005 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.001 265)",
+					"oklch(0.27 0.0021 265)",
+					"oklch(0.39 0.0036 265)",
+					"oklch(0.51 0.005 265)",
+					"oklch(0.63 0.0046 265)",
+					"oklch(0.75 0.0031 265)",
+					"oklch(0.87 0.0016 265)",
+					"oklch(0.95 0.001 265)"
+				]
+			},
+			"light-secondary": {
+				"role": "neutral",
+				"displayName": "Stage Gray (light)",
+				"canonical": "oklch(0.945 0.005 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.001 265)",
+					"oklch(0.27 0.0021 265)",
+					"oklch(0.39 0.0036 265)",
+					"oklch(0.51 0.005 265)",
+					"oklch(0.63 0.0046 265)",
+					"oklch(0.75 0.0031 265)",
+					"oklch(0.87 0.0016 265)",
+					"oklch(0.95 0.001 265)"
+				]
+			},
+			"light-border": {
+				"role": "neutral",
+				"displayName": "Seam Gray (light)",
+				"canonical": "oklch(0.895 0.007 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0014 265)",
+					"oklch(0.27 0.003 265)",
+					"oklch(0.39 0.0051 265)",
+					"oklch(0.51 0.007 265)",
+					"oklch(0.63 0.0065 265)",
+					"oklch(0.75 0.0044 265)",
+					"oklch(0.87 0.0023 265)",
+					"oklch(0.95 0.0014 265)"
+				]
+			},
+			"light-foreground": {
+				"role": "neutral",
+				"displayName": "Screen White (light)",
+				"canonical": "oklch(0.2 0.015 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.003 265)",
+					"oklch(0.27 0.0064 265)",
+					"oklch(0.39 0.0109 265)",
+					"oklch(0.51 0.015 265)",
+					"oklch(0.63 0.0139 265)",
+					"oklch(0.75 0.0094 265)",
+					"oklch(0.87 0.0049 265)",
+					"oklch(0.95 0.003 265)"
+				]
+			},
+			"light-muted-foreground": {
+				"role": "neutral",
+				"displayName": "Credits Gray (light)",
+				"canonical": "oklch(0.47 0.016 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0032 265)",
+					"oklch(0.27 0.0068 265)",
+					"oklch(0.39 0.0116 265)",
+					"oklch(0.51 0.016 265)",
+					"oklch(0.63 0.0148 265)",
+					"oklch(0.75 0.01 265)",
+					"oklch(0.87 0.0052 265)",
+					"oklch(0.95 0.0032 265)"
+				]
+			},
+			"light-primary": {
+				"role": "primary",
+				"displayName": "Marquee Amber (light)",
+				"canonical": "oklch(0.5 0.115 60)",
+				"tonalRamp": [
+					"oklch(0.15 0.023 60)",
+					"oklch(0.27 0.0489 60)",
+					"oklch(0.39 0.0834 60)",
+					"oklch(0.51 0.115 60)",
+					"oklch(0.63 0.1064 60)",
+					"oklch(0.75 0.0719 60)",
+					"oklch(0.87 0.0374 60)",
+					"oklch(0.95 0.023 60)"
+				]
+			},
+			"light-primary-foreground": {
+				"role": "neutral",
+				"displayName": "Marquee Amber ink (light)",
+				"canonical": "oklch(0.985 0.01 70)",
+				"tonalRamp": [
+					"oklch(0.15 0.002 70)",
+					"oklch(0.27 0.0043 70)",
+					"oklch(0.39 0.0073 70)",
+					"oklch(0.51 0.01 70)",
+					"oklch(0.63 0.0092 70)",
+					"oklch(0.75 0.0063 70)",
+					"oklch(0.87 0.0033 70)",
+					"oklch(0.95 0.002 70)"
+				]
+			},
+			"light-destructive": {
+				"role": "status",
+				"displayName": "Red Alert (light)",
+				"canonical": "oklch(0.52 0.19 27)",
+				"tonalRamp": [
+					"oklch(0.15 0.038 27)",
+					"oklch(0.27 0.0808 27)",
+					"oklch(0.39 0.1378 27)",
+					"oklch(0.51 0.19 27)",
+					"oklch(0.63 0.1757 27)",
+					"oklch(0.75 0.1187 27)",
+					"oklch(0.87 0.0618 27)",
+					"oklch(0.95 0.038 27)"
+				]
+			},
+			"light-destructive-foreground": {
+				"role": "neutral",
+				"displayName": "Red Alert ink (light)",
+				"canonical": "oklch(0.985 0.005 27)",
+				"tonalRamp": [
+					"oklch(0.15 0.001 27)",
+					"oklch(0.27 0.0021 27)",
+					"oklch(0.39 0.0036 27)",
+					"oklch(0.51 0.005 27)",
+					"oklch(0.63 0.0046 27)",
+					"oklch(0.75 0.0031 27)",
+					"oklch(0.87 0.0016 27)",
+					"oklch(0.95 0.001 27)"
+				]
+			},
+			"light-success": {
+				"role": "status",
+				"displayName": "Green Light (light)",
+				"canonical": "oklch(0.47 0.105 155)",
+				"tonalRamp": [
+					"oklch(0.15 0.021 155)",
+					"oklch(0.27 0.0446 155)",
+					"oklch(0.39 0.0761 155)",
+					"oklch(0.51 0.105 155)",
+					"oklch(0.63 0.0971 155)",
+					"oklch(0.75 0.0656 155)",
+					"oklch(0.87 0.0341 155)",
+					"oklch(0.95 0.021 155)"
+				]
+			},
+			"light-warning": {
+				"role": "status",
+				"displayName": "Amber Signal (light)",
+				"canonical": "oklch(0.5 0.105 75)",
+				"tonalRamp": [
+					"oklch(0.15 0.021 75)",
+					"oklch(0.27 0.0446 75)",
+					"oklch(0.39 0.0761 75)",
+					"oklch(0.51 0.105 75)",
+					"oklch(0.63 0.0971 75)",
+					"oklch(0.75 0.0656 75)",
+					"oklch(0.87 0.0341 75)",
+					"oklch(0.95 0.021 75)"
+				]
+			},
+			"light-info": {
+				"role": "status",
+				"displayName": "Cool Blue (light)",
+				"canonical": "oklch(0.48 0.115 245)",
+				"tonalRamp": [
+					"oklch(0.15 0.023 245)",
+					"oklch(0.27 0.0489 245)",
+					"oklch(0.39 0.0834 245)",
+					"oklch(0.51 0.115 245)",
+					"oklch(0.63 0.1064 245)",
+					"oklch(0.75 0.0719 245)",
+					"oklch(0.87 0.0374 245)",
+					"oklch(0.95 0.023 245)"
+				]
+			},
+			"overlay": {
+				"role": "neutral",
+				"displayName": "Scrim",
+				"canonical": "oklch(0.145 0.012 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0024 265)",
+					"oklch(0.27 0.0051 265)",
+					"oklch(0.39 0.0087 265)",
+					"oklch(0.51 0.012 265)",
+					"oklch(0.63 0.0111 265)",
+					"oklch(0.75 0.0075 265)",
+					"oklch(0.87 0.0039 265)",
+					"oklch(0.95 0.0024 265)"
+				]
+			},
+			"overlay-foreground": {
+				"role": "neutral",
+				"displayName": "Scrim text",
+				"canonical": "oklch(0.97 0.004 265)",
+				"tonalRamp": [
+					"oklch(0.15 0.0008 265)",
+					"oklch(0.27 0.0017 265)",
+					"oklch(0.39 0.0029 265)",
+					"oklch(0.51 0.004 265)",
+					"oklch(0.63 0.0037 265)",
+					"oklch(0.75 0.0025 265)",
+					"oklch(0.87 0.0013 265)",
+					"oklch(0.95 0.0008 265)"
+				]
+			}
+		},
+		"typographyMeta": {
+			"display": {
+				"displayName": "Display",
+				"purpose": "A page title on a large screen."
+			},
+			"headline": {
+				"displayName": "Headline",
+				"purpose": "The heading of a single-purpose page, such as login and setup."
+			},
+			"title": {
+				"displayName": "Title",
+				"purpose": "Section headings."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "Running text and form fields."
+			},
+			"label": {
+				"displayName": "Label",
+				"purpose": "Buttons, field labels and metadata."
+			},
+			"mono": {
+				"displayName": "Mono",
+				"purpose": "Codecs, resolutions, timecodes and paths."
+			}
+		},
+		"shadows": [],
+		"motion": [],
+		"breakpoints": [
+			{
+				"name": "sm",
+				"value": "640px"
+			},
+			{
+				"name": "lg",
+				"value": "1024px"
+			}
+		]
+	},
+	"components": [
+		{
+			"name": "Primary Button",
+			"kind": "button",
+			"refersTo": "button-primary",
+			"description": "The main action of a screen, such as Play. One per screen.",
+			"html": "<button class=\"ds-btn-primary\">Play</button>",
+			"css": ".ds-btn-primary { background: var(--primary); color: var(--primary-foreground); font: 500 0.875rem/1.43 'Geist Variable', ui-sans-serif, system-ui, sans-serif; padding: 0.5rem 0.75rem; border: none; border-radius: calc(var(--radius) - 2px); cursor: pointer; } .ds-btn-primary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; cursor: default; }"
+		},
+		{
+			"name": "Secondary Button",
+			"kind": "button",
+			"refersTo": "button-secondary",
+			"description": "Other actions.",
+			"html": "<button class=\"ds-btn-secondary\">Add to list</button>",
+			"css": ".ds-btn-secondary { background: var(--secondary); color: var(--secondary-foreground); font: 500 0.875rem/1.43 'Geist Variable', ui-sans-serif, system-ui, sans-serif; padding: 0.5rem 0.75rem; border: none; border-radius: calc(var(--radius) - 2px); cursor: pointer; } .ds-btn-secondary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.6; cursor: default; } .ds-btn-secondary:hover { background: var(--muted); }"
+		},
+		{
+			"name": "Outline Button",
+			"kind": "button",
+			"description": "A quiet alternative action.",
+			"html": "<button class=\"ds-btn-outline\">Details</button>",
+			"css": ".ds-btn-outline { background: var(--background); color: var(--foreground); font: 500 0.875rem/1.43 'Geist Variable', ui-sans-serif, system-ui, sans-serif; padding: 0.5rem 0.75rem; border: none; border-radius: calc(var(--radius) - 2px); cursor: pointer; border: 1px solid var(--border); } .ds-btn-outline:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; } .ds-btn-outline:disabled { opacity: 0.6; cursor: default; }"
+		},
+		{
+			"name": "Destructive Button",
+			"kind": "button",
+			"refersTo": "button-destructive",
+			"description": "Only for what cannot be undone.",
+			"html": "<button class=\"ds-btn-destructive\">Delete</button>",
+			"css": ".ds-btn-destructive { background: var(--destructive); color: var(--destructive-foreground); font: 500 0.875rem/1.43 'Geist Variable', ui-sans-serif, system-ui, sans-serif; padding: 0.5rem 0.75rem; border: none; border-radius: calc(var(--radius) - 2px); cursor: pointer; } .ds-btn-destructive:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; } .ds-btn-destructive:disabled { opacity: 0.6; cursor: default; }"
+		},
+		{
+			"name": "Text Field",
+			"kind": "input",
+			"refersTo": "input",
+			"description": "A labelled field with its error message.",
+			"html": "<label class=\"ds-field\"><span>Username</span><input class=\"ds-input\" aria-invalid=\"true\" value=\"a\"><span class=\"ds-field-error\">A username has at least 3 characters.</span></label>",
+			"css": ".ds-field { display: flex; flex-direction: column; gap: 0.25rem; color: var(--foreground); font: 400 1rem/1.5 'Geist Variable', ui-sans-serif, sans-serif; } .ds-input { font: inherit; color: inherit; background: transparent; border: 1px solid var(--input); border-radius: calc(var(--radius) - 2px); padding: 0.5rem 0.75rem; } .ds-input:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; } .ds-input[aria-invalid='true'] { border-color: var(--destructive); } .ds-field-error { color: var(--destructive); font-size: 0.875rem; }"
+		},
+		{
+			"name": "Card",
+			"kind": "card",
+			"refersTo": "card",
+			"description": "A raised panel: one tonal step up, a border, no shadow.",
+			"html": "<div class=\"ds-card\"><p class=\"ds-card-title\">The Dark Knight (2008)</p><p class=\"ds-card-meta\">2h 32m · Action, Crime</p></div>",
+			"css": ".ds-card { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; font-family: 'Geist Variable', ui-sans-serif, sans-serif; } .ds-card-title { font-weight: 600; margin: 0; } .ds-card-meta { color: var(--muted-foreground); font-size: 0.875rem; margin: 0.5rem 0 0; }"
+		},
+		{
+			"name": "Poster with scrim",
+			"kind": "custom",
+			"description": "Text over artwork sits on the overlay at 75% or stronger.",
+			"html": "<figure class=\"ds-poster\"><figcaption class=\"ds-poster-caption\"><strong>The Dark Knight</strong><span>2008 · 2h 32m</span></figcaption></figure>",
+			"css": ".ds-poster { position: relative; aspect-ratio: 2 / 3; width: 12rem; margin: 0; border-radius: var(--radius); overflow: hidden; background: linear-gradient(var(--warning), var(--primary)); } .ds-poster-caption { position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; padding: 3rem 0.75rem 0.75rem; color: var(--overlay-foreground); background: linear-gradient(to top, color-mix(in oklab, var(--overlay) 90%, transparent), color-mix(in oklab, var(--overlay) 75%, transparent) 50%, transparent); font: 400 0.875rem/1.43 'Geist Variable', ui-sans-serif, sans-serif; }"
+		}
+	],
+	"narrative": {
+		"northStar": "The Darkened Cinema",
+		"overview": "The room goes dark so that the screen can glow. ShowStream's interface is a cool, near-black frame around posters and backdrops, which supply all the color a screen needs. One warm amber, like the lights of a cinema marquee, marks the action that matters. Everything else steps back: tonal surfaces instead of shadows, muted text for metadata, and status colors only where a status is real.\n\nDark is the first theme, and light is complete rather than an afterthought. The theme follows the system unless the user picks one, and it applies before the first paint, so a reload never flashes.\n\nThe interface is an operating tool: people browse a library and press Play. Precision and consistency matter more than expression, and the brand lives in the accent, the type and the quiet.",
+		"keyCharacteristics": [
+			"A cool neutral base at hue 265, in both themes.",
+			"One warm accent, used for the main action, links and focus.",
+			"Depth through tonal layers, never shadows.",
+			"Geist Sans for the interface and Geist Mono for technical data, served by the install itself.",
+			"Contrast checked by a test: 7:1 for body text on the page, 4.5:1 for every other text pair, 3:1 for status and focus."
+		],
+		"rules": [
+			{
+				"name": "The One Warm Light Rule",
+				"body": "`primary` is the only warm color in the chrome. Use it for the main action of a screen and for focus, not for decoration, so that the eye finds Play first.",
+				"section": "colors"
+			},
+			{
+				"name": "The Poster Owns the Color Rule",
+				"body": "Surfaces stay neutral at hue 265. Color comes from artwork, and from status only when there is a status to report.",
+				"section": "colors"
+			},
+			{
+				"name": "The One Place Rule",
+				"body": "The accent is the block marked \"The accent\" in `tokens.css`. Change it there, and `ring` and every accent use follow. The contrast test checks the result.",
+				"section": "colors"
+			},
+			{
+				"name": "The Mono Means Data Rule",
+				"body": "Geist Mono is for measured values only, never for a \"technical\" look.",
+				"section": "typography"
+			},
+			{
+				"name": "The Tonal Lift Rule",
+				"body": "To raise a surface, move it one step up the neutral scale and give it a border. Never add a shadow.",
+				"section": "elevation"
+			},
+			{
+				"name": "The Scrim Rule",
+				"body": "Text over a poster sits on `overlay` at 75% or stronger, usually as a gradient from the bottom. At 75% over a white poster, `overlay-foreground` still reads at 4.5:1, which the contrast test checks. `overlay` at 25% only dims art, and carries no text.",
+				"section": "elevation"
+			}
+		],
+		"dos": [
+			"**Do** use the semantic utilities, such as `bg-card`, `text-muted-foreground` and `border-border`, for every color.",
+			"**Do** keep one `primary` action per screen.",
+			"**Do** show status with `success`, `warning`, `info` or `destructive`, paired with a word or icon, never color alone.",
+			"**Do** put text over artwork on `overlay` at 75% or stronger.",
+			"**Do** check new screens in both themes, at 390px and 1280px, by keyboard."
+		],
+		"donts": [
+			"**Don't** use raw colors such as `text-red-500`, hex values or `bg-black` in `apps/web`. A test fails on them.",
+			"**Don't** add shadows. Raise a surface with a tonal step and a border.",
+			"**Don't** add a second accent or tint surfaces with color.",
+			"**Don't** load fonts from a CDN. They ship with the app.",
+			"**Don't** set a `dark` class on anything but `<html>`, except to preview a theme. The theme provider owns it."
+		]
+	}
+}

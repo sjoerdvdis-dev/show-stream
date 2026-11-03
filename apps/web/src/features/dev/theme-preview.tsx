@@ -344,8 +344,8 @@ export const ThemePreview = () => {
 			<header className="flex flex-col gap-4">
 				<h1 className="text-3xl font-semibold tracking-tight">Theme preview</h1>
 				<p className="max-w-prose text-muted-foreground">
-					Every token in <code className="font-mono text-sm">@workspace/ui/tokens.css</code>, in the theme chosen
-					here. Only <code className="font-mono text-sm">pnpm dev</code> serves this page.
+					Every token in <code className="font-mono text-sm">@workspace/ui/tokens.css</code>, in the theme chosen here.
+					Only <code className="font-mono text-sm">pnpm dev</code> serves this page.
 				</p>
 				<ThemeSwitch />
 			</header>
@@ -357,7 +357,10 @@ export const ThemePreview = () => {
 					<TextOnSurfaces />
 				</div>
 			</Section>
-			<Section title="Actions" description="The accent is for the main action on a screen, and destructive for what cannot be undone.">
+			<Section
+				title="Actions"
+				description="The accent is for the main action on a screen, and destructive for what cannot be undone."
+			>
 				<Actions />
 			</Section>
 			<Section title="Status" description="Success, warning, info and destructive, on the page and on a card.">
@@ -368,7 +371,10 @@ export const ThemePreview = () => {
 					<FocusRings />
 				</div>
 			</Section>
-			<Section title="Overlay on a poster" description="The overlay is dark in both themes, because it sits over artwork.">
+			<Section
+				title="Overlay on a poster"
+				description="The overlay is dark in both themes, because it sits over artwork."
+			>
 				<Overlays />
 			</Section>
 			<Section title="Fonts">
