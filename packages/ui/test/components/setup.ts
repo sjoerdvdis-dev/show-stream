@@ -7,6 +7,14 @@ HTMLElement.prototype.getBoundingClientRect = function () {
 	return DOMRect.fromRect({ width: 100, height: 20 });
 };
 
+// cmdk asks for these, and jsdom does not have them.
+globalThis.ResizeObserver ??= class {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+};
+Element.prototype.scrollIntoView ??= () => {};
+
 afterEach(() => {
 	cleanup();
 });
