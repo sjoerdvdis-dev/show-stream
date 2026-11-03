@@ -21,7 +21,7 @@ It needs Node.js 26. Everything else it installs itself. `pnpm dev` runs the API
 
 1. Pick an issue, or open one first for anything large. Issues labelled `ready-for-agent` or `ready-for-human` are ready to start.
 2. Branch from `main`, named `type/short-description`, such as `fix/seek-crash`.
-3. Commit as `type: summary`, in the imperative. Types in use are `feat`, `fix`, `chore`, `ci` and `docs`.
+3. Commit as `type: summary`, in the imperative. Types in use are `feat`, `fix`, `refactor`, `test`, `build`, `chore`, `ci` and `docs`.
 4. Run the checks:
 
    ```bash
