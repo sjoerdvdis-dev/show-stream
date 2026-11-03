@@ -5,7 +5,7 @@ The static React SPA that replaces `apps/next-client`. `pnpm dev` serves it besi
 | Folder | Holds |
 |---|---|
 | `src/routes/` | File-based routes. Thin: guards and wiring only. `_app` is the signed-in layout |
-| `src/features/` | `auth`, `library`, `player` and `settings`, and `dev` for `/dev/components`. `library` holds the generic list hook and screen, the movie source, Play and Retry, and the notifications. `player` holds `/watch/$id` and the playlist query. `settings` holds the Account, Appearance and Library sections |
+| `src/features/` | `auth`, `library`, `player` and `settings`, and `dev` for `/dev/components`. `library` holds the generic list hook and screen, the movie source, Play and Retry, and the notifications. `player` holds `/watch/$id` and the playlist query. `settings` holds the Account, Appearance and Library sections, and the scan query |
 | `src/lib/` | The API client, the query client, the socket, the theme provider, the router's search serializer, `devOnly` for dev-only routes, `RouterLink` for the patterns, and `app.tsx`, which wires the router and query client |
 | `test/` | Vitest with `@testing-library/react` and `msw`, on the real router and query client |
 

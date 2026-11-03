@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@workspace/api-client';
 import type { Scan, ScanCounts } from '@workspace/contract/api-types';
 import { Button } from '@workspace/ui/components/button';
@@ -10,19 +10,8 @@ import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { libraryKey } from '@/features/library/use-library-list';
+import { isActive, scanQuery } from '@/features/settings/queries';
 import { api, isUnauthorized } from '@/lib/api';
-
-/** How often the latest scan is asked for while it is queued or running. Nothing else polls. */
-const refreshWhileActiveMs = 1000;
-
-const isActive = (scan: Scan | null | undefined) => scan?.status === 'queued' || scan?.status === 'running';
-
-/** The latest scan, asked for again every second while it is active, and not otherwise. */
-export const scanQuery = queryOptions({
-	queryKey: ['scan'],
-	queryFn: () => api.scanStatus(),
-	refetchInterval: ({ state }) => (isActive(state.data?.scan) ? refreshWhileActiveMs : false),
-});
 
 const countLabels: [keyof ScanCounts, string][] = [
 	['found', 'Found'],
