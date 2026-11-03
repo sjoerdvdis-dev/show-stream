@@ -1,5 +1,5 @@
 import { Blocks, LayoutTemplate, Palette } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { AppShell } from '@workspace/ui/patterns/app-shell';
 import { LinkProvider, type LinkComponent } from '@workspace/ui/patterns/link';
 import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
@@ -36,6 +36,13 @@ const subscribeToHash = (onChange: () => void) => {
 export const ComponentsPreview = () => {
 	const hash = useSyncExternalStore(subscribeToHash, () => window.location.hash);
 	const items = layers.map(({ id, label, icon }) => ({ href: `#${id}`, label, icon, active: hash === `#${id}` }));
+
+	// The page loads lazily, after the browser looked for the hash, so scroll to it once it is here.
+	useEffect(() => {
+		if (window.location.hash) {
+			document.getElementById(window.location.hash.slice(1))?.scrollIntoView();
+		}
+	}, []);
 
 	return (
 		<LinkProvider component={HashLink}>
