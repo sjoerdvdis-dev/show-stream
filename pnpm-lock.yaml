@@ -683,6 +683,9 @@ importers:
       '@fontsource-variable/geist-mono':
         specifier: ^5.3.0
         version: 5.3.0
+      '@workspace/contract':
+        specifier: workspace:*
+        version: link:../contract
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

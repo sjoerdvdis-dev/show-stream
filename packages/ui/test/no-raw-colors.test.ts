@@ -3,7 +3,7 @@ import path from 'node:path';
 import { expect, it } from 'vitest';
 
 /**
- * Primitives take their colors from the tokens in `src/styles/tokens.css`, as `bg-popover` or
+ * Primitives and patterns take their colors from the tokens in `src/styles/tokens.css`, as `bg-popover` or
  * `bg-overlay/10`, so that both themes and the contrast test cover them. Upstream shadcn sometimes
  * writes `bg-black` or `bg-white`, which this catches after a `shadcn add`.
  */
@@ -17,7 +17,7 @@ const rawColors = [
 ];
 
 const root = path.resolve(import.meta.dirname, '..');
-const sources = ['components', 'hooks', 'lib'].flatMap((folder) =>
+const sources = ['components', 'hooks', 'lib', 'patterns'].flatMap((folder) =>
 	readdirSync(path.join(root, 'src', folder))
 		.filter((file) => /\.tsx?$/.test(file))
 		.map((file) => path.join('src', folder, file)),
@@ -26,6 +26,7 @@ const sources = ['components', 'hooks', 'lib'].flatMap((folder) =>
 it('finds the sources it checks', () => {
 	expect(sources).toContain(path.join('src', 'components', 'dialog.tsx'));
 	expect(sources).toContain(path.join('src', 'hooks', 'use-mobile.ts'));
+	expect(sources).toContain(path.join('src', 'patterns', 'states.tsx'));
 });
 
 it.each(sources)('%s uses no raw colors', (file) => {
