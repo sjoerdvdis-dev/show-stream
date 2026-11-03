@@ -7,7 +7,7 @@ import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
 import { EmptyState, ErrorState, LoadingStatus } from '@workspace/ui/patterns/states';
 import { PlayButton, StatusBadge } from '@workspace/ui/patterns/status';
 import { VideoPlayer } from '@workspace/ui/patterns/video-player';
-import { CircleDashed } from 'lucide-react';
+import { CircleAlert, CircleDashed, LoaderCircle, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { MovieNotFound } from '@/features/library/movie-not-found';
 import { movieQuery } from '@/features/library/movies';
@@ -24,11 +24,14 @@ const Stage = ({ children }: { children: ReactNode }) => (
 	</div>
 );
 
-const notReadyText: Record<Exclude<TranscodeStatus, 'ready'>, string> = {
-	'not ready': 'It has not been prepared for playback yet. Play prepares it, and you are told when it is ready.',
-	'in progress': 'It is being prepared for playback. It plays here once it is ready.',
-	failed: 'Preparing it failed. Retry prepares it again.',
-};
+const notReadyStates = {
+	'not ready': {
+		icon: CircleDashed,
+		text: 'It has not been prepared for playback yet. Play prepares it, and you are told when it is ready.',
+	},
+	'in progress': { icon: LoaderCircle, text: 'It is being prepared for playback. It plays here once it is ready.' },
+	failed: { icon: CircleAlert, text: 'Preparing it failed. Retry prepares it again.' },
+} satisfies Record<Exclude<TranscodeStatus, 'ready'>, { icon: LucideIcon; text: string }>;
 
 type NotReadyProps = {
 	id: number;
@@ -47,11 +50,11 @@ const NotReady = ({ id, title, status, failureReason }: NotReadyProps) => {
 	return (
 		<Stage>
 			<EmptyState
-				icon={CircleDashed}
+				icon={notReadyStates[status].icon}
 				title={`${title} is not ready to play`}
 				description={
 					<>
-						{notReadyText[status]}
+						{notReadyStates[status].text}
 						{reason ? <span className="mt-2 block break-words text-foreground">{reason}</span> : null}
 					</>
 				}
