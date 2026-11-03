@@ -136,7 +136,11 @@ describe('the library section', () => {
 
 		expect(await library.findByText('The scan is waiting for the worker.')).toBeTruthy();
 		expect(api.scanRequests).toBe(1);
-		expect((library.getByRole('button', { name: 'Scan library' }) as HTMLButtonElement).disabled).toBe(true);
+		const busy = library.getByRole('button', { name: 'Scan library' }) as HTMLButtonElement;
+		expect(busy.disabled).toBe(true);
+		expect(busy.getAttribute('aria-busy')).toBe('true');
+		// The scan's own status speaks for it, so the button's spinner adds none.
+		expect(within(busy).queryByRole('status')).toBeNull();
 
 		api.scan = { ...api.scan!, status: 'running' };
 		expect(await library.findByText('Scanning the library.')).toBeTruthy();

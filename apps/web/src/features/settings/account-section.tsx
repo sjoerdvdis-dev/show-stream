@@ -1,7 +1,8 @@
 import type { User } from '@workspace/contract/api-types';
 import { Button } from '@workspace/ui/components/button';
+import { Spinner } from '@workspace/ui/components/spinner';
 import { SettingsSection } from '@workspace/ui/patterns/settings';
-import { LoaderCircle, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useLogout } from '@/features/auth/use-logout';
 
 /** Who is signed in, and Log out, which ends the session for this browser. */
@@ -24,7 +25,7 @@ export const AccountSection = ({ user }: { user: User }) => {
 				onClick={() => logout.mutate()}
 			>
 				{logout.isPending ? (
-					<LoaderCircle aria-hidden="true" data-icon="inline-start" className="animate-spin" />
+					<Spinner aria-hidden="true" data-icon="inline-start" />
 				) : (
 					<LogOut aria-hidden="true" data-icon="inline-start" />
 				)}

@@ -3,9 +3,10 @@ import { ApiError } from '@workspace/api-client';
 import type { Scan, ScanCounts } from '@workspace/contract/api-types';
 import { Button } from '@workspace/ui/components/button';
 import { Skeleton } from '@workspace/ui/components/skeleton';
+import { Spinner } from '@workspace/ui/components/spinner';
 import { SettingsSection } from '@workspace/ui/patterns/settings';
 import { ErrorState, LoadingStatus } from '@workspace/ui/patterns/states';
-import { LoaderCircle, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { libraryKey } from '@/features/library/use-library-list';
@@ -131,7 +132,7 @@ export const LibrarySection = () => {
 				onClick={() => start.mutate()}
 			>
 				{busy ? (
-					<LoaderCircle aria-hidden="true" data-icon="inline-start" className="motion-safe:animate-spin" />
+					<Spinner aria-hidden="true" data-icon="inline-start" />
 				) : (
 					<RefreshCw aria-hidden="true" data-icon="inline-start" />
 				)}

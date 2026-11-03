@@ -6,7 +6,7 @@ import { endpoints, minimumPasswordLength } from '@workspace/contract/endpoints'
 import { Button } from '@workspace/ui/components/button';
 import { Input } from '@workspace/ui/components/input';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@workspace/ui/components/field';
-import { LoaderCircle } from 'lucide-react';
+import { Spinner } from '@workspace/ui/components/spinner';
 import type { z } from 'zod';
 import { sessionQuery } from '@/features/auth/queries';
 import { api } from '@/lib/api';
@@ -90,7 +90,7 @@ export const CredentialsForm = ({ mode, onDone }: { mode: keyof typeof modes; on
 				</Field>
 				{errors.root ? <FieldError>{errors.root.message}</FieldError> : null}
 				<Button type="submit" size="lg" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
-					{isSubmitting ? <LoaderCircle aria-hidden="true" data-icon="inline-start" className="animate-spin" /> : null}
+					{isSubmitting ? <Spinner aria-hidden="true" data-icon="inline-start" /> : null}
 					{label}
 				</Button>
 			</FieldGroup>

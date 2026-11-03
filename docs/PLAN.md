@@ -546,7 +546,7 @@ One family: Geist Sans for UI and Geist Mono for technical data, self-hosted thr
 
 ### 9.5 Components
 
-**Primitives kept:** all 16 moved to Base UI, except `form`, which the base styles replace with `field`. **Added:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar, and `textarea` and `input-group`, which `command` needs. `/dev/components` shows them all. Done in item 3.
+**Primitives kept:** all 16 moved to Base UI, except `form`, which the base styles replace with `field`. **Added:** badge, skeleton, tabs, sheet, sidebar, separator, scroll-area, slider, progress, switch, checkbox, alert-dialog, table, avatar, spinner, and `textarea` and `input-group`, which `command` needs. `/dev/components` shows them all. Done in item 3, except `spinner`, which item 6 added for busy buttons.
 
 | Pattern | Replaces | Used by |
 |---|---|---|
