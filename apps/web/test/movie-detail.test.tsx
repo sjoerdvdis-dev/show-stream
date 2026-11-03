@@ -77,6 +77,16 @@ describe("a movie's page", () => {
 		expect(screen.getByRole('link', { name: 'Browse movies' })).toBeTruthy();
 	});
 
+	it.each(['/movies/abc', '/watch/abc'])('shows %s, whose id is not a number, as not found', async (path) => {
+		startFakeApi({ signedIn: true, movies: [heat] });
+
+		openApp(path);
+
+		expect(await screen.findByText('This page does not exist.')).toBeTruthy();
+		expect(screen.getByRole('link', { name: 'Go to the library' })).toBeTruthy();
+		expect(screen.queryByText('Could not reach the server.')).toBeNull();
+	});
+
 	it('offers to try again when it cannot load', async () => {
 		const api = startFakeApi({ signedIn: true, movies: [heat], libraryFails: true });
 		const user = userEvent.setup();
