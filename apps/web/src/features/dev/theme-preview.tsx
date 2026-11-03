@@ -1,12 +1,10 @@
 import { useSyncExternalStore, type ReactNode } from 'react';
 import poster from './poster.svg';
-import { ThemeSwitch } from './theme-switch';
+import { Section } from './section';
 
 /**
- * Every token from `@workspace/ui/tokens.css`, rendered for review. Dev only: the route at
- * `/dev/theme` uses this only under `pnpm dev`, so a build leaves it out. Keep this module free of
- * top-level side effects, or the build keeps them.
- * Phase 2 item 4 folds it into `/dev/components`.
+ * Every token from `@workspace/ui/tokens.css`, rendered for review on `/dev/components`, which
+ * only `pnpm dev` serves. Keep this module free of top-level side effects, or the build keeps them.
  */
 
 const tokenGroups: { title: string; tokens: string[] }[] = [
@@ -94,21 +92,11 @@ const useTokenValues = (): Record<string, string> => {
 	return Object.fromEntries(tokenNames.map((name) => [name, style.getPropertyValue(`--${name}`).trim()]));
 };
 
-const Section = ({ title, description, children }: { title: string; description?: string; children: ReactNode }) => (
-	<section className="flex flex-col gap-4" aria-label={title}>
-		<div className="flex flex-col gap-1">
-			<h2 className="text-xl font-semibold">{title}</h2>
-			{description ? <p className="max-w-prose text-sm text-muted-foreground">{description}</p> : null}
-		</div>
-		{children}
-	</section>
-);
-
 const Swatches = ({ values }: { values: Record<string, string> }) => (
 	<div className="flex flex-col gap-6">
 		{tokenGroups.map(({ title, tokens }) => (
 			<div key={title} className="flex flex-col gap-2">
-				<h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+				<h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
 				<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 					{tokens.map((name) => (
 						<li key={name} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
@@ -308,19 +296,11 @@ const Radius = ({ value }: { value?: string }) => (
 	</div>
 );
 
-export const ThemePreview = () => {
+export const ThemeSection = () => {
 	const values = useTokenValues();
 
 	return (
-		<main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-8">
-			<header className="flex flex-col gap-4">
-				<h1 className="text-3xl font-semibold tracking-tight">Theme preview</h1>
-				<p className="max-w-prose text-muted-foreground">
-					Every token in <code className="font-mono text-sm">@workspace/ui/tokens.css</code>, in the theme chosen here.
-					Only <code className="font-mono text-sm">pnpm dev</code> serves this page.
-				</p>
-				<ThemeSwitch />
-			</header>
+		<>
 			<Section title="Tokens">
 				<Swatches values={values} />
 			</Section>
@@ -355,6 +335,6 @@ export const ThemePreview = () => {
 			<Section title="Radius">
 				<Radius value={values.radius} />
 			</Section>
-		</main>
+		</>
 	);
 };
