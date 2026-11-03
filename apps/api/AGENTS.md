@@ -10,6 +10,8 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - Only `src/config.ts` reads the environment.
 - Log with the `logger` in `src/log.ts`, which writes JSON to stdout. `console` is only for what happens before it exists, which is a bad configuration.
 - The database is reached only through `@workspace/db`, with the `db` from `src/db.ts`. Never import Drizzle or `better-sqlite3`.
+- Library lists and facets come from `listLibrary` and `libraryFacets` in `@workspace/db`, which search, filter, sort and page in SQL. Never load the library to work on it in JavaScript.
+- Stored art is served by `findStoredImage`, whose path comes from the title and the kind of image alone. Never build a file path from request input, and send files with `res.sendFile` and a `root`, as streams and images do.
 - ffmpeg and TMDB belong in the worker, and this image has no ffmpeg. The API queues transcodes and scans and reads their state in `@workspace/db`, and SQLite is the only link between the two.
 
 ## Tests
@@ -20,4 +22,5 @@ These rules are the target. Phase 1 brings the existing routes in line, so apply
 - Each request from the harness looks like a new address, so that failures do not reach the rate limit. A test of the limit passes its own `x-forwarded-for`.
 - Direct database access lives in `test/support/seed.ts` and nowhere else.
 - `test/public-entry.test.ts` is the exception to using only HTTP. It lives here so that it runs in the required check. It reads what Compose publishes, its health checks and log limits, validates the Caddyfile, and shows that `.dockerignore` stops env files. It skips without Docker, and fails in CI.
-- The worker's TMDB calls go to a closed port. To identify a title, pass `fakeTmdb` to `startApi`, and see `test/support/fake-tmdb.mjs` for the folder names it answers.
+- The worker's TMDB calls go to a closed port. To identify a title, pass `fakeTmdb` to `startApi`, and see `test/support/fake-tmdb.mjs` for the folder names it answers. It serves art too, including a poster it refuses and one that never finishes.
+- `seedMovie` takes TMDB details, such as `genres` or `runtime`, and `setTranscodeJob` gives a title a status, for tests of the library list.
