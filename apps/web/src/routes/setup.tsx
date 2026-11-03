@@ -7,7 +7,10 @@ const SetupPage = () => {
 	const router = useRouter();
 
 	return (
-		<CenteredPage title="Create the owner account">
+		<CenteredPage
+			title="Create the owner account"
+			description="This is a new install. The owner runs the server, scans the library and adds other users."
+		>
 			<CredentialsForm mode="setup" onDone={() => void router.navigate({ to: '/', replace: true })} />
 		</CenteredPage>
 	);
