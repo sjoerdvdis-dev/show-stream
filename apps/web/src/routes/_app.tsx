@@ -1,30 +1,54 @@
-import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router';
+import { createFileRoute, Outlet, redirect, useRouterState } from '@tanstack/react-router';
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@workspace/ui/components/sidebar';
+import { AppShell, type NavItem } from '@workspace/ui/patterns/app-shell';
+import { AppLink } from '@workspace/ui/patterns/link';
+import { PageContainer } from '@workspace/ui/patterns/page';
+import { Film, LogOut } from 'lucide-react';
 import { sessionQuery } from '@/features/auth/queries';
 import { useLogout } from '@/features/auth/use-logout';
 import { useNotifications } from '@/lib/use-notifications';
 
+const navigation: Omit<NavItem, 'active'>[] = [{ href: '/movies', label: 'Movies', icon: Film }];
+
 const SignedInLayout = () => {
 	const { user } = Route.useRouteContext();
 	const logout = useLogout();
+	const pathname = useRouterState({ select: ({ location }) => location.pathname });
 	useNotifications();
 
+	const items = navigation.map((item) => ({
+		...item,
+		active: pathname === item.href || pathname.startsWith(`${item.href}/`),
+	}));
+
 	return (
-		<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-4">
-			<header className="flex flex-wrap items-center justify-between gap-2">
-				<Link to="/movies" className="font-semibold">
+		<AppShell
+			items={items}
+			brand={
+				<AppLink href="/movies" className="font-semibold">
 					ShowStream
-				</Link>
-				<div className="flex items-center gap-3">
-					<span className="text-sm text-muted-foreground">{user.username}</span>
-					<button type="button" className="underline" disabled={logout.isPending} onClick={() => logout.mutate()}>
-						Log out
-					</button>
-				</div>
-			</header>
-			<main>
+				</AppLink>
+			}
+			footer={
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<p className="truncate px-2 py-1 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
+							Signed in as {user.username}
+						</p>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton tooltip="Log out" disabled={logout.isPending} onClick={() => logout.mutate()}>
+							<LogOut aria-hidden="true" />
+							<span>Log out</span>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			}
+		>
+			<PageContainer>
 				<Outlet />
-			</main>
-		</div>
+			</PageContainer>
+		</AppShell>
 	);
 };
 

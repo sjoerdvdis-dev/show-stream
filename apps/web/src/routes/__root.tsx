@@ -1,6 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Link, Outlet, useRouter } from '@tanstack/react-router';
 import { Toaster } from '@workspace/ui/components/sonner';
+import { LinkProvider } from '@workspace/ui/patterns/link';
+import { RouterLink } from '@/lib/router-link';
 import { useTheme } from '@/lib/theme';
 
 export type RouterContext = {
@@ -41,10 +43,10 @@ const Loading = () => <Message>Loading…</Message>;
 const Root = () => {
 	const { resolvedTheme } = useTheme();
 	return (
-		<>
+		<LinkProvider component={RouterLink}>
 			<Outlet />
 			<Toaster theme={resolvedTheme} position="bottom-right" />
-		</>
+		</LinkProvider>
 	);
 };
 
