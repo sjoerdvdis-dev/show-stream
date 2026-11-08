@@ -1,6 +1,13 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { MediaType, TranscodeStatus } from '@workspace/contract/api-types';
-import type { LibraryFacets, LibraryPage, LibraryQuery, LibrarySort } from '@workspace/contract/library';
+import type {
+	LibraryFacets,
+	LibraryItem,
+	LibraryMovie,
+	LibraryPage,
+	LibraryQuery,
+	LibrarySort,
+} from '@workspace/contract/library';
 import type { Database } from './connection.js';
 import { transcodeStatusOfJob, transcodeStatusWithoutJob } from './media.js';
 import { jobs, media, mediaGenres } from './schema.js';
@@ -82,6 +89,36 @@ const filtersOf = (type: MediaType, query: LibraryQuery) => {
 const genresOfTitle = sql<string>`(SELECT json_group_array(genre) FROM
 	(SELECT ${mediaGenres.genre} AS genre FROM ${mediaGenres} WHERE ${mediaGenres.mediaId} = ${media.id} ORDER BY genre))`;
 
+/** What a card shows of a title, as `toItem` reads it. */
+const itemColumns = {
+	id: media.tmdbId,
+	title: media.title,
+	year: media.year,
+	releaseDate: media.releaseDate,
+	runtime: media.runtime,
+	rating: media.voteAverage,
+	genres: genresOfTitle,
+	status: transcodeStatus,
+	posterFormat: media.posterFormat,
+	backdropFormat: media.backdropFormat,
+};
+
+type ItemRow = {
+	id: number | null;
+	genres: string;
+	posterFormat: string | null;
+	backdropFormat: string | null;
+} & Omit<LibraryItem, 'id' | 'genres' | 'hasPoster' | 'hasBackdrop'>;
+
+const toItem = ({ id, genres, posterFormat, backdropFormat, ...item }: ItemRow): LibraryItem => ({
+	...item,
+	// Every query here leaves out titles with no TMDB ID.
+	id: id!,
+	genres: JSON.parse(genres) as string[],
+	hasPoster: posterFormat !== null,
+	hasBackdrop: backdropFormat !== null,
+});
+
 /** A page of titles. The API adds the page and its size, which it was asked for. */
 export type LibraryPageResult = Pick<LibraryPage, 'items' | 'total'>;
 
@@ -96,18 +133,7 @@ export const listLibrary = (db: Database, type: MediaType, query: LibraryQuery):
 		const column = sortColumns[query.sort];
 
 		const rows = tx
-			.select({
-				id: media.tmdbId,
-				title: media.title,
-				year: media.year,
-				releaseDate: media.releaseDate,
-				runtime: media.runtime,
-				rating: media.voteAverage,
-				genres: genresOfTitle,
-				status: transcodeStatus,
-				posterFormat: media.posterFormat,
-				backdropFormat: media.backdropFormat,
-			})
+			.select(itemColumns)
 			.from(media)
 			.leftJoin(jobs, transcodeJobOfTitle)
 			.where(where)
@@ -123,17 +149,31 @@ export const listLibrary = (db: Database, type: MediaType, query: LibraryQuery):
 			.where(where)
 			.all();
 
-		const items = rows.map(({ id, genres, posterFormat, backdropFormat, ...item }) => ({
-			...item,
-			// The filter above leaves out titles with no TMDB ID.
-			id: id!,
-			genres: JSON.parse(genres) as string[],
-			hasPoster: posterFormat !== null,
-			hasBackdrop: backdropFormat !== null,
-		}));
+		const items = rows.map(toItem);
 
 		return { items, total };
 	});
+
+/** A text field of a movie's TMDB details, or null when TMDB has none or it is empty. */
+const detailText = (field: 'tagline' | 'overview') =>
+	sql<string | null>`nullif(json_extract(${media.metadata}, ${`$.details.${field}`}), '')`;
+
+/**
+ * One movie's page: its card, its tagline and overview, and why preparing it failed, if it did.
+ * Undefined for an unknown TMDB ID.
+ */
+export const findLibraryMovie = (db: Database, tmdbId: number): LibraryMovie | undefined => {
+	const row = db
+		.select({ ...itemColumns, tagline: detailText('tagline'), overview: detailText('overview'), error: jobs.error })
+		.from(media)
+		.leftJoin(jobs, transcodeJobOfTitle)
+		.where(and(eq(media.type, 'movie'), eq(media.tmdbId, tmdbId)))
+		.get();
+	if (!row) return undefined;
+	const { tagline, overview, error, ...item } = row;
+	const failed = item.status === 'failed' && error;
+	return { ...toItem(item), tagline, overview, ...(failed ? { failureReason: error } : {}) };
+};
 
 const rangeOf = <T>(min: T | null, max: T | null) => (min === null || max === null ? null : { min, max });
 

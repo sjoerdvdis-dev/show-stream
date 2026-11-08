@@ -1,10 +1,9 @@
-import { and, asc, eq, getTableColumns } from 'drizzle-orm';
+import { and, eq, getTableColumns } from 'drizzle-orm';
 import type { MovieMetadata, TranscodeStatus } from '@workspace/contract/api-types';
 import type { Database } from './connection.js';
-import { jobs, media, type JobStatus, type Media, type NewMedia, type ShowMetadata } from './schema.js';
+import { jobs, media, type JobStatus, type Media, type NewMedia } from './schema.js';
 
 export type Movie = Media & { metadata: MovieMetadata; transcodeStatus: TranscodeStatus; transcodeError?: string };
-export type Show = Media & { metadata: ShowMetadata };
 
 /**
  * Adds a title, or updates the one with the same type and TMDB ID. A title with no TMDB ID
@@ -67,15 +66,9 @@ const toMovie = ({ jobStatus, jobError, ...movie }: MovieRow): Movie => ({
 	...(jobError ? { transcodeError: jobError } : {}),
 });
 
-export const listMovies = (db: Database): Movie[] =>
-	selectMovies(db).where(eq(media.type, 'movie')).orderBy(asc(media.id)).all().map(toMovie);
-
 export const findMovie = (db: Database, tmdbId: number): Movie | undefined => {
 	const movie = selectMovies(db)
 		.where(and(eq(media.type, 'movie'), eq(media.tmdbId, tmdbId)))
 		.get();
 	return movie && toMovie(movie);
 };
-
-export const listShows = (db: Database): Show[] =>
-	db.select().from(media).where(eq(media.type, 'show')).orderBy(asc(media.id)).all() as Show[];

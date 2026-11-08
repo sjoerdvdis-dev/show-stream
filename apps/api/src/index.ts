@@ -8,7 +8,7 @@ import {
 	transcodeRequest,
 	transcodeRetry,
 } from './video';
-import { getLibraryMovieFacets, getLibraryMovies, getMovie, sendMovieImage, getMovies, getScan, getShows, startScan } from './media';
+import { getLibraryMovie, getLibraryMovieFacets, getLibraryMovies, getScan, sendMovieImage, startScan } from './media';
 import { setupNotifications } from './notification';
 import { login, logout, me, removeExpiredSessions, setup, setupStatus } from './auth';
 
@@ -31,10 +31,8 @@ const { httpServer, io } = createServer(
 		stream: ({ params }, res) => streamVideoFile({ ...params, res }),
 		libraryMovies: ({ query }) => getLibraryMovies(query),
 		libraryMovieFacets: () => getLibraryMovieFacets(),
+		libraryMovie: ({ params }) => getLibraryMovie(params.id),
 		libraryMovieImage: ({ params }, res) => sendMovieImage({ ...params, res }),
-		movies: () => getMovies(),
-		shows: () => getShows(),
-		movie: ({ params }) => getMovie({ id: params.id }),
 	},
 	logger,
 );

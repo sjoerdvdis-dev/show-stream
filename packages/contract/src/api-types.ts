@@ -27,15 +27,6 @@ const movieMetadataShape = z.object({
 export interface MovieMetadata extends z.infer<typeof movieMetadataShape> {}
 export const movieMetadataSchema: z.ZodType<MovieMetadata> = movieMetadataShape;
 
-export const movieResponseSchema = z.object({ metadata: movieMetadataSchema });
-export type MovieAPIData = z.infer<typeof movieResponseSchema>;
-
-export const moviesResponseSchema = z.object({ movies: z.array(movieMetadataSchema) });
-export type MoviesAPIData = z.infer<typeof moviesResponseSchema>;
-
-export const showsResponseSchema = z.object({ shows: z.array(z.record(z.string(), z.unknown())) });
-export type ShowsAPIData = z.infer<typeof showsResponseSchema>;
-
 /**
  * Video API
  */

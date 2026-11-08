@@ -10,10 +10,10 @@ import { VideoPlayer } from '@workspace/ui/patterns/video-player';
 import { Clapperboard } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { MovieNotFound } from '@/features/library/movie-not-found';
-import { movieQuery } from '@/features/library/movies';
+import { movieArt, movieQuery } from '@/features/library/movies';
 import { usePlay, useRetry } from '@/features/library/use-play';
 import { playlistQuery } from '@/features/player/queries';
-import { isNotFound, movieImageUrl } from '@/lib/api';
+import { isNotFound } from '@/lib/api';
 
 /** The player's box, so that loading, a title that is not ready and the video take the same place. */
 const Stage = ({ children }: { children: ReactNode }) => (
@@ -71,8 +71,8 @@ const NotReady = ({ id, title, status, failureReason }: NotReadyProps) => {
 export const WatchScreen = ({ id }: { id: number }) => {
 	const { onSessionLost } = useRouteContext({ from: '/_app' });
 	const movie = useQuery(movieQuery(id));
-	const metadata = movie.data?.metadata;
-	const status = metadata?.transcodeStatus ?? 'not ready';
+	const details = movie.data;
+	const status = details?.status ?? 'not ready';
 	const playlist = useQuery({ ...playlistQuery(id), enabled: status === 'ready' });
 
 	if (isNotFound(movie.error)) return <MovieNotFound />;
@@ -95,14 +95,14 @@ export const WatchScreen = ({ id }: { id: number }) => {
 		</LoadingStatus>
 	);
 
-	if (!metadata) return <PageContainer>{loading}</PageContainer>;
+	if (!details) return <PageContainer>{loading}</PageContainer>;
 
-	const { title } = metadata.details;
+	const { title } = details;
 	let stage: ReactNode;
 	if (status !== 'ready' || isNotFound(playlist.error)) {
 		// A playlist that is gone means the title is no longer prepared, whatever the page last heard.
 		const shown = status === 'ready' ? 'not ready' : status;
-		stage = <NotReady id={id} title={title} status={shown} failureReason={metadata.transcodeError} />;
+		stage = <NotReady id={id} title={title} status={shown} failureReason={details.failureReason} />;
 	} else if (playlist.error) {
 		stage = (
 			<Stage>
@@ -120,7 +120,7 @@ export const WatchScreen = ({ id }: { id: number }) => {
 			<VideoPlayer
 				src={playlist.data.playlistUrl}
 				title={title}
-				poster={movieImageUrl(id, 'backdrop')}
+				poster={movieArt(details, 'backdrop') ?? undefined}
 				// eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite sets DEV, and it is false in a build.
 				debug={import.meta.env.DEV}
 				onUnauthorized={onSessionLost}

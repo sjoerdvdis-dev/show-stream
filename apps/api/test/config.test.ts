@@ -50,7 +50,6 @@ describe('configuration', () => {
 			api = await startApi({
 				envFile: [
 					'TMDB_API_READ_ACCESS_TOKEN=',
-					'NEXT_CLIENT_URL=',
 					'MEDIA_FOLDER=',
 					'SESSION_COOKIE_SECURE=',
 				].join('\n'),
@@ -58,7 +57,7 @@ describe('configuration', () => {
 
 			const owner = await api.createOwner();
 
-			expect((await owner.get('/movies')).status).toBe(200);
+			expect((await owner.get('/library/movies')).status).toBe(200);
 			expect((await owner.post('/scan')).status).toBe(202);
 		});
 
@@ -70,6 +69,7 @@ describe('configuration', () => {
 					'MONGO_DB_PORT=not-a-port',
 					'MONGO_DB_USERNAME=root',
 					'MONGO_DB_PASSWORD=root',
+					'NEXT_CLIENT_URL=http://next-client:3000',
 				].join('\n'),
 			});
 

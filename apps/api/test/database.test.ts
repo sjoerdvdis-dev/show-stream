@@ -30,8 +30,8 @@ describe('the database', () => {
 
 			expect((await owner.get('/auth/me')).status).toBe(200);
 			expect((await api.post('/auth/login', ownerCredentials)).status).toBe(200);
-			expect(await (await owner.get('/movies')).json()).toMatchObject({
-				movies: [{ details: { id: movie.id, title: 'Kept Movie' }, transcodeStatus: 'ready' }],
+			expect(await (await owner.get('/library/movies')).json()).toMatchObject({
+				items: [{ id: movie.id, title: 'Kept Movie', status: 'ready' }],
 			});
 		});
 	});

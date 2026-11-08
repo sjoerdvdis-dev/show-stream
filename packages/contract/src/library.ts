@@ -129,7 +129,7 @@ export const libraryQuerySchema = z.preprocess(dropEmptyValues, libraryQueryShap
 export type LibraryQuery = z.output<typeof libraryQuerySchema>;
 export type LibraryQueryInput = z.input<typeof libraryQuerySchema>;
 
-/** A card's worth of a title. The TMDB payload stays on the detail endpoint. */
+/** A card's worth of a title. TMDB's payload stays in the database. */
 export const libraryItemSchema = z.object({
 	/** The TMDB ID, which every other route of a movie uses. */
 	id: z.number(),
@@ -147,6 +147,15 @@ export const libraryItemSchema = z.object({
 	hasBackdrop: z.boolean(),
 });
 export type LibraryItem = z.infer<typeof libraryItemSchema>;
+
+/** A title's page: its card, with what the page shows beyond it. */
+export const libraryMovieSchema = libraryItemSchema.extend({
+	tagline: z.string().nullable(),
+	overview: z.string().nullable(),
+	/** Why preparing the title failed, when `status` is `failed`. */
+	failureReason: z.string().optional(),
+});
+export type LibraryMovie = z.infer<typeof libraryMovieSchema>;
 
 export const libraryPageSchema = z.object({
 	items: z.array(libraryItemSchema),

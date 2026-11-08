@@ -30,6 +30,6 @@ describe('an unexpected failure', () => {
 		expect(body).not.toContain(api.mediaFolder);
 		expect(api.output()).toContain('ENOENT');
 		expect(api.output()).toContain('/transcode/request');
-		expect((await owner.get('/movies')).status).toBe(200);
+		expect((await owner.get('/library/movies')).status).toBe(200);
 	});
 });

@@ -17,10 +17,7 @@ const addHoldableVideo = async (api: TestApi, movie: SeededMovie) => {
 	await holdFfmpeg(api, movie);
 };
 
-const metadataOf = async (client: TestClient, movie: SeededMovie) => {
-	const { metadata } = await (await client.get(`/movie/${movie.id}`)).json();
-	return metadata;
-};
+const pageOf = async (client: TestClient, movie: SeededMovie) => (await client.get(`/library/movies/${movie.id}`)).json();
 
 const cacheEntries = async (api: TestApi) => readdir(path.join(api.mediaFolder, 'cache')).catch(() => []);
 
@@ -30,7 +27,7 @@ describe.skipIf(!hasFfmpeg)('a corrupt file', () => {
 	let movie: SeededMovie;
 
 	const waitForFailure = () =>
-		api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('failed'));
+		api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('failed'));
 
 	beforeAll(async () => {
 		api = await startApi();
@@ -48,13 +45,13 @@ describe.skipIf(!hasFfmpeg)('a corrupt file', () => {
 
 		await waitForFailure();
 
-		const { transcodeError } = await metadataOf(owner, movie);
+		const { failureReason: transcodeError } = await pageOf(owner, movie);
 		expect(transcodeError).toContain('Invalid data found');
 		expect((await owner.get('/auth/me')).status).toBe(200);
 	});
 
 	it('does not show paths from the server in the reason', async () => {
-		expect((await metadataOf(owner, movie)).transcodeError).not.toContain(api.mediaFolder);
+		expect((await pageOf(owner, movie)).failureReason).not.toContain(api.mediaFolder);
 	});
 
 	it('leaves nothing in the cache', async () => {
@@ -76,7 +73,7 @@ describe.skipIf(!hasFfmpeg)('a corrupt file', () => {
 		expect(await response.json()).toEqual({ status: 'in progress' });
 		await waitForFailure();
 		expect(jobRow(api, movie)).toMatchObject({ status: 'failed', attempts: 1 });
-		expect((await metadataOf(owner, movie)).transcodeError).toContain('Invalid data found');
+		expect((await pageOf(owner, movie)).failureReason).toContain('Invalid data found');
 	});
 
 	it('plays once a good file replaces it, with no reason left over', async () => {
@@ -85,8 +82,8 @@ describe.skipIf(!hasFfmpeg)('a corrupt file', () => {
 
 		await owner.post(`/transcode/retry/${movie.id}`);
 
-		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('ready'));
-		expect((await metadataOf(owner, movie)).transcodeError).toBeUndefined();
+		await api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('ready'));
+		expect((await pageOf(owner, movie)).failureReason).toBeUndefined();
 		expect((await owner.get(`/streams/${movie.id}/playlist.m3u8`)).status).toBe(200);
 		expect(await cacheEntries(api)).toEqual([String(movie.id)]);
 	});
@@ -128,7 +125,7 @@ describe('retrying', () => {
 
 		expect(await response.json()).toEqual({ status: 'in progress' });
 		await releaseFfmpeg(api, movie);
-		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('ready'));
+		await api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('ready'));
 		expect(jobRow(api, movie)?.attempts).toBe(1);
 	});
 
@@ -136,7 +133,7 @@ describe('retrying', () => {
 		const movie = await seedMovie(api, 3103, 'Vanished');
 		await addCorruptVideo(api, movie);
 		await owner.get(`/transcode/request/${movie.id}`);
-		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('failed'));
+		await api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('failed'));
 
 		await rm(path.join(api.mediaFolder, movie.folder, 'corrupt.mp4'));
 		const response = await owner.post(`/transcode/retry/${movie.id}`);
@@ -167,11 +164,11 @@ describe('a worker that dies mid-job', () => {
 		await waitForHeldRun(api, movie);
 
 		await api.killWorkers();
-		expect((await metadataOf(owner, movie)).transcodeStatus).toBe('in progress');
+		expect((await pageOf(owner, movie)).status).toBe('in progress');
 		await releaseFfmpeg(api, movie);
 		await api.startWorker();
 
-		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('ready'));
+		await api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('ready'));
 		expect(jobRow(api, movie)?.attempts).toBe(2);
 	});
 
@@ -193,10 +190,10 @@ describe('a worker that dies mid-job', () => {
 
 		await waitForHeldRun(api, movie, 2);
 		expect(await cacheEntries(api)).not.toContain(`${movie.id}.partial-1`);
-		expect((await metadataOf(owner, movie)).transcodeStatus).toBe('in progress');
+		expect((await pageOf(owner, movie)).status).toBe('in progress');
 
 		await releaseFfmpeg(api, movie);
-		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('ready'));
+		await api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('ready'));
 		expect(await cacheEntries(api)).not.toContain(`${movie.id}.partial-2`);
 	});
 
@@ -211,8 +208,8 @@ describe('a worker that dies mid-job', () => {
 			await api.startWorker();
 		}
 
-		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('failed'));
-		expect((await metadataOf(owner, movie)).transcodeError).toBe('The worker stopped during all 3 attempts at this job.');
+		await api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('failed'));
+		expect((await pageOf(owner, movie)).failureReason).toBe('The worker stopped during all 3 attempts at this job.');
 		expect(await cacheEntries(api)).not.toContain(`${movie.id}.partial-3`);
 	});
 });
@@ -245,7 +242,7 @@ describe('a clean shutdown', () => {
 		await api.startWorker();
 		await waitForHeldRun(api, movie, 2);
 		await releaseFfmpeg(api, movie);
-		await api.waitFor(async () => expect((await metadataOf(owner, movie)).transcodeStatus).toBe('ready'));
+		await api.waitFor(async () => expect((await pageOf(owner, movie)).status).toBe('ready'));
 	});
 });
 

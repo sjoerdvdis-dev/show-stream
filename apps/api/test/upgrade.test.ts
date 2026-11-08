@@ -61,11 +61,11 @@ describe('upgrading a database from before the worker', () => {
 	it('keeps finished transcodes, and clears those no process is running any more', async () => {
 		const owner = await api.createOwner();
 
-		const { movies } = await (await owner.get('/movies')).json();
+		const { items } = await (await owner.get('/library/movies')).json();
 
-		expect(movies.map(({ details, transcodeStatus }: { details: { title: string }; transcodeStatus: string }) => [details.title, transcodeStatus])).toEqual([
-			['Old Ready', 'ready'],
+		expect(items.map(({ title, status }: { title: string; status: string }) => [title, status])).toEqual([
 			['Old In Progress', 'not ready'],
+			['Old Ready', 'ready'],
 		]);
 	});
 });

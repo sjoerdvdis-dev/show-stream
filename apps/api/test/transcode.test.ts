@@ -10,8 +10,8 @@ describe('transcode', () => {
 	let owner: TestClient;
 
 	const transcodeStatus = async (id: number) => {
-		const { metadata } = await (await owner.get(`/movie/${id}`)).json();
-		return metadata.transcodeStatus;
+		const { status } = await (await owner.get(`/library/movies/${id}`)).json();
+		return status;
 	};
 
 	beforeAll(async () => {
