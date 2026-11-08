@@ -69,7 +69,6 @@ describe('configuration', () => {
 					'MONGO_DB_PORT=not-a-port',
 					'MONGO_DB_USERNAME=root',
 					'MONGO_DB_PASSWORD=root',
-					'NEXT_CLIENT_URL=http://next-client:3000',
 				].join('\n'),
 			});
 

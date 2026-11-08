@@ -93,7 +93,7 @@ describe('the Origin check', () => {
 		expect((await response.json()).code).toBe('forbidden');
 	});
 
-	// The old client's origin, which CORS allowed until it was removed.
+	// The origin that CORS used to allow, under `pnpm dev`.
 	it('refuses a cross-site POST with no CORS, and grants no other origin', async () => {
 		const origin = 'http://localhost:3000';
 

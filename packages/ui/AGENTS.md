@@ -34,13 +34,12 @@ Screens      thin route files in apps/web
   - `cn` from `@workspace/ui/lib/utils`, in every file.
   - `bg-overlay/10` for `bg-black/10` in `dialog`, `alert-dialog`, `sheet` and `drawer`, and `bg-background` for `bg-white` in `slider`.
   - `calendar` passes `ref` to its day button, which upstream base-nova drops, so focus follows the arrow keys.
-  - `sonner` takes `theme` from the app, in place of `next-themes`.
+  - `sonner` takes `theme` from the app, in place of upstream's theme hook.
   - `dual-range-slider` is not in the registry. It is the base-nova `slider` with a label on each thumb.
   - `field` replaces `form`, which the base styles do not have. Use it with react-hook-form's `Controller`.
 - ESLint rules are off only in the upstream files that break them, listed in `eslint.config.js`.
 - Base UI tabs activate manually: arrow keys move focus, and Enter or Space shows the panel.
 - Component tests drive a primitive by role, label and keyboard, with `@testing-library/user-event`, and check what a user notices. `test/components/setup.ts` gives jsdom what Base UI and cmdk ask for.
-- The Next client has its own copy of the old Radix primitives and stylesheet. Nothing here serves it.
 
 ## Patterns
 

@@ -22,7 +22,7 @@ describe('library', () => {
 		expect(await response.json()).toMatchObject({ items: [], total: 0 });
 	});
 
-	it.each(['/movies', '/shows', '/movie/1001'])('no longer serves %s, which only the Next client used', async (path) => {
+	it.each(['/movies', '/shows', '/movie/1001'])('no longer serves %s', async (path) => {
 		const response = await owner.get(path);
 
 		expect(response.status).toBe(404);

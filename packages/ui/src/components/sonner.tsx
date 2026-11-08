@@ -1,7 +1,7 @@
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
-// Changed from upstream: the app passes `theme`, in place of `useTheme` from next-themes.
+// Changed from upstream: the app passes `theme`, in place of upstream's theme hook.
 const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
   return (
     <Sonner

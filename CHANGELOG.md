@@ -72,6 +72,9 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - **Breaking:** Caddy serves `apps/web` as static files, and the Next client is no longer part of Compose, so no Node server is on the public path. Any page loads on reload, the hashed files under `/assets` are cached for a year, and the rest is asked for again on each load, so an upgrade shows after a reload. `/api/streams` is compressed again, because nothing asks for it now that `/streams` serves video.
 - **Upgrading to `apps/web` behind Caddy:** the `caddy` service is now built from `apps/web/Dockerfile`, with the app and `infra/caddy/Caddyfile` inside the image, where it was the `caddy` image with the Caddyfile mounted. Run `docker compose up -d --build --remove-orphans`, which builds it and removes the old `next-client` container. A change to the Caddyfile now needs `--build` too. Keep the `caddy-data` volume, which holds the internal CA. Sessions carry over, because the API keeps them.
 
+- **Breaking, contract:** a movie's page comes from `GET /library/movies/:id`, which answers with the title's card, its `tagline`, `overview` and `failureReason`, and `hasPoster` and `hasBackdrop`, so that a title without art asks for none. `GET /movies`, `GET /shows` and `GET /movie/:id` are gone and answer 404, because only the old web client used them. The API sends no CORS headers, and still refuses a non-GET request from another site.
+- **Upgrading past the old web client:** nothing to do under Compose, which has not run it since Caddy began serving `apps/web`. `NEXT_CLIENT_URL` and `API_SERVER_URL` are gone, and are ignored if they remain in a `.env`, so they can be deleted. Under `pnpm dev`, the Vite proxy always reaches the API on port 5000.
+
 ### Fixed
 
 - The Next.js and React remote code execution vulnerability.
@@ -89,6 +92,8 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 
 ### Removed
 
+- The Next.js client, `apps/next-client`, with its Dockerfile, env files, Radix primitives, fonts and every package only it used, such as `next`, `swr`, `next-themes` and `vaul`. `apps/web` replaced it in Phase 2. `pnpm dev` now starts the API, the worker and `apps/web` only.
+- The Next ESLint and TypeScript configurations, and the `cors` package from the API.
 - `add-shadcn.sh`, which installed from shadcn's `canary`.
 - `fluent-ffmpeg`, which is deprecated. A small `spawn` wrapper replaces it, with the same arguments.
 - `tmdb-ts` from the API, which no longer calls TMDB, and the unused `lastScanTime` setting.

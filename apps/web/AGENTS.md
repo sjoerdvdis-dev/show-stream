@@ -1,6 +1,6 @@
 # Web
 
-The static React SPA that replaced `apps/next-client`. `pnpm dev` serves it beside Next, and Caddy serves its build. `Dockerfile` builds it into the Caddy image, with `infra/caddy/Caddyfile`, and that image is the `caddy` service.
+The static React SPA, and the only web client. `pnpm dev` serves it, and Caddy serves its build. `Dockerfile` builds it into the Caddy image, with `infra/caddy/Caddyfile`, and that image is the `caddy` service.
 
 | Folder | Holds |
 |---|---|
