@@ -2,7 +2,7 @@ import eslintReact from '@eslint-react/eslint-plugin';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
 
 /**
- * React rules shared by the Next.js and React library configurations.
+ * The React rules of the React configuration.
  *
  * @type {import("eslint").Linter.Config}
  * */

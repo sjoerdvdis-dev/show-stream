@@ -4,7 +4,6 @@ Dockerfile
 .git
 .gitignore
 **/dist
-**/.next
 **/.turbo
 data
 media

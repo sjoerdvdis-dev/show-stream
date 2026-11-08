@@ -186,11 +186,11 @@ describe.skipIf(!hasDocker)('.dockerignore', () => {
 			'apps/api/.env.local',
 			'apps/api/.env.backup',
 			'apps/api/.env.development',
-			'apps/next-client/.env.production.local',
-			'apps/next-client/.next/standalone/.env',
+			'apps/web/.env.production.local',
+			'apps/web/dist/.env',
 			'packages/new-package/.env',
 		];
-		const kept = ['apps/api/.env.production', 'apps/api/package.json', 'apps/next-client/.env.production'];
+		const kept = ['apps/api/.env.production', 'apps/api/package.json', 'apps/web/.env.production'];
 		for (const file of [...excluded, ...kept]) {
 			await mkdir(path.dirname(path.join(context, file)), { recursive: true });
 			await writeFile(path.join(context, file), 'fake\n');

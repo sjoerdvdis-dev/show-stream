@@ -6,7 +6,8 @@ import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
-const apiServer = process.env.API_SERVER_URL ?? 'http://localhost:5000';
+/** The API under `pnpm dev`, on its default port. */
+const apiServer = 'http://localhost:5000';
 
 /** Caddy sends the app's Content-Security-Policy, so the policy lives in its Caddyfile. */
 const caddyfile = new URL('../../infra/caddy/Caddyfile', import.meta.url);

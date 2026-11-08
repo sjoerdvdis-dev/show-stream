@@ -36,7 +36,6 @@ const isFolder = (folder: string) => fs.statSync(folder, { throwIfNoEntry: false
 
 const environmentSchema = z.object({
 	PORT: optional(port),
-	NEXT_CLIENT_URL: optional(z.string()),
 	DATABASE_PATH: optional(z.string()),
 	SESSION_COOKIE_SECURE: optional(z.enum(['true', 'false'], { error: 'must be true or false' })),
 	MEDIA_FOLDER: optional(z.string().refine(isFolder, 'must be an existing folder')),
@@ -57,7 +56,6 @@ const environment = parseEnvironment();
 
 export const config = {
 	port: environment.PORT ?? 5000,
-	nextClientUrl: environment.NEXT_CLIENT_URL ?? '',
 	/** The SQLite file. By default it is in the repository's `data` folder, wherever the API runs from. */
 	databasePath: path.resolve(environment.DATABASE_PATH ?? path.join(__dirname, '../../../data/app.db')),
 	/** Browsers drop a `Secure` cookie over plain HTTP, so only a setup with no HTTPS turns this off. */

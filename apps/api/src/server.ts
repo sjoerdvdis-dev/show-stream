@@ -1,11 +1,9 @@
-import cors from 'cors';
 import helmet from 'helmet';
 import express, { type RequestHandler } from 'express';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { findSessionOfHandshake, isCrossSite } from './auth';
 import { createLoggerMiddleware } from './log';
-import { config } from './config';
 import { ApiFailure, createErrorHandler, unknownRouteHandler } from './errors';
 import { bindRoutes, type Handlers } from './routes';
 import type { Logger } from '@workspace/logger';
@@ -29,13 +27,8 @@ export const createServer = (handlers: Handlers, logger: Logger): { httpServer: 
 	// One proxy sits in front of the API, and only its entry in X-Forwarded-For can be trusted.
 	app.set('trust proxy', 1);
 
+	// No CORS: every client is served from the API's own origin, through Caddy or the Vite proxy.
 	app
-		.use(
-			cors({
-				origin: [config.nextClientUrl],
-				credentials: true,
-			}),
-		)
 		.use(createLoggerMiddleware(logger))
 		// After HSTS a browser offers no way past an untrusted certificate, which an internal CA install needs.
 		.use(helmet({ strictTransportSecurity: false }))
