@@ -7,7 +7,7 @@ describe('malformed requests', () => {
 	let owner: TestClient;
 
 	const expectStillUp = async () => {
-		expect((await owner.get('/movies')).status).toBe(200);
+		expect((await owner.get('/library/movies')).status).toBe(200);
 	};
 
 	const postRaw = (route: string, contentType: string, body: string) =>
@@ -47,13 +47,13 @@ describe('malformed requests', () => {
 	});
 
 	it.each([
-		'/movie/abc',
-		'/movie/1.5',
-		'/movie/-1',
-		'/movie/0x10',
-		'/movie/1e3',
-		'/movie/Infinity',
-		'/movie/99999999999999999999',
+		'/library/movies/abc',
+		'/library/movies/1.5',
+		'/library/movies/-1',
+		'/library/movies/0x10',
+		'/library/movies/1e3',
+		'/library/movies/Infinity',
+		'/library/movies/99999999999999999999',
 		'/transcode/request/abc',
 		'/transcode/playlist/abc',
 		'/streams/abc/playlist.m3u8',
@@ -120,7 +120,7 @@ describe('malformed requests', () => {
 	});
 
 	it('rejects a URL that cannot be decoded', async () => {
-		const response = await owner.get('/movie/%E0%A4%A');
+		const response = await owner.get('/library/movies/%E0%A4%A');
 
 		expect(response.status).toBe(400);
 		expect(apiErrorSchema.parse(await response.json()).code).toBe('invalid_request');
@@ -134,7 +134,7 @@ describe('malformed requests', () => {
 	});
 
 	it('answers the wrong method for a route with the error shape', async () => {
-		const response = await api.post('/movies', {});
+		const response = await api.post('/library/movies', {});
 
 		expect(response.status).toBe(404);
 		expect(apiErrorSchema.parse(await response.json()).code).toBe('not_found');

@@ -130,7 +130,7 @@ describe('sessions', () => {
 			const expiresAt = new Date(Date.now() + 30 * day - 30 * minute);
 			setSessionExpiry(api, client, expiresAt);
 
-			const responses = [await client.get('/auth/me'), await client.get('/movies'), await client.get('/auth/me')];
+			const responses = [await client.get('/auth/me'), await client.get('/library/movies'), await client.get('/auth/me')];
 
 			expect(responses.map(({ status }) => status)).toEqual([200, 200, 200]);
 			expect(responses.flatMap((response) => response.headers.getSetCookie())).toEqual([]);

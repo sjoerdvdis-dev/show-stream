@@ -62,7 +62,7 @@ Success is the owner switching off Jellyfin: a typical `.mkv` H.265 file starts 
 
 - No real users, testimonials, benchmarks or screenshots of a real library exist. Future work must not fabricate any.
 - Posters, backdrops and metadata come from TMDB at runtime. The repository holds no product imagery.
-- `apps/next-client` is the shipped interface until Phase 2 item 8 deletes it. `apps/web` replaces it.
+- `apps/web` is the shipped interface, which Caddy serves.
 
 ## Product Principles
 

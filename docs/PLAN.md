@@ -1,14 +1,14 @@
 # ShowStream Plan
 
-Last updated: 2026-11-03. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
+Last updated: 2026-11-08. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
 
 ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize and clean up, rebuild on a stable foundation, then add features one at a time.
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns, and is what Caddy serves. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns, and is what Caddy serves. The Next client is deleted, so Phase 2 is done ([section 12](#12-roadmap)). Home, Search and Shows were stubs there, and arrive in Phases 5 and 6. Next:
 
-1. **Phase 2 item 8: delete the Next client** ([section 12](#12-roadmap)), using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Phase 3: PWA and Electron** ([section 12](#12-roadmap)), which the maintainer starts, using the engineering skills ([section 10.5](#105-how-we-develop)).
 
 | Your question | Answer |
 |---|---|
@@ -32,13 +32,13 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 
 | Item | State |
 |---|---|
-| Next.js 16.4.3, React 19.3.1 (latest) | Merged to `main` (`7efb290`) |
+| React 19.3.1 (latest) | Merged to `main` (`7efb290`), with Next.js 16.4.3 until Phase 2 removed it |
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
 | Repository layout | `apps/api`, `apps/worker`, `packages/contract`, `packages/api-client` and `packages/db` in place; later folders arrive with their steps |
 | Required CI check on `main` | Done, and includes the API tests |
 | API and browser tests | Done. No `it.fails` marker remains. The browser job only reports |
-| Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API |
+| Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API. Every endpoint is one `apps/web` or the worker's flow uses |
 | SQLite and Drizzle | Done. `packages/db` owns the schema and queries, and migrations run at API startup. `pnpm dev` and `pnpm test` need no Docker |
 | Authentication | Done. The API owns sessions and first-run setup, every route needs a session unless the contract marks it public, and sockets are authenticated with per-user rooms |
 | Worker | Done. `apps/worker` runs transcodes, library scans and daily backups from a job queue in SQLite, with recovery, retry and failure reasons. An admin starts a scan and reads its result in Settings. A real TMDB token has not been tried ([section 15](#15-risks-and-unknowns)) |
@@ -54,10 +54,11 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Impeccable, Matt Pocock and shadcn skills, shadcn MCP | Installed. `/impeccable init` wrote `PRODUCT.md`, and the Impeccable hook stays off (D1) |
 | Database MCP | Done. DBHub runs read-only in the `dev-tools` Compose profile |
 | Design tokens, fonts and theme | Done for Phase 2 item 2. `packages/ui/src/styles/tokens.css` holds the theme the shadcn way, every variable with its own value in both themes, `DESIGN.md` names their roles, and a test checks the variable set, contrast and gamut. `apps/web` uses them with self-hosted Geist, a theme provider applied before first paint, and a dev-only preview, now the Theme part of `/dev/components`. The maintainer has not reviewed the preview yet, so E1 and E3 stay open |
-| shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The Next client keeps its own copy of the Radix primitives until item 8 |
+| shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The old Radix copies left with the Next client in item 8 |
 | Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. Every screen of `apps/web` is on them since item 6 |
-| Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web`'s Movies screen uses all of it |
-| `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It runs under `pnpm dev` beside Next, and Caddy serves its build since item 7, which the browser tests drive. Checked in Chromium, and native HLS in Safari is not tested |
+| Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, `GET /library/movies/:id` a movie's page with its art flags, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web`'s Movies screen uses all of it |
+| `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows arrive in Phases 5 and 6. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It is the only web client. It runs under `pnpm dev`, and Caddy serves its build since item 7, which the browser tests drive. Checked in Chromium, and native HLS in Safari is not tested |
+| Next client | Deleted in Phase 2 item 8, with its endpoints, configs, CORS and every package only it used |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
 **Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
@@ -112,7 +113,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Styling | `tailwindcss`, `@tailwindcss/vite` | 4.3.3 | In use in `apps/web` |
 | Primitives | `@base-ui/react` through shadcn, `base-nova` style | 1.9.0, shadcn CLI 4.23.0 through `pnpm dlx` | In use in `packages/ui` |
 | Animation | `tw-animate-css` | 1.4.0 | In use in `packages/ui` |
-| Icons | `lucide-react` | 1.66.0 | In use in `packages/ui` and `apps/web`. The Next client keeps 0.477.0 |
+| Icons | `lucide-react` | 1.66.0 | In use in `packages/ui` and `apps/web` |
 | Forms | `react-hook-form`, `@hookform/resolvers` | 7.91.0, 7.0.1 | In use in `apps/web` |
 | Validation | `zod`, shared through `packages/contract` | 4.6.7 | In use |
 | Large lists | `@tanstack/react-virtual` | 3.14.25 | Installed in spike |
@@ -122,7 +123,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Toasts | `sonner` | 2.0.8 | In use |
 | Class names | `cn`, behind `cn()` in `@workspace/ui/lib/utils` | 0.5.1 | In use in `packages/ui`, from `shadcn migrate cn` |
 | Command menu | `cmdk` | 1.1.1 | In use in `packages/ui` |
-| Dates | `date-fns`, `react-day-picker` | 4.4.0, 10.0.2 | In use in `packages/ui`. The Next client keeps `react-day-picker` 9.14.0 |
+| Dates | `date-fns`, `react-day-picker` | 4.4.0, 10.0.2 | In use in `packages/ui` |
 | Local UI state | `zustand` | 5.0.16 | Player preferences only |
 | Debounce | `use-debounce` | 10.1.1 | In use today |
 | Fonts | `@fontsource-variable/geist`, `@fontsource-variable/geist-mono` | 5.3.0 | In use in `apps/web`, through `packages/ui` |
@@ -134,7 +135,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | API mocks | `msw` | 3.0.3 | In use in `apps/web` |
 | Browser tests | `@playwright/test` | 1.64.1 | In use in `apps/e2e` |
 
-**Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), and the Next ESLint rules. `packages/ui` no longer has Radix, `next-themes`, `vaul` or `tailwindcss-animate`, which only the Next client keeps. `cmdk` 1.1.1, behind its `command`, still depends on `@radix-ui/react-dialog` and a few small Radix packages, so those stay in the lockfile after the Next client goes.
+**Removed:** `next`, `swr`, `next-themes` (replaced by a small theme provider), the Next ESLint rules, `vaul`, `tailwindcss-animate`, `tailwind-merge`, `@tailwindcss/postcss`, `lucide-react` 0.477.0, `react-day-picker` 9 and the old `@hookform/resolvers`, all with the Next client in Phase 2 item 8. `cmdk` 1.1.1, behind `command` in `packages/ui`, still depends on `@radix-ui/react-dialog` and a few small Radix packages, and `pnpm why` traces every Radix package left in the lockfile to it alone. `class-variance-authority` and `clsx` stay, because the `base-nova` primitives use them.
 
 **Deliberately not added:** Axios (`packages/api-client` wraps `fetch`), Redux, CSS-in-JS, or a second component library.
 
@@ -314,7 +315,7 @@ The API owns authentication. Next's `proxy.ts`, `lib/login.ts`, `lib/jwt.ts`, th
 | Roles | `owner`, `admin`, `user`; scans and user management are admin-only |
 | Streams | `/streams` checks the session on each request, with an indexed lookup |
 | Sockets | Session checked at the handshake; events sent to per-user rooms |
-| CSRF | `SameSite=Lax` plus an `Origin` check on every non-GET request and the socket handshake. The `Origin` host must match the host the proxy was asked for |
+| CSRF | `SameSite=Lax` plus an `Origin` check on every non-GET request and the socket handshake. The `Origin` host must match the host the proxy was asked for. There is no CORS, because every client is same-origin, through Caddy or the Vite proxy |
 | Brute force | `express-rate-limit` on login and setup: 10 failures per address in 15 minutes |
 | Behind Caddy | Express `trust proxy` set to the one proxy hop |
 | Client | `GET /api/auth/me` fills router context; `beforeLoad` redirects; any 401 returns to login |
@@ -395,15 +396,15 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 
 | # | Problem | Fix | Phase |
 |---|---|---|---|
-| 17 | Polling the whole library | Socket events invalidate queries. Done in `apps/web`: `transcode:ready` and `transcode:failed` refresh the library, its facets and the title's page and player, and the library is never polled. Only Settings asks for the latest scan, every second while it is queued or running, and refreshes the library when it ends. The Next client polls until item 8 | 2 |
+| 17 | Polling the whole library | Socket events invalidate queries. Done: `transcode:ready` and `transcode:failed` refresh the library, its facets and the title's page and player, and the library is never polled. Only Settings asks for the latest scan, every second while it is queued or running, and refreshes the library when it ends | Done |
 | 18 | Fake technical details | Real `ffprobe` data | 4 |
-| 19 | Fragile image URLs | `MediaImage` with a fallback. Done in `apps/web`, whose art comes only from the API's image endpoint, falling back for a title without art. The Next client loads TMDB until item 8 | 2 |
-| 29 | Date filter format bug | Typed date range. Done in `apps/web`, whose `DateRangeFilter` sends ISO dates that the contract validates | 2 |
-| 30 | "Popularity" sorts by vote count | Server-side sort on the correct field. Done in `apps/web`, whose sort is the API's, by TMDB popularity | 2 |
-| 31 | `.sort()` mutates shared arrays | Sorting moves to the server. Done in `apps/web`, which sorts nothing itself | 2 |
-| 32 | Empty library gives `-Infinity` | Facets come from the API. Done in `apps/web`, which leaves out a range the facets give as `null` | 2 |
-| 33 | hls.js debug on in production | Dev only. Done in `apps/web`, whose player passes `import.meta.env.DEV` to `VideoPlayer`, and Next keeps it until item 8 deletes it | 2 |
-| 34 | Socket 308 on each request | Direct `/socket` route through Caddy. `pnpm dev` keeps the 308 | Done |
+| 19 | Fragile image URLs | `MediaImage` with a fallback. Done: art comes only from the API's image endpoint, and a list or a title's page says whether it exists, so a title without art asks for none | Done |
+| 29 | Date filter format bug | Typed date range. `DateRangeFilter` sends ISO dates that the contract validates | Done |
+| 30 | "Popularity" sorts by vote count | Server-side sort on the correct field, by TMDB popularity | Done |
+| 31 | `.sort()` mutates shared arrays | Sorting moves to the server. `apps/web` sorts nothing itself | Done |
+| 32 | Empty library gives `-Infinity` | Facets come from the API, and `apps/web` leaves out a range they give as `null` | Done |
+| 33 | hls.js debug on in production | Dev only. The player passes `import.meta.env.DEV` to `VideoPlayer` | Done |
+| 34 | Socket 308 on each request | Direct `/socket` route through Caddy | Done |
 
 ### Tooling and repo
 
@@ -416,7 +417,7 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 24 | Malformed Turbo `env` | Two separate entries | Done |
 | 25 | API `dist/` not cached by Turbo | Added `dist/**` to `outputs` | Done |
 | 26 | `--host-name` does nothing | Removed with the Next `start` script | Done |
-| 27 | `public/` copied to the wrong path | Goes away with static hosting | 2 |
+| 27 | `public/` copied to the wrong path | Gone with the Next client. Caddy's image holds the static build of `apps/web` | Done |
 | 28 | `fluent-ffmpeg` deprecated | Replaced with `child_process.spawn` | Done |
 | 35 | No-op schema options | Removed with Mongoose | Done |
 | 38 | README incomplete | Rewritten, with `CONTRIBUTING.md` and a setup script | Done |
@@ -431,12 +432,12 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 | 43 | MongoDB could not start on a fresh `./data` | Gone with the MongoDB container. The image gives `/data` to UID 1000 | Done |
 | 44 | UID 1000 is hardcoded | `PUID` and `PGID`. The image starts as root, takes what the app writes, and drops with `su-exec` | Done |
 | 45 | Compose used to publish ports 5000 and 27017 | Closed; dev-only ports live in the dev file | Done |
-| 46 | `--font-sans` points at an undefined `--font-geist-sans`, and Zain loads but no class uses it | One font setup ([section 9.4](#94-typography)). Done in `apps/web`, which renders Geist from its own origin. The Next client keeps its fonts until item 8 deletes it | 2 |
+| 46 | `--font-sans` points at an undefined `--font-geist-sans`, and Zain loads but no class uses it | One font setup ([section 9.4](#94-typography)). `apps/web` renders Geist from its own origin, and Zain left with the Next client | Done |
 | 47 | `PlayButton` is duplicated in two files | One shared pattern | 2 |
-| 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens. They exist in `tokens.css`, and `apps/web` has no raw colors, which a test checks. The Next client keeps its own until item 8 | 2 |
+| 48 | Status colors bypass tokens | Semantic `success`, `warning`, `info` tokens. They exist in `tokens.css`, and `apps/web` has no raw colors, which a test checks | Done |
 | 49 | `add-shadcn.sh` pins `canary`; `packages/ui` config references a missing file | Deleted, and both `components.json` files are on `base-nova` with an empty `tailwind.config` ([section 9.6](#96-updating-shadcn)) | Done |
 | 50 | No project licence | Apache-2.0, with a `NOTICE` that requires attribution | Done |
-| 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Add `.next/**` to the ignores | Done |
+| 51 | Shared ESLint config does not ignore `.next`, so linting after a build scanned generated output (about 26,000 warnings in the ESLint 10 trial) | Added `.next/**` to the ignores, then removed it with the Next client | Done |
 | 52 | Next forwards a client's own `X-Forwarded-For`, so a client that sets it escapes the login rate limit | Caddy replaces the header, and a browser test proves that the spoof reaches the limit | Done |
 
 ## 7. Version upgrades
@@ -447,22 +448,23 @@ Numbers 1-40 are the [audit findings](./audits/2026-10-31-repository-audit.md#6-
 |---|---|---|---|---|
 | Node image | 22.15 | 26 LTS | Done | Node 26 has no corepack; Dockerfiles install pnpm and turbo with `npm` |
 | pnpm | 10.13.1 | 12.16.1 | Done | Tested 2026-11-01: install passes once `allowBuilds` in `pnpm-workspace.yaml` covers `esbuild` and `sharp` |
-| TypeScript | 5.7.3 and 5.9.3 | 7.0.2, with 6.0.3 private to `packages/eslint-config` | Done | Tested 2026-11-01: `tsc` and `next build` pass on 7.0.2 once `baseUrl` is removed from the Next tsconfig. `typescript-eslint` 8.72.1 refuses 7.0, so lint parses with 6.0.3 until it supports 7. |
+| TypeScript | 5.7.3 and 5.9.3 | 7.0.2, with 6.0.3 private to `packages/eslint-config` | Done | Tested 2026-11-01: `tsc` and the then Next build pass on 7.0.2 once `baseUrl` is removed from its tsconfig. `typescript-eslint` 8.72.1 refuses 7.0, so lint parses with 6.0.3 until it supports 7. |
 | `ts-node`, `nodemon` | 10.9.2, 3.1.14 | Removed | Done | `tsx` replaces both. Tested 2026-11-01: `tsx` boots the API with no database connected |
-| ESLint | 9.39.5 | 10.14.0 | Done | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. Rules that duplicate `react-hooks` are off, as were the rules that flagged the old `packages/ui` primitives. Those are on again in `packages/ui`, except in the upstream files that break them, and off only for the copies in the Next client. `next-client` now reports 17 warnings against 8 before, mostly from stricter `react-hooks` 7 rules. Phase 2 deletes that code |
+| ESLint | 9.39.5 | 10.14.0 | Done | Tested 2026-11-01: `eslint-plugin-react` 7.37.5 crashes on 10, so `@eslint-react/eslint-plugin` replaces it. Rules that duplicate `react-hooks` are off, as were the rules that flagged the old `packages/ui` primitives. Those are on again in `packages/ui`, except in the upstream files that break them. The Next client's own exceptions and warnings left with it in Phase 2 |
 | Everything else in `pnpm outdated` | Various | Latest | Done | Except rows below, which are removed or replaced later |
 | dotenv | 16.6.1 | Removed | Done | `process.loadEnvFile` in the config module replaces it, with the same order and non-override behaviour |
-| lucide-react | 0.477.0 | 1.66.0 | Done | In `packages/ui` and `apps/web`, whose icons all exist in 1.x. The Next client keeps 0.477.0 until it is deleted |
-| @hookform/resolvers | 5.9.2 | 7.0.1 | 2 | `apps/web` is on 7.0.1, and the Next client keeps 5.9.2 until it is deleted |
-| react-day-picker | 9.14.0 | 10.0.2 | Done | In `packages/ui`, with the base-nova calendar. The Next client keeps 9.14.0 until it is deleted |
+| lucide-react | 0.477.0 | 1.66.0 | Done | In `packages/ui` and `apps/web`, whose icons all exist in 1.x. 0.477.0 left with the Next client |
+| @hookform/resolvers | 5.9.2 | 7.0.1 | Done | `apps/web` is on 7.0.1, and 5.9.2 left with the Next client |
+| react-day-picker | 9.14.0 | 10.0.2 | Done | In `packages/ui`, with the base-nova calendar. 9.14.0 left with the Next client |
 | mongoose | 8.24.7 | Removed | Done | With `mongodb-memory-server` |
 | fluent-ffmpeg | 2.1.3 | Removed | Done | Replaced by a `spawn` wrapper in `apps/worker` |
-| next, swr, next-themes | Current | Removed | 2 | Replaced by the [frontend stack](#4-frontend-stack) |
+| next, swr, next-themes | Current | Removed | Done | Replaced by the [frontend stack](#4-frontend-stack), and deleted with the Next client |
 | jsonwebtoken | 9.0.2 | Removed | Done | Replaced by API sessions |
+| cors | 2.8.6 | Removed from the API | Done | Every client is same-origin. `socket.io` still pulls it in for itself |
 
 Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm shared a commit, as did TypeScript and `tsx`, and the Chromium flow ran once on the final state rather than after each group. Anything that cannot move yet is left out and recorded here.
 
-**Keeping current:** Renovate opens one grouped weekly PR for non-major updates across npm, images, Actions, the Dockerfile pins and `.mcp.json`. Majors arrive separately, and packages in the table above that are removed or replaced get no majors. It needs its GitHub App installed. pnpm's minimum release age stays on, so brand-new releases wait.
+**Keeping current:** Renovate opens one grouped weekly PR for non-major updates across npm, images, Actions, the Dockerfile pins and `.mcp.json`. Majors arrive separately. It needs its GitHub App installed. pnpm's minimum release age stays on, so brand-new releases wait.
 
 ## 8. MongoDB to SQLite with Drizzle
 
@@ -543,7 +545,7 @@ The rendered preview, the Theme part of `/dev/components`, is for the maintainer
 
 ### 9.4 Typography
 
-One family: Geist Sans for UI and Geist Mono for technical data, self-hosted through `@fontsource-variable/geist` and `@fontsource-variable/geist-mono`. Vite bundles them, so no font CDN is asked. Text sizes come from the Tailwind scale, and the radius is `0.6rem`. `apps/web` has this, and Zain goes with the Next client in item 8.
+One family: Geist Sans for UI and Geist Mono for technical data, self-hosted through `@fontsource-variable/geist` and `@fontsource-variable/geist-mono`. Vite bundles them, so no font CDN is asked. Text sizes come from the Tailwind scale, and the radius is `0.6rem`. `apps/web` has this, and Zain left with the Next client in item 8.
 
 ### 9.5 Components
 
@@ -587,7 +589,7 @@ A dev-only `/dev/components` route shows every pattern in both themes.
 2. Both `components.json` files share `base-nova`, `iconLibrary: lucide`, `baseColor: zinc`, an empty `tailwind.config` and `rsc: false`, and `shadcn info` reads them so. `apps/web`'s puts primitives in `packages/ui`.
 3. `tw-animate-css` and shadcn's `tailwind.css` replace `tailwindcss-animate`. The latter is copied into `packages/ui/src/styles/shadcn.css`, because importing it from the `shadcn` package shipped the CLI and a low `pnpm audit --prod` advisory in `deepmerge` with it.
 4. `shadcn migrate cn` moved `cn()` to the `cn` package. Primitives import it from `@workspace/ui/lib/utils`.
-5. The Radix primitives moved to the Next client unchanged. `packages/ui` took each one from the `base-nova` registry, one commit per component, with keyboard tests, so `asChild` became `render` with upstream's own code. `packages/ui/AGENTS.md` lists the few intended differences from upstream, which `add --diff` shows.
+5. The Radix primitives moved to the Next client unchanged, and left with it in item 8. `packages/ui` took each one from the `base-nova` registry, one commit per component, with keyboard tests, so `asChild` became `render` with upstream's own code. `packages/ui/AGENTS.md` lists the few intended differences from upstream, which `add --diff` shows.
 6. `dual-range-slider` is not in the registry. It is the base-nova slider with its labels kept.
 7. `add-shadcn.sh`, which pinned `canary`, is deleted.
 
@@ -607,7 +609,7 @@ Installed at project scope in `.claude/skills/`. `skills-lock.json` records hash
 
 The Impeccable engine binary is ignored by git. Its wrapper downloads the engine when missing, so a fresh clone fetches it on first use.
 
-Next.js skills and `next-devtools-mcp` are not installed, because Phase 2 removes Next.
+Next.js skills and `next-devtools-mcp` are not installed, because the stack has no Next.
 
 ### 10.2 MCP servers
 
@@ -736,7 +738,7 @@ Each phase ends with a working app.
 
 **Status:** done. All 9 items are finished, and no `it.fails` marker remains.
 
-The Next client stayed behind Caddy until Phase 2 item 7 replaced it. It may change when a step needs it, and anything added is listed in Phase 2, so that `apps/web` replaces it fully.
+The Next client stayed behind Caddy until Phase 2 item 7 replaced it, and item 8 deleted it.
 
 **Done when:** the audit crash cases have passing tests, only 80 and 443 are public, and a fresh `docker compose up` reaches a setup screen. **This is the earliest the app may go on the internet.**
 
@@ -768,7 +770,7 @@ Checked on 2026-11-02:
    **Status:** done. Every pattern in [section 9.5](#95-components) is in `packages/ui/src/patterns`, with component tests, and `apps/web`'s signed-in layout uses `AppShell`. `/dev/components` replaced `/dev/theme` and `/dev/primitives`. `media-chrome` was rejected for own controls on `hls.js` ([ADR 0010](./adr/0010-own-player-controls-on-hls-js.md)). The Next client is unchanged.
 5. Add the API image cache and server-side library queries.
 
-   **Status:** done. See [section 2](#2-status). `/movies`, `/shows` and `/movie/:id` are unchanged for the Next client, and item 8 deletes them.
+   **Status:** done. See [section 2](#2-status). `/movies`, `/shows` and `/movie/:id` stayed for the Next client, and item 8 deleted them.
 6. Rebuild Login, Setup, Movies, Movie detail, Player and Settings on the patterns, including everything item 8 added to the Next client:
    - The `failed` status, with its icon, tooltip and an option in the status filter.
    - The reason for a failure on the movie's detail page, with a Retry button in place of Play.
@@ -790,7 +792,17 @@ Checked on 2026-11-02:
    - `apps/next-client/Dockerfile`, which no Compose file uses since item 7, and the Next client's env files in the planted-secret list of `apps/e2e/run.sh`.
    - The API's endpoints for the Next client, which `/library` replaces: `GET /movies`, `GET /shows` and `GET /movie/:id`, with their entries in `packages/contract`, their response schemas and handlers, and `listMovies` and `listShows` in `packages/db`. Item 6 moved `apps/web` off `GET /movies`. Its movie page still uses `GET /movie/:id`, as the spec for item 6 chose, so this item moves that under `/library` before deleting it.
 
+   **Status:** done. A movie's page and the player read `GET /library/movies/:id`, which answers with the title's card, including `hasPoster` and `hasBackdrop`, and its tagline, overview and failure reason, so a title without art asks for none. `GET /movies`, `GET /shows` and `GET /movie/:id` answer 404, and `listMovies` and `listShows` are gone. `apps/next-client`, the Next ESLint config, `nextjs.json`, `NEXT_CLIENT_URL` and `API_SERVER_URL` are gone, the Vite proxy always targets the API's default port, and Turbo, Renovate and the ignores no longer name them. CORS and the API's `cors` dependency are gone, because every client is same-origin, and a test shows the `Origin` check still refuses a cross-site POST and that no CORS header is sent. The lockfile lost 94 packages, `pnpm why` traces each Radix package left to `cmdk`, and `pnpm audit --prod` finds nothing. `class-variance-authority` and `clsx` stay, because `packages/ui` uses them. `sharp` left `allowBuilds`, because nothing installs it now. The Next client's own ESLint exceptions left with it, and no shared rule was off only for it. No ADR, the audit or an earlier changelog entry was changed.
+
 **Done when:** today's features work on the new patterns in both themes, at phone and desktop widths, and no Next.js code remains.
+
+Checked on 2026-11-08:
+
+- [x] **Today's features work on the new patterns.** Item 6's two tickets checked Login, Setup, Movies, a movie's page, the player and Settings in Chromium under the dev servers, in both themes at 390 and 1280 wide, by keyboard, and `pnpm test:browser` drives them through Caddy since item 7. It passed again on this branch: 28 tests, with no planted secret in any image.
+- [x] **Both themes, at phone and desktop widths, through Caddy.** The gaps the earlier tickets left were checked in Chromium through Caddy, in the browser-test stack with a fake TMDB: Movies and a movie's page, with and without art flags, in light at 1280 and dark at 390, and the login page in light at 1280. Each page showed its content in the right theme, with no failed request and no console error, except the expected 401 from `GET /auth/me` on the login page. The fake TMDB's art is not a real image, so the cards and the page showed the fallback, and real art was not seen.
+- [x] **No Next.js code remains.** `apps/next-client` and every Next configuration and package are gone. A search finds Next only in history: the ADRs, the audit, earlier changelog entries, and this plan's record of what was done, and in the vendored skill files.
+
+**Status:** done. Phase 2 is finished, and Phase 3 waits for the maintainer.
 
 ### Phase 3: PWA and Electron
 
@@ -889,5 +901,5 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Only Chromium is tested | Add Firefox and WebKit in Playwright; test real Safari in Phase 3 |
 | The `public` and `tailscale` HTTPS modes have only passed `caddy validate` | Run each once. Only the maintainer can, because they need a real domain or tailnet |
 | Electron and full-app PWA behavior are planned, not prototyped | Each gets a test in its phase |
-| Moving auth while the Next client still runs | Done in item 7. The browser tests now run through Caddy |
+| Moving auth while the Next client still runs | Done in item 7, and the Next client is gone since item 8. The browser tests run through Caddy |
 | `media-chrome` may not suit the player | Resolved in Phase 2 item 4: rejected for own controls on `hls.js` ([ADR 0010](./adr/0010-own-player-controls-on-hls-js.md)). Native HLS in Safari cannot report a 401, so there a lost session shows as a playback error, and Safari is not tested |

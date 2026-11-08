@@ -2,31 +2,17 @@ import path from 'path';
 import fs from 'fs';
 import { db } from './db';
 import { ApiFailure, notFound } from './errors';
-import { findLatestScan, findMovie, findStoredImage, libraryFacets, listLibrary, listMovies, listShows, queueScan, type Job, type Movie } from '@workspace/db';
-import type { ImageKind, LibraryFacets, LibraryPage, LibraryQuery } from '@workspace/contract/library';
+import { findLatestScan, findLibraryMovie, findStoredImage, libraryFacets, listLibrary, queueScan, type Job } from '@workspace/db';
+import type { ImageKind, LibraryFacets, LibraryMovie, LibraryPage, LibraryQuery } from '@workspace/contract/library';
 import type { Response } from 'express';
 import { config } from './config';
 import { sendFile } from './send-file';
-import type {
-	MovieAPIData,
-	MovieMetadata,
-	MoviesAPIData,
-	Scan,
-	ScanAPIData,
-	ScanCounts,
-	ShowsAPIData,
-} from '@workspace/contract/api-types';
+import type { Scan, ScanAPIData, ScanCounts } from '@workspace/contract/api-types';
 
 /**
  * Media API
  * - requests for media information
  */
-
-const toMovieMetadata = ({ metadata, transcodeStatus, transcodeError }: Movie): MovieMetadata => ({
-	...metadata,
-	transcodeStatus,
-	...(transcodeError ? { transcodeError } : {}),
-});
 
 // GET /library/movies
 // -> one page of movies, searched, filtered and sorted
@@ -46,6 +32,16 @@ export const getLibraryMovieFacets = async (): Promise<LibraryFacets> => library
  */
 const imageCacheControl = 'private, max-age=2592000';
 
+// GET /library/movies/:id
+// -> one movie's page
+export const getLibraryMovie = async (id: number): Promise<LibraryMovie> => {
+	const movie = findLibraryMovie(db, id);
+	if (!movie) {
+		throw notFound('Movie');
+	}
+	return movie;
+};
+
 // GET /library/movies/:id/images/:kind
 // -> the stored poster or backdrop of a movie
 export const sendMovieImage = async ({ id, kind, res }: { id: number; kind: ImageKind; res: Response }) => {
@@ -63,33 +59,6 @@ export const sendMovieImage = async ({ id, kind, res }: { id: number; kind: Imag
 		'Image',
 	);
 };
-
-// /movies
-// -> metadata of all movies
-export const getMovies = async (): Promise<MoviesAPIData> => {
-	const movies = listMovies(db).map((movie) => toMovieMetadata(movie));
-	return { movies };
-};
-
-// /movies/:id
-// -> metadata of a specific movie
-export const getMovie = async (params: { id: number }): Promise<MovieAPIData> => {
-	const movie = findMovie(db, params.id);
-	if (!movie) {
-		throw notFound('Movie');
-	}
-	return { metadata: toMovieMetadata(movie) };
-};
-
-// /shows
-// -> metadata of all shows
-export const getShows = async (): Promise<ShowsAPIData> => {
-	return { shows: listShows(db).map((show) => show.metadata) };
-};
-
-// /shows/:id
-// -> metadata of a specific show
-// 
 
 /**
  * Media Scan

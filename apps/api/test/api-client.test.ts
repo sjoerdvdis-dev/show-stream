@@ -35,14 +35,6 @@ describe('the typed client against the real API', () => {
 		await api?.stop();
 	});
 
-	it('lists movies', async () => {
-		const { movies } = await client.movies();
-
-		expect(movies).toHaveLength(1);
-		expect(movies[0]?.details.title).toBe('Client Movie');
-		expect(movies[0]?.transcodeStatus).toBe('not ready');
-	});
-
 	it('lists a page of the library, with no query', async () => {
 		const page = await client.libraryMovies();
 
@@ -75,15 +67,15 @@ describe('the typed client against the real API', () => {
 		expect(facets.statuses['not ready']).toBeGreaterThan(0);
 	});
 
-	it('lists shows', async () => {
-		expect(await client.shows()).toEqual({ shows: [] });
-	});
-
-	it('gets a movie, with its TMDB data untouched', async () => {
-		const { metadata } = await client.movie({ params: { id: movie.id } });
-
-		expect(metadata.details).toEqual({ id: movie.id, title: 'Client Movie', release_date: '2024-01-01' });
-		expect(metadata.credits).toEqual({ cast: [], crew: [] });
+	it("gets a movie's page", async () => {
+		expect(await client.libraryMovie({ params: { id: movie.id } })).toMatchObject({
+			id: movie.id,
+			title: 'Client Movie',
+			releaseDate: '2024-01-01',
+			status: 'not ready',
+			hasPoster: false,
+			tagline: null,
+		});
 	});
 
 	it('reports that setup is done', async () => {
@@ -108,7 +100,7 @@ describe('the typed client against the real API', () => {
 	});
 
 	it('reports a missing session as its typed error', async () => {
-		const error = await failureOf(anonymous.movies());
+		const error = await failureOf(anonymous.libraryMovies());
 
 		expect(error).toMatchObject({ status: 401, code: 'unauthorized', message: 'You are not logged in' });
 	});
@@ -134,8 +126,8 @@ describe('the typed client against the real API', () => {
 		expect(status).toBe('in progress');
 
 		await api.waitFor(async () => {
-			const { metadata } = await client.movie({ params: { id: playable.id } });
-			expect(metadata.transcodeStatus).toBe('ready');
+			const { status: now } = await client.libraryMovie({ params: { id: playable.id } });
+			expect(now).toBe('ready');
 		});
 
 		const { playlistUrl } = await client.transcodePlaylist({ params: { id: playable.id } });
@@ -146,7 +138,7 @@ describe('the typed client against the real API', () => {
 	});
 
 	it('throws one error type with the code and message of the API', async () => {
-		const error = await failureOf(client.movie({ params: { id: 9999 } }));
+		const error = await failureOf(client.libraryMovie({ params: { id: 9999 } }));
 
 		expect(error).toMatchObject({ status: 404, code: 'not_found', message: 'Movie not found' });
 	});
@@ -171,7 +163,7 @@ describe('the typed client against the real API', () => {
 	});
 
 	it('reports a server it cannot reach', async () => {
-		const error = await failureOf(createApiClient('http://127.0.0.1:9').movies());
+		const error = await failureOf(createApiClient('http://127.0.0.1:9').libraryMovies());
 
 		expect(error).toMatchObject({ status: 0, code: 'network_error' });
 	});

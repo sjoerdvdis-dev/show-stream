@@ -14,8 +14,8 @@ describe.skipIf(!hasFfmpeg)('a MEDIA_FOLDER outside the app folder', () => {
 	let library: string;
 
 	const transcodeStatus = async () => {
-		const { metadata } = await (await owner.get(`/movie/${scannedMovie.id}`)).json();
-		return metadata.transcodeStatus;
+		const { status } = await (await owner.get(`/library/movies/${scannedMovie.id}`)).json();
+		return status;
 	};
 
 	// A dot folder and a space, which are both ordinary in a real library path.

@@ -32,6 +32,12 @@ const itemOf = async (client: TestClient, id: number): Promise<LibraryItem | und
 	return items.find((item: LibraryItem) => item.id === id);
 };
 
+/** The art flags of a title's page, which must agree with its card. */
+const pageArtOf = async (client: TestClient, id: number) => {
+	const { hasPoster, hasBackdrop } = await (await client.get(`/library/movies/${id}`)).json();
+	return { hasPoster, hasBackdrop };
+};
+
 const imageText = async (response: Response) => new TextDecoder().decode((await response.arrayBuffer()).slice(4));
 
 describe('title images', () => {
@@ -60,6 +66,7 @@ describe('title images', () => {
 		expect(await scanLibrary(api, owner)).toMatchObject({ status: 'done', errors: [] });
 
 		expect(await itemOf(owner, scannedMovie)).toMatchObject({ hasPoster: true, hasBackdrop: true });
+		expect(await pageArtOf(owner, scannedMovie)).toEqual({ hasPoster: true, hasBackdrop: true });
 
 		const poster = await owner.get(`/library/movies/${scannedMovie}/images/poster`);
 		expect(poster.status).toBe(200);
@@ -117,6 +124,7 @@ describe('title images', () => {
 		expect(scan.counts).toMatchObject({ found: 1, added: 1, failed: 0 });
 		expect(scan.errors).toEqual(['Broken Art (2024): could not store its poster: TMDB answered 404']);
 		expect(await itemOf(owner, brokenArt)).toMatchObject({ title: 'Broken Art', hasPoster: false, hasBackdrop: true });
+		expect(await pageArtOf(owner, brokenArt)).toEqual({ hasPoster: false, hasBackdrop: true });
 		expect((await owner.get(`/library/movies/${brokenArt}/images/poster`)).status).toBe(404);
 	});
 

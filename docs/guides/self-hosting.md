@@ -156,6 +156,6 @@ git pull
 docker compose up -d --build --remove-orphans
 ```
 
-`--build` matters: the web app and the Caddyfile are inside the Caddy image, so an upgrade without it keeps the old app. `--remove-orphans` removes containers of services that are gone, such as the Next client's. Read the [changelog](../../CHANGELOG.md) first, because it lists what each change needs. Take a copy of the newest backup before upgrading, because the API applies new migrations when it starts, and there is no way down. A failed migration stops the API, and the worker and Caddy then do not start.
+`--build` matters: the web app and the Caddyfile are inside the Caddy image, so an upgrade without it keeps the old app. `--remove-orphans` removes containers of services that are gone. Read the [changelog](../../CHANGELOG.md) first, because it lists what each change needs. Take a copy of the newest backup before upgrading, because the API applies new migrations when it starts, and there is no way down. A failed migration stops the API, and the worker and Caddy then do not start.
 
 Keep the `sqlite-data` and `caddy-data` volumes. The first holds the database, and the second holds the CA that your devices trust. `docker compose down` keeps them, and `docker compose down --volumes` deletes them.

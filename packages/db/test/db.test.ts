@@ -17,6 +17,7 @@ import {
 	extendSession,
 	failJob,
 	findLatestScan,
+	findLibraryMovie,
 	findMovie,
 	findSession,
 	findUserByUsername,
@@ -26,8 +27,6 @@ import {
 	isDatabaseMigrated,
 	libraryFacets,
 	listLibrary,
-	listMovies,
-	listShows,
 	markTranscodeDone,
 	migrateDatabase,
 	openDatabase,
@@ -168,7 +167,9 @@ describe('database', () => {
 
 				expect(rowCount(db, 'media')).toBe(2);
 				expect(findMovie(db, 7)?.path).toBe('movies/Seven (2024)');
-				expect(listShows(db).map(({ path }) => path)).toEqual(['shows/Seven']);
+				expect(listLibrary(db, 'show', { sort: 'title', order: 'asc', page: 1, pageSize: 10 }).items).toMatchObject([
+					{ id: 7, title: 'Seven' },
+				]);
 			});
 
 			it('updates a title that is saved twice, and keeps its internal ID', () => {
@@ -176,7 +177,8 @@ describe('database', () => {
 				const second = saveMovie(db, { tmdbId: 7, path: 'movies/New', metadata: movieMetadata(7, 'New') });
 
 				expect(second.id).toBe(first.id);
-				expect(listMovies(db).map(({ title, path }) => ({ title, path }))).toEqual([{ title: 'New', path: 'movies/New' }]);
+				expect(rowCount(db, 'media')).toBe(1);
+				expect(findMovie(db, 7)).toMatchObject({ title: 'New', path: 'movies/New' });
 			});
 
 			it('stores any number of titles with no TMDB ID', () => {
@@ -260,6 +262,31 @@ describe('database', () => {
 				expect(libraryFacets(db, 'movie').statuses['not ready']).toBe(0);
 			});
 
+			it("gives a movie's page its card, tagline, overview and art", () => {
+				const metadata = movieMetadata(7, 'Seven');
+				metadata.details.genres = [{ id: 18, name: 'Drama' }];
+				metadata.details.tagline = 'Seven days';
+				metadata.details.overview = '';
+				const movie = saveMovie(db, { tmdbId: 7, path: 'movies/Seven', metadata });
+				db.$client.prepare(`UPDATE media SET poster_format = 'jpg' WHERE id = ?`).run(movie.id);
+
+				expect(findLibraryMovie(db, 7)).toEqual({
+					id: 7,
+					title: 'Seven',
+					year: 2024,
+					releaseDate: '2024-05-01',
+					runtime: 90,
+					rating: 7.5,
+					genres: ['Drama'],
+					status: 'not ready',
+					hasPoster: true,
+					hasBackdrop: false,
+					tagline: 'Seven days',
+					overview: null,
+				});
+				expect(findLibraryMovie(db, 8)).toBeUndefined();
+			});
+
 			it('drops the genres and search entry of a removed title', () => {
 				const metadata = movieMetadata(1, 'Dark Movie');
 				metadata.details.genres = [{ id: 18, name: 'Drama' }];
@@ -285,7 +312,7 @@ describe('database', () => {
 				addMovie();
 
 				expect(findMovie(db, 7)?.transcodeStatus).toBe('not ready');
-				expect(listMovies(db)[0]?.transcodeStatus).toBe('not ready');
+				expect(findLibraryMovie(db, 7)?.status).toBe('not ready');
 			});
 
 			it('reads as the status clients know through each state of a job', () => {
@@ -307,7 +334,7 @@ describe('database', () => {
 				failClaimedJob();
 
 				expect(findMovie(db, 7)).toMatchObject({ transcodeStatus: 'failed', transcodeError: 'Bad file' });
-				expect(listMovies(db)[0]).toMatchObject({ transcodeStatus: 'failed', transcodeError: 'Bad file' });
+				expect(findLibraryMovie(db, 7)).toMatchObject({ status: 'failed', failureReason: 'Bad file' });
 			});
 
 			it('keeps one job per title', () => {

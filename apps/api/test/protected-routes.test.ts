@@ -44,7 +44,7 @@ describe('every endpoint that is not public', () => {
 	});
 
 	it('checks the session before the input, so that a request with no session learns nothing', async () => {
-		expect((await api.get('/movie/not-a-number')).status).toBe(401);
+		expect((await api.get('/library/movies/not-a-number')).status).toBe(401);
 		expect((await api.get('/streams/1/clip.mp4')).status).toBe(401);
 	});
 

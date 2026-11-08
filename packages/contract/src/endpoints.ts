@@ -1,16 +1,19 @@
 import { z } from 'zod';
 import {
 	logoutResponseSchema,
-	movieResponseSchema,
-	moviesResponseSchema,
 	scanResponseSchema,
 	sessionResponseSchema,
 	setupStatusResponseSchema,
-	showsResponseSchema,
 	transcodePlaylistResponseSchema,
 	transcodeRequestResponseSchema,
 } from './api-types.js';
-import { imageKindSchema, libraryFacetsSchema, libraryPageSchema, libraryQuerySchema } from './library.js';
+import {
+	imageKindSchema,
+	libraryFacetsSchema,
+	libraryMovieSchema,
+	libraryPageSchema,
+	libraryQuerySchema,
+} from './library.js';
 
 export type Endpoint = {
 	method: 'GET' | 'POST';
@@ -113,6 +116,8 @@ export const endpoints = {
 	},
 	libraryMovies: { method: 'GET', path: '/library/movies', query: libraryQuerySchema, response: libraryPageSchema },
 	libraryMovieFacets: { method: 'GET', path: '/library/movies/facets', response: libraryFacetsSchema },
+	/** One movie's page. After `facets`, which Express would otherwise take for an ID. */
+	libraryMovie: { method: 'GET', path: '/library/movies/:id', params: titleParams, response: libraryMovieSchema },
 	/** A movie's stored poster or backdrop, which a browser may cache. */
 	libraryMovieImage: {
 		method: 'GET',
@@ -121,9 +126,6 @@ export const endpoints = {
 		format: 'file',
 		response: z.instanceof(Blob),
 	},
-	movies: { method: 'GET', path: '/movies', response: moviesResponseSchema },
-	shows: { method: 'GET', path: '/shows', response: showsResponseSchema },
-	movie: { method: 'GET', path: '/movie/:id', params: titleParams, response: movieResponseSchema },
 } as const satisfies Record<string, Endpoint>;
 
 export type Endpoints = typeof endpoints;

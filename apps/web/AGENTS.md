@@ -1,6 +1,6 @@
 # Web
 
-The static React SPA that replaced `apps/next-client`. `pnpm dev` serves it beside Next, and Caddy serves its build. `Dockerfile` builds it into the Caddy image, with `infra/caddy/Caddyfile`, and that image is the `caddy` service.
+The static React SPA, and the only web client. `pnpm dev` serves it, and Caddy serves its build. `Dockerfile` builds it into the Caddy image, with `infra/caddy/Caddyfile`, and that image is the `caddy` service.
 
 | Folder | Holds |
 |---|---|
@@ -20,7 +20,7 @@ The static React SPA that replaced `apps/next-client`. `pnpm dev` serves it besi
 - `redirect` on `/login` only ever holds what `toReturnPath` returns. Add any new path the API serves to its list.
 - ffmpeg, Node APIs and server code do not belong here. The build is static files, and the Vite proxy exists only under `pnpm dev`.
 - `src/routeTree.gen.ts` is generated and committed. Vite rewrites it when routes change, so do not edit or format it.
-- UI comes from `@workspace/ui`: the stylesheet, `@workspace/ui/tokens.css`, and the shadcn primitives on Base UI, as `@workspace/ui/components/button`. Use a pattern from `@workspace/ui/patterns/*` before a primitive, and a primitive before writing an element by hand. Nothing from Radix or `next-themes`. `components.json` shares `style`, `iconLibrary`, `baseColor`, `rsc` and the `ui` and `utils` aliases with the one in `packages/ui`, so `shadcn add` from here puts primitives there.
+- UI comes from `@workspace/ui`: the stylesheet, `@workspace/ui/tokens.css`, and the shadcn primitives on Base UI, as `@workspace/ui/components/button`. Use a pattern from `@workspace/ui/patterns/*` before a primitive, and a primitive before writing an element by hand. Nothing from Radix or another theme library. `components.json` shares `style`, `iconLibrary`, `baseColor`, `rsc` and the `ui` and `utils` aliases with the one in `packages/ui`, so `shadcn add` from here puts primitives there.
 - Colors come from the tokens, as `bg-card` or `text-muted-foreground`. `test/no-raw-colors.test.ts` fails on a raw color, such as `text-red-500`, `bg-black` or a hex value. `DESIGN.md` at the root says which token does what.
 - The theme is `useTheme` from `src/lib/theme.tsx`, which puts the `dark` class on `<html>`. The script in `index.html` applies it before first paint with the same storage key, so change both together. Caddy's `Content-Security-Policy` allows that script by its hash, and `vite build` fails until the hash in `infra/caddy/Caddyfile` matches, naming the new one.
 - Caddy's policy forbids `eval`, `new Function`, inline event handlers, and any origin but the server's own. `src/lib/zod-without-eval.ts` turns off Zod's compiled parsers, so it is the first import of `main.tsx`, and the build keeps modules in import order for it. `pnpm dev` sends no policy, so `pnpm test:browser` is what catches a violation. The `Toaster` primitive takes its `theme` from it.

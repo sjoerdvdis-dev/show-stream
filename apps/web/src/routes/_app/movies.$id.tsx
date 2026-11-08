@@ -11,7 +11,7 @@ export const Route = createFileRoute('/_app/movies/$id')({
 	params: {
 		// An id that is not a TMDB id, such as `abc`, is a page that does not exist.
 		parse: ({ id }) => {
-			const parsed = endpoints.movie.params.safeParse({ id });
+			const parsed = endpoints.libraryMovie.params.safeParse({ id });
 			if (!parsed.success) throw notFound();
 			return { id: parsed.data.id };
 		},

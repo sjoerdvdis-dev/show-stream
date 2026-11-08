@@ -1,6 +1,6 @@
 import type { Scan, TranscodeStatus } from '@workspace/contract/api-types';
 import { endpoints } from '@workspace/contract/endpoints';
-import type { LibraryItem } from '@workspace/contract/library';
+import type { LibraryItem, LibraryMovie } from '@workspace/contract/library';
 import { delay, http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
@@ -193,31 +193,19 @@ export const startFakeApi = (state: Partial<FakeApi> = {}) => {
 			});
 		}),
 		http.get('/api/library/movies/:id/images/:kind', () => new HttpResponse(null, { status: 404 })),
-		http.get('/api/movie/:id', async ({ params }) => {
+		http.get('/api/library/movies/:id', async ({ params }) => {
 			await delay(api.moviesDelayMs);
 			if (!api.signedIn) return unauthorized();
 			if (api.libraryFails) return serverError();
 			const movie = findMovie(params.id);
 			if (!movie) return notFound('Movie not found');
-			const item = toItem(movie);
-			return HttpResponse.json({
-				metadata: {
-					details: {
-						id: item.id,
-						title: item.title,
-						overview: movie.overview ?? '',
-						tagline: movie.tagline ?? '',
-						release_date: item.releaseDate ?? '',
-						runtime: item.runtime ?? 0,
-						vote_average: item.rating ?? 0,
-						genres: item.genres.map((name, index) => ({ id: index, name })),
-					},
-					credits: {},
-					images: {},
-					transcodeStatus: item.status,
-					...(movie.failureReason ? { transcodeError: movie.failureReason } : {}),
-				},
-			});
+			const page: LibraryMovie = {
+				...toItem(movie),
+				tagline: movie.tagline ?? null,
+				overview: movie.overview ?? null,
+				...(movie.status === 'failed' && movie.failureReason ? { failureReason: movie.failureReason } : {}),
+			};
+			return HttpResponse.json(page);
 		}),
 		http.get('/api/transcode/request/:id', ({ params }) => {
 			if (!api.signedIn) return unauthorized();

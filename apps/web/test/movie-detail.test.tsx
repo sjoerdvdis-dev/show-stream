@@ -37,6 +37,25 @@ describe("a movie's page", () => {
 		await waitFor(() => expect(currentPath()).toBe('/watch/949'));
 	});
 
+	it('asks only for the art the library says it has', async () => {
+		startFakeApi({ signedIn: true, movies: [{ ...heat, hasPoster: true, hasBackdrop: false }] });
+
+		openApp('/movies/949');
+
+		await screen.findByRole('heading', { level: 1, name: 'Heat' });
+		const sources = [...document.querySelectorAll('img')].map((image) => image.getAttribute('src'));
+		expect(sources).toEqual(['/api/library/movies/949/images/poster']);
+	});
+
+	it('asks for no art for a title without any', async () => {
+		startFakeApi({ signedIn: true, movies: [heat] });
+
+		openApp('/movies/949');
+
+		await screen.findByRole('heading', { level: 1, name: 'Heat' });
+		expect(document.querySelectorAll('img')).toHaveLength(0);
+	});
+
 	it('shows why a failed title failed, and offers Retry in place of Play', async () => {
 		const api = startFakeApi({
 			signedIn: true,

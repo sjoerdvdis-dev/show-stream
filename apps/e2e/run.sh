@@ -38,7 +38,6 @@ git -C ../.. ls-files -z --cached --others --exclude-standard |
 fake_secret=fake-secret-that-must-not-reach-an-image
 for file in .env .env.local apps/api/.env apps/api/.env.local apps/api/.env.backup \
   apps/worker/.env apps/web/.env apps/web/.env.local apps/web/.env.production.local \
-  apps/next-client/.env apps/next-client/.env.local apps/next-client/.env.production.local \
   packages/db/.env packages/logger/.env; do
   echo "TMDB_API_READ_ACCESS_TOKEN=$fake_secret" >"$E2E_CONTEXT/$file"
 done

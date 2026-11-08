@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import type { MovieMetadata } from '@workspace/contract/api-types';
+import type { LibraryMovie } from '@workspace/contract/library';
 import { MediaHero } from '@workspace/ui/patterns/media-hero';
 import { BackLink, PageContainer } from '@workspace/ui/patterns/page';
 import { PlayButton } from '@workspace/ui/patterns/status';
 import { MovieNotFound } from '@/features/library/movie-not-found';
-import { movieQuery } from '@/features/library/movies';
+import { movieArt, movieQuery } from '@/features/library/movies';
 import { usePlay, useRetry } from '@/features/library/use-play';
-import { isNotFound, movieImageUrl } from '@/lib/api';
+import { isNotFound } from '@/lib/api';
 
 const formatRuntime = (minutes: number) => {
 	const hours = Math.floor(minutes / 60);
@@ -15,12 +15,12 @@ const formatRuntime = (minutes: number) => {
 };
 
 /** The year, runtime, rating and genres that TMDB knows, leaving out what it does not. */
-const toMeta = ({ release_date, runtime, vote_average, genres }: MovieMetadata['details']) =>
+const toMeta = ({ year, runtime, rating, genres }: LibraryMovie) =>
 	[
-		release_date?.slice(0, 4),
+		year ? String(year) : undefined,
 		runtime ? formatRuntime(runtime) : undefined,
-		vote_average ? vote_average.toFixed(1) : undefined,
-		genres?.length ? genres.map(({ name }) => name).join(', ') : undefined,
+		rating ? rating.toFixed(1) : undefined,
+		genres.length ? genres.join(', ') : undefined,
 	].filter((item): item is string => Boolean(item));
 
 /** A movie's page: its backdrop, poster and details, with Play, or Retry for a failed title. */
@@ -56,23 +56,23 @@ export const MovieDetail = ({ id }: { id: number }) => {
 		);
 	}
 
-	const { details, transcodeStatus: status = 'not ready', transcodeError } = data.metadata;
-	const title = { id, title: details.title };
+	const { status, failureReason } = data;
+	const title = { id, title: data.title };
 
 	return (
 		<>
 			{back}
 			<MediaHero
-				title={details.title}
-				tagline={details.tagline || undefined}
-				meta={toMeta(details)}
-				overview={details.overview || undefined}
-				backdrop={movieImageUrl(id, 'backdrop')}
-				poster={movieImageUrl(id, 'poster')}
+				title={data.title}
+				tagline={data.tagline ?? undefined}
+				meta={toMeta(data)}
+				overview={data.overview ?? undefined}
+				backdrop={movieArt(data, 'backdrop')}
+				poster={movieArt(data, 'poster')}
 				status={status}
-				failureReason={transcodeError}
+				failureReason={failureReason}
 				actions={
-					<PlayButton title={details.title} status={status} onPlay={() => play(title)} onRetry={() => retry(title)} />
+					<PlayButton title={data.title} status={status} onPlay={() => play(title)} onRetry={() => retry(title)} />
 				}
 			/>
 		</>

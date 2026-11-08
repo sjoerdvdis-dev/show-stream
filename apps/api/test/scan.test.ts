@@ -76,7 +76,7 @@ describe('a scan with a fake TMDB', () => {
 		await addFolders(api, 'not a movie folder');
 
 		expect(await scanLibrary(api, owner)).toMatchObject({ status: 'done', counts: noCounts });
-		expect(await (await owner.get('/movies')).json()).toEqual({ movies: [] });
+		expect(await (await owner.get('/library/movies')).json()).toMatchObject({ items: [], total: 0 });
 	});
 
 	it('counts what it added, what it updated, and lists what went wrong', async () => {
@@ -91,8 +91,8 @@ describe('a scan with a fake TMDB', () => {
 			'Broken Lookup (2024): Invalid API key: You must be granted a valid key.',
 			'No Match (2024): TMDB has no match',
 		]);
-		const { movies } = await (await owner.get('/movies')).json();
-		expect(movies.map(({ details }: { details: { title: string } }) => details.title).sort()).toEqual([
+		const { items } = await (await owner.get('/library/movies')).json();
+		expect(items.map(({ title }: { title: string }) => title).sort()).toEqual([
 			'Scanned Movie 2',
 			'Scanned Movie 3',
 		]);
@@ -128,7 +128,7 @@ describe('a scan with a fake TMDB', () => {
 		const scan = await scanLibrary(api, owner);
 
 		expect(scan).toMatchObject({ status: 'failed', error: 'Could not read the movies folder (ENOENT).' });
-		expect((await owner.get('/movies')).status).toBe(200);
+		expect((await owner.get('/library/movies')).status).toBe(200);
 	});
 
 	it('answers 403 to an admin route for a user who is not one', async () => {
@@ -207,6 +207,6 @@ describe('audit finding 14', () => {
 		expect(scan.status).toBe('failed');
 		expect(scan.counts).toEqual({ found: 1, added: 0, updated: 0, unmatched: 0, failed: 1 });
 		expect(scan.errors).toEqual([expect.stringMatching(/^Unknown Film \(2024\): /)]);
-		expect(await (await owner.get('/movies')).json()).toEqual({ movies: [] });
+		expect(await (await owner.get('/library/movies')).json()).toMatchObject({ items: [], total: 0 });
 	});
 });

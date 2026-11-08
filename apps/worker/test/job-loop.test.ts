@@ -6,7 +6,6 @@ import type { MovieMetadata } from '@workspace/contract/api-types';
 import {
 	closeDatabase,
 	findMovie,
-	listMovies,
 	migrateDatabase,
 	openDatabase,
 	queueTranscode,
@@ -56,7 +55,14 @@ describe('the job loop', () => {
 		loop.start();
 	};
 
-	const statuses = () => listMovies(db).map(({ transcodeStatus }) => transcodeStatus);
+	/** The status of each title `addJobs` added, by TMDB ID. */
+	const statuses = () => {
+		const found = [];
+		for (let tmdbId = 1, movie = findMovie(db, 1); movie; movie = findMovie(db, ++tmdbId)) {
+			found.push(movie.transcodeStatus);
+		}
+		return found;
+	};
 
 	beforeEach(async () => {
 		vi.clearAllMocks();

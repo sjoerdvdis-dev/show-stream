@@ -23,20 +23,17 @@ ffmpeg may ask for your `sudo` password. If Chromium is missing system libraries
 
 ## Run the apps
 
-Start the API on port 5000, the worker, the Next client on port 3000 and the new web client on port 5173:
+Start the API on port 5000, the worker and the web app on port 5173:
 
 ```bash
 pnpm dev
 ```
 
-| Client | Open | Notes |
-|---|---|---|
-| `apps/next-client` | <http://localhost:3000> | Out of Compose since Phase 2 item 7, and deleted in item 8 |
-| `apps/web` | <http://127.0.0.1:5173> | What Compose serves, through Caddy. Login, Setup, Movies, a movie's page, the player and Settings are here, on the patterns. Home, Search and Shows were stubs in the Next client, and are not rebuilt. <http://127.0.0.1:5173/dev/components> previews the design tokens, primitives and patterns in both themes |
+Open <http://127.0.0.1:5173>. It is the app that Compose serves through Caddy: Login, Setup, Movies, a movie's page, the player and Settings. Home, Search and Shows arrive in later phases. <http://127.0.0.1:5173/dev/components> previews the design tokens, primitives and patterns in both themes.
 
 A new database takes you to `/setup`, where you create the owner account. There is no default account and no password reset yet, so to start over, stop the API and delete `data/app.db*`.
 
-Vite binds to `127.0.0.1`, and proxies `/api`, with the prefix removed, `/socket` and `/streams` to the API, which is what Caddy does in production. Caddy's `Content-Security-Policy` is not sent here, so check a change that could break it, such as a new inline script, a third-party origin or `eval`, through `pnpm test:browser`. The proxy keeps the browser's `Host`, so the API's `Origin` check passes, and it does not reach the build. `API_SERVER_URL` moves its target, which defaults to `http://localhost:5000`.
+Vite binds to `127.0.0.1`, and proxies `/api`, with the prefix removed, `/socket` and `/streams` to the API, which is what Caddy does in production. Caddy's `Content-Security-Policy` is not sent here, so check a change that could break it, such as a new inline script, a third-party origin or `eval`, through `pnpm test:browser`. The proxy keeps the browser's `Host`, so the API's `Origin` check passes, and it does not reach the build. Its target is the API's default port, `http://localhost:5000`, so leave `PORT` unset under `pnpm dev`. The API sends no CORS headers, because every client reaches it from its own origin.
 
 `pnpm dev` builds `packages/contract`, `packages/db` and `packages/api-client` first, and the API and `apps/web` run that build. After changing one of them, restart `pnpm dev`.
 
@@ -187,7 +184,7 @@ The Compose steps were tested once by hand on 2026-11-02, with fake secrets: a l
 | File | Tracked | Holds |
 |---|---|---|
 | `.env.example` | Yes | Every variable, explained |
-| `.env.development`, `.env.production` | Yes | Defaults with no secrets |
+| `apps/api/.env.development`, `apps/api/.env.production` | Yes | Defaults with no secrets |
 | `apps/api/.env` | No | Your secrets, for `pnpm dev`. Wins over the tracked files |
 | `.env` at the root | No | Your settings and secrets, for Compose. See the [self-hosting guide](./self-hosting.md#settings-and-secrets) |
 
@@ -210,6 +207,6 @@ Never commit real values.
 - **`apk` errors while building images.** `dl-cdn.alpinelinux.org` has truncated downloads before. Retry, or compare with `mirrors.edge.kernel.org`.
 - **Skills that only you can start.** Skills such as `/to-spec` and `/implement` are marked `disable-model-invocation`, so Claude cannot load them unless you type the command.
 - **`Too many attempts`** after 10 failed logins or setups from one address in 15 minutes. The count lives in memory, so restarting the API clears it.
-- **`pnpm dev` is not the shipped path.** It has no Caddy, so the proxy in `apps/web/vite.config.ts` sends `/api`, `/socket` and `/streams` to the API, as `next.config.mjs` rewrites do for the Next client, sends no `Content-Security-Policy`, and a build has none of it. Both pass on a client's own `X-Forwarded-For`, so the rate limit proves nothing under `pnpm dev`, and Next answers `/socket/` with a 308 first. Test those through `pnpm test:browser`.
+- **`pnpm dev` is not the shipped path.** It has no Caddy, so the proxy in `apps/web/vite.config.ts` sends `/api`, `/socket` and `/streams` to the API, sends no `Content-Security-Policy`, and a build has none of it. The proxy passes on a client's own `X-Forwarded-For`, so the rate limit proves nothing under `pnpm dev`. Test those through `pnpm test:browser`.
 - **`vitest` alone needs the packages built.** `pnpm test` builds them first. If you run `vitest` directly in `apps/api`, run `pnpm turbo build --filter=api^...` once.
 - **ffmpeg cannot write to a `MEDIA_FOLDER` containing `%d` or a form like `%03d`.** It reads that as part of the segment pattern, and `%%` does not escape it. Rename the folder.

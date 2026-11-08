@@ -157,7 +157,6 @@ export const startApi = async (options: ApiOptions = {}): Promise<TestApi> => {
 				...apiEnvironment,
 				PORT: String(port),
 				DATABASE_PATH: databasePath,
-				...(options.envFile ? {} : { NEXT_CLIENT_URL: 'http://localhost:3000' }),
 				...(options.mediaFolder ? { MEDIA_FOLDER: options.mediaFolder } : {}),
 				...logLevel,
 			},

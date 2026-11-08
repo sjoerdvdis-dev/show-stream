@@ -111,7 +111,7 @@ test("the movie page shows the movie's details", async ({ page }) => {
 test('an unknown movie says it is not in the library', async ({ page }) => {
 	await logInAsOwner(page);
 
-	const response = page.waitForResponse((candidate) => candidate.url().endsWith('/api/movie/999999'));
+	const response = page.waitForResponse((candidate) => candidate.url().endsWith('/api/library/movies/999999'));
 	await page.goto('/movies/999999');
 
 	expect((await response).status()).toBe(404);

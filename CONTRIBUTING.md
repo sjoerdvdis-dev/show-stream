@@ -3,7 +3,6 @@
 ## Before you start
 
 - ShowStream is moving to a new architecture. Read [the plan](./docs/PLAN.md) and the [decisions](./docs/adr/README.md) before structural work.
-- `apps/next-client` is being replaced by `apps/web`, so do not add features to it.
 - Report vulnerabilities [privately](./SECURITY.md), not in an issue.
 - Everyone here follows the [code of conduct](./CODE_OF_CONDUCT.md).
 
@@ -15,7 +14,7 @@ Fork or clone the repo, then run:
 ./scripts/setup.sh
 ```
 
-It needs Node.js 26. Everything else it installs itself. `pnpm dev` runs the API, the worker and both clients, and it and `pnpm test` need no Docker. The full stack and the browser tests do, and setup says so if it is missing. To run the apps, see the [local development guide](./docs/guides/local-development.md).
+It needs Node.js 26. Everything else it installs itself. `pnpm dev` runs the API, the worker and the web app, and it and `pnpm test` need no Docker. The full stack and the browser tests do, and setup says so if it is missing. To run the apps, see the [local development guide](./docs/guides/local-development.md).
 
 ## Make a change
 

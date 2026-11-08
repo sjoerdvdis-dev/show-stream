@@ -9,12 +9,6 @@
 			"groupName": "non-major dependencies"
 		},
 		{
-			"description": "Removed or replaced later, so they get no major updates; delete with each package",
-			"matchPackageNames": ["@hookform/resolvers", "lucide-react", "react-day-picker"],
-			"matchUpdateTypes": ["major"],
-			"enabled": false
-		},
-		{
 			"description": "The Playwright package and image must stay on the same version",
 			"matchPackageNames": ["@playwright/test", "mcr.microsoft.com/playwright"],
 			"groupName": "playwright"
