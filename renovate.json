@@ -20,7 +20,7 @@
 			"groupName": "playwright"
 		},
 		{
-			"description": "Caddy is the public entry, so it gets its own pull request, across docker-compose.yml and apps/e2e/compose.yml",
+			"description": "Caddy is the public entry, so it gets its own pull request. Its one tag is the last stage of apps/web/Dockerfile",
 			"matchPackageNames": ["caddy"],
 			"groupName": "caddy"
 		},

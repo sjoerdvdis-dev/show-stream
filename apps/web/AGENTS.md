@@ -1,6 +1,6 @@
 # Web
 
-The static React SPA that replaces `apps/next-client`. `pnpm dev` serves it beside Next, and Caddy moves to it in Phase 2 item 7.
+The static React SPA that replaced `apps/next-client`. `pnpm dev` serves it beside Next, and Caddy serves its build. `Dockerfile` builds it into the Caddy image, with `infra/caddy/Caddyfile`, and that image is the `caddy` service.
 
 | Folder | Holds |
 |---|---|
@@ -22,7 +22,8 @@ The static React SPA that replaces `apps/next-client`. `pnpm dev` serves it besi
 - `src/routeTree.gen.ts` is generated and committed. Vite rewrites it when routes change, so do not edit or format it.
 - UI comes from `@workspace/ui`: the stylesheet, `@workspace/ui/tokens.css`, and the shadcn primitives on Base UI, as `@workspace/ui/components/button`. Use a pattern from `@workspace/ui/patterns/*` before a primitive, and a primitive before writing an element by hand. Nothing from Radix or `next-themes`. `components.json` shares `style`, `iconLibrary`, `baseColor`, `rsc` and the `ui` and `utils` aliases with the one in `packages/ui`, so `shadcn add` from here puts primitives there.
 - Colors come from the tokens, as `bg-card` or `text-muted-foreground`. `test/no-raw-colors.test.ts` fails on a raw color, such as `text-red-500`, `bg-black` or a hex value. `DESIGN.md` at the root says which token does what.
-- The theme is `useTheme` from `src/lib/theme.tsx`, which puts the `dark` class on `<html>`. The script in `index.html` applies it before first paint with the same storage key, so change both together. The `Toaster` primitive takes its `theme` from it.
+- The theme is `useTheme` from `src/lib/theme.tsx`, which puts the `dark` class on `<html>`. The script in `index.html` applies it before first paint with the same storage key, so change both together. Caddy's `Content-Security-Policy` allows that script by its hash, and `vite build` fails until the hash in `infra/caddy/Caddyfile` matches, naming the new one.
+- Caddy's policy forbids `eval`, `new Function`, inline event handlers, and any origin but the server's own. `src/lib/zod-without-eval.ts` turns off Zod's compiled parsers, so it is the first import of `main.tsx`, and the build keeps modules in import order for it. `pnpm dev` sends no policy, so `pnpm test:browser` is what catches a violation. The `Toaster` primitive takes its `theme` from it.
 - Settings shows the Library section to an owner or admin only, for the user's experience. The API refuses a scan from anyone else.
 - Patterns navigate through `RouterLink` in `src/lib/router-link.tsx`, which the root route gives `LinkProvider`. The signed-in layout in `_app.tsx` is `AppShell`, and decides which navigation item is active. A pattern that can see a 401, such as `VideoPlayer`, gets `onSessionLost` from the route context.
 - `/dev/components` shows every token, primitive and pattern from fixture data, with a theme switch, and only `pnpm dev` serves it. Its player plays a prepared title by its TMDB id, through `/streams`, so it needs a session. A dev-only route takes `beforeLoad: devOnly`, which answers not found in a build, and picks its component with `import.meta.env.DEV` written in the route file, so that Vite drops the page from the build. One that renders primitives imports its page lazily, because Base UI has top-level code that a static import keeps in the build.

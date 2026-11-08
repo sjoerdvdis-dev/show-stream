@@ -8,7 +8,7 @@ ShowStream runs under Docker Compose. Caddy is the only published service, on po
 docker compose up --build
 ```
 
-Nothing else is needed: no `.env`, no setup script and no network to create. Open <https://localhost>, accept or [trust](#trust-the-ca-on-a-device) the certificate, and create the owner account.
+This builds three images: the API, the worker, and Caddy, whose image holds the web app, built from `apps/web`, and the Caddyfile. Caddy serves the app as static files, and sends `/api`, `/socket` and `/streams` to the API. Nothing else is needed: no `.env`, no setup script and no network to create. Open <https://localhost>, accept or [trust](#trust-the-ca-on-a-device) the certificate, and create the owner account.
 
 Under the default mode your browser warns about the certificate until you trust Caddy's CA. Chromium accepts the `Secure` session cookie once you pass that warning.
 
@@ -64,6 +64,19 @@ The file is public, and holds no key. Install it on each device that visits, the
 
 Fetching the root certificate and verifying `https://localhost` and an IP address against it with `curl` was tested. The steps for each device were not.
 
+## Security headers
+
+Caddy sends these with the web app's pages and files:
+
+| Header | Value |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `same-origin` |
+| `Content-Security-Policy` | Only the server's own origin, for scripts, styles, images, media, workers and connections, including the socket. The first-paint script is allowed by its hash, `data:` images and `blob:` media and workers for the player, and `'unsafe-inline'` styles for the toasts. No framing |
+| `Cache-Control` | A year, `immutable`, for the hashed files under `/assets`, and `no-cache` for the rest, so an upgrade shows on the next reload |
+
+The API sends its own headers for `/api`, `/socket` and `/streams`.
+
 ## HSTS
 
 ShowStream sends no HSTS header. After HSTS a browser offers no way past a certificate it does not trust, which would lock out a device that has not trusted the internal CA yet.
@@ -95,7 +108,7 @@ The API and the worker start as root, give the folders they write to `PUID:PGID`
 | `./media/cache` | Transcodes, and posters and backdrops in `./media/cache/images` | The worker, which creates it |
 | The rest of `./media` | Your videos | Nobody. They are only read, so this user must be able to read them |
 
-A start changes only files with another owner, so a normal start writes nothing, and changing `PUID` later takes what is there. If a share refuses the change, as NFS with root squash does, the container logs a warning and starts anyway, and the app may not be able to write there. `PUID` must not be 0. The Next client and Caddy own none of this, and keep their own users.
+A start changes only files with another owner, so a normal start writes nothing, and changing `PUID` later takes what is there. If a share refuses the change, as NFS with root squash does, the container logs a warning and starts anyway, and the app may not be able to write there. `PUID` must not be 0. Caddy owns none of this.
 
 After changing them, run `docker compose up -d` again.
 
@@ -107,8 +120,7 @@ Every service has a health check, and `docker compose ps` shows the result.
 |---|---|---|
 | `api` | `GET /auth/setup` answers | Nothing |
 | `worker` | Its job loop has turned in the last minute | `api` |
-| `next-client` | `/login` answers | Nothing |
-| `caddy` | Its admin endpoint answers | `api`, `next-client` |
+| `caddy` | Its admin endpoint answers | `api` |
 
 A service that is slow to start has 60 seconds before failures count. An unhealthy service is not restarted by Docker, so restart a stalled worker with `docker compose restart worker`.
 
@@ -125,7 +137,7 @@ Worker lines name their job with `jobId` and `jobType`. `LOG_LEVEL=http` adds ea
 
 ## Posters and backdrops
 
-A scan stores each title's poster and backdrop in `./media/cache/images`, in TMDB's `w500` and `w1280` sizes, and the API serves them to signed-in users. Once `apps/web` replaces the Next client in Phase 2, browsers will never ask TMDB, so viewing the library tells nobody what you watch, and stored art keeps working without internet. Today's Next client still loads art from TMDB. A scan fetches only what is missing, so a rescan fills gaps, and a failed download is listed as a problem of that scan without losing the title. Nothing removes old art yet.
+A scan stores each title's poster and backdrop in `./media/cache/images`, in TMDB's `w500` and `w1280` sizes, and the API serves them to signed-in users. Browsers never ask TMDB, so viewing the library tells nobody what you watch, and stored art keeps working without internet. A scan fetches only what is missing, so a rescan fills gaps, and a failed download is listed as a problem of that scan without losing the title. Nothing removes old art yet.
 
 Expect a few hundred kilobytes per title, so a few hundred megabytes for a thousand. That is an estimate from TMDB's sizes: no real TMDB image has been downloaded yet. Backups hold no art, and the next scan fetches it again if `./media/cache` is lost.
 
@@ -144,6 +156,6 @@ git pull
 docker compose up -d --build --remove-orphans
 ```
 
-Read the [changelog](../../CHANGELOG.md) first, because it lists what each change needs. Take a copy of the newest backup before upgrading, because the API applies new migrations when it starts, and there is no way down. A failed migration stops the API, and the worker and Caddy then do not start.
+`--build` matters: the web app and the Caddyfile are inside the Caddy image, so an upgrade without it keeps the old app. `--remove-orphans` removes containers of services that are gone, such as the Next client's. Read the [changelog](../../CHANGELOG.md) first, because it lists what each change needs. Take a copy of the newest backup before upgrading, because the API applies new migrations when it starts, and there is no way down. A failed migration stops the API, and the worker and Caddy then do not start.
 
 Keep the `sqlite-data` and `caddy-data` volumes. The first holds the database, and the second holds the CA that your devices trust. `docker compose down` keeps them, and `docker compose down --volumes` deletes them.

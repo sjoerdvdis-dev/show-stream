@@ -7,9 +7,8 @@ A self-hosted media server, built to replace Jellyfin. Early development.
 
 ## What works today
 
-- Browsing a movie library
+- Browsing a movie library, with search, sort and filters in the URL
 - Converting a video to HLS and playing it in the browser, with seeking
-
 - Scanning the library from Settings, as an admin
 - A daily backup of the database, keeping the last 7
 
@@ -37,7 +36,7 @@ You need Docker with Compose, and a free [TMDB read access token](https://develo
 
 Open <https://localhost>. Your browser warns about the certificate until you trust Caddy's CA, and the [self-hosting guide](./docs/guides/self-hosting.md) explains that and how to use a domain or Tailscale instead. The first start takes you to a setup page, where you create the owner account. Then open Settings and press **Scan library**.
 
-Only ports 80 and 443 are published, and port 80 redirects to HTTPS.
+Only ports 80 and 443 are published, and port 80 redirects to HTTPS. Caddy serves the web app as static files from its own image, and sends everything else to the API, so no Node server answers the browser.
 
 The database lives in the `sqlite-data` Docker volume, which must stay on a local disk. `./media` can be on a NAS. Backups go to `./backups`. The [self-hosting guide](./docs/guides/self-hosting.md) covers settings, file ownership, logs, backups and upgrades.
 
