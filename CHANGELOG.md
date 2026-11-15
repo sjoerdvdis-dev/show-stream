@@ -99,3 +99,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `add-shadcn.sh`, which installed from shadcn's `canary`.
 - `fluent-ffmpeg`, which is deprecated. A small `spawn` wrapper replaces it, with the same arguments.
 - `tmdb-ts` from the API, which no longer calls TMDB, and the unused `lastScanTime` setting.
+
+### Security
+
+- `pnpm audit` ignores the low advisory GHSA-gcqx-w48m-w2h4, prototype poisoning in `deepmerge`, which has no patched release. It reaches `apps/web` only at build time, through `vite-plugin-pwa` > `workbox-build` > `@rollup/plugin-node-resolve`, on the plugin's own options, and none of it ships in the app. `pnpm-workspace.yaml` records why, to be removed once a fixed release exists.
