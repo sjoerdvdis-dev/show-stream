@@ -35,8 +35,8 @@ export const AppSection = () => {
 						<li>Chrome or Edge: Install in the address bar or in the menu.</li>
 					</ul>
 					<p className="text-sm text-muted-foreground">
-						Firefox on a computer cannot install apps. Installing also needs the server&apos;s HTTPS certificate
-						to be trusted on this device.
+						Firefox on a computer cannot install apps. Installing also needs the server&apos;s HTTPS certificate to be
+						trusted on this device.
 					</p>
 				</>
 			)}

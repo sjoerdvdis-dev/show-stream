@@ -173,7 +173,10 @@ describe('the app section', () => {
 		startFakeApi({ signedIn: true });
 		const original = window.matchMedia;
 		window.matchMedia = (media: string) =>
-			Object.assign(new EventTarget(), { media, matches: media === '(display-mode: standalone)' }) as unknown as MediaQueryList;
+			Object.assign(new EventTarget(), {
+				media,
+				matches: media === '(display-mode: standalone)',
+			}) as unknown as MediaQueryList;
 
 		try {
 			offerInstall('accepted');

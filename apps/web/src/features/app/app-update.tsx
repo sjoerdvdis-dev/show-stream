@@ -25,7 +25,8 @@ const setState = (next: UpdateState) => {
 /**
  * Registers the service worker, once per page load. A new version waits until the user chooses
  * Reload. The plugin would reload every tab once the new worker takes over, so this takes that
- * over too: only the tab where Reload was chosen reloads, and a film playing in another is never cut off.
+ * over too: only the tab where Reload was chosen reloads, and a movie playing in another is
+ * never cut off.
  */
 export const registerServiceWorker = () => {
 	state = 'none';
