@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+@import '@workspace/ui/tokens.css';
+
+@source '.';
+
+@layer base {
+	body {
+		@apply min-h-dvh antialiased;
+	}
+
+	button:not(:disabled) {
+		cursor: pointer;
+	}
+
+	/* As in apps/web: the primitives rely on this to end animations at once under reduced motion. */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		::before,
+		::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+}
