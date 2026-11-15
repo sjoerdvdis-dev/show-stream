@@ -9,6 +9,7 @@ The Electron shell. It asks for a server's address, checks it, remembers it, and
 | `src/address.ts`, `src/navigation.ts`, `src/server-check.ts`, `src/window-state.ts` | The rules, as plain functions with unit tests in `test/` |
 | `src/settings.ts` | `settings.json` in the user data folder: the server's origin and the window's bounds |
 | `setup/` | The setup page, the only local page, on `@workspace/ui`'s tokens and primitives |
+| `electron-builder.yml` | Packaging: an NSIS installer on Windows, an AppImage on Linux, in `release` |
 
 - **Thin shell, no product logic.** A feature belongs in `apps/web`, which every client gets. The shell owns only what a browser would: the address, the window and the menu.
 - **Never loosen the security settings.** `contextIsolation`, `sandbox` and `webSecurity` stay on, `nodeIntegration` off, and `app.enableSandbox()` stays. The server's pages are remote code, and must never reach Node. No `certificate-error` handler, `setCertificateVerifyProc` or switch that skips certificate checks: a user trusts their server's CA in the OS, as for a browser.
@@ -20,4 +21,8 @@ The Electron shell. It asks for a server's address, checks it, remembers it, and
 - Vite bundles the main process and the preload into `dist` as CommonJS with every dependency inside, so the app needs no `node_modules`, and builds the setup page into `dist/setup` with relative paths, because it loads from a `file:` URL. Everything here is a dev dependency for that reason.
 - `--user-data-dir=<folder>` gives a separate profile, which the browser test uses. `--suggest-server=<address>` fills the setup page when no server is saved, which `pnpm dev` uses for `http://127.0.0.1:5173`.
 - `apps/e2e/tests/native-app.spec.ts` drives the built app through Caddy, in `pnpm test:browser`. Electron's binary downloads on first use, not at install: `pnpm dev` and `run.sh` trigger it.
-- Packaging for Windows and Linux is the next ticket of spec #75. Until then the window has Electron's default icon.
+- `pnpm turbo package --filter=desktop` builds, then packages for the computer it runs on: Windows makes the NSIS installer and Linux the AppImage. A Windows installer cannot be made on Linux without Wine. `.github/workflows/desktop.yml` builds both, on their own runners, and uploads them as artifacts. It is not a required check.
+- The icon is `apps/web/public/icon-512.png`, the PWA's, for the installers and, through `dist/icon.png`, the window. Change it there, never with a copy here.
+- Nothing is signed, and no secret is needed. Do not add signing, auto-update or a publish target without a decision in `docs/PLAN.md`: each needs secrets or a release channel.
+- Keep `appImage.executableArgs` empty. electron-builder's default adds `--no-sandbox` to the AppImage's menu entry, which turns off Chromium's sandbox for every page.
+- Everything the app runs is in `dist`, so `files` takes only `dist` and `package.json`, and there is no native module to rebuild. A runtime dependency would have to be bundled by Vite, not shipped in `node_modules`.
