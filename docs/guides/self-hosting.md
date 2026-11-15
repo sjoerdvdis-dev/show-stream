@@ -99,7 +99,7 @@ The first start asks for your server's address: the one you open in a browser, s
 
 Then the window shows your server's login, and you log in and play as in the browser. The session is kept when you close the app, and so are the window's size and position. **File > Change Server…** goes back to the setup page with the address forgotten. If the server cannot be reached when the app starts, the setup page says so, and **Connect** tries again.
 
-Links to other sites open in your browser. The window only ever shows your server, and the app gives the server's pages no access to your computer, and no permission but full screen. Media keys work while a film plays.
+Links to other sites open in your browser. The window only ever shows your server, and the app gives the server's pages no access to your computer, and no permission but full screen. Media keys should work while a film plays, as in the browser, but have not been tried in the app.
 
 ### Trust the CA for the app
 
