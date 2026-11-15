@@ -41,7 +41,8 @@ type ThemeContext = {
 const ThemeContext = createContext<ThemeContext | null>(null);
 
 /**
- * Keeps the theme choice, and puts the `dark` class and the matching `color-scheme` on `<html>`.
+ * Keeps the theme choice, and puts the `dark` class and the matching `color-scheme` on `<html>`,
+ * and the theme's color in the `theme-color` meta tag.
  */
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 	const [theme, setTheme] = useState(readStoredTheme);
@@ -61,6 +62,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 		root.classList.toggle('dark', resolvedTheme === 'dark');
 		// As the script in `index.html` does. It wins over the stylesheet, so it must follow the choice.
 		root.style.colorScheme = resolvedTheme;
+		// The browser's or installed app's title bar, from the tokens that `index.html` holds.
+		const themeColor = document.querySelector('meta[name="theme-color"]');
+		const color = themeColor?.getAttribute(`data-${resolvedTheme}`);
+		if (themeColor && color) themeColor.setAttribute('content', color);
 	}, [resolvedTheme]);
 
 	const value = useMemo(

@@ -1,9 +1,10 @@
 {
 	"extends": "@workspace/typescript-config/vite.json",
 	"compilerOptions": {
+		"types": ["vite/client", "vite-plugin-pwa/vanillajs"],
 		"paths": {
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src", "test", "vite.config.ts"]
+	"include": ["src", "test", "vite.config.ts", "pwa.ts"]
 }

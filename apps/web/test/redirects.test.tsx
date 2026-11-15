@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -98,7 +98,9 @@ describe('a protected page', () => {
 
 		openApp('/movies');
 
-		expect((await screen.findByRole('alert')).textContent).toBe('Could not reach the server.');
+		const alert = await screen.findByRole('alert');
+		expect(within(alert).getByRole('heading', { name: 'Cannot reach the server' })).toBeTruthy();
+		expect(within(alert).getByRole('button', { name: 'Retry' })).toBeTruthy();
 	});
 });
 

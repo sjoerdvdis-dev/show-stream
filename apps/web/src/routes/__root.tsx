@@ -1,7 +1,9 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { createRootRouteWithContext, Link, Outlet, useRouter } from '@tanstack/react-router';
+import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router';
 import { Toaster } from '@workspace/ui/components/sonner';
 import { LinkProvider } from '@workspace/ui/patterns/link';
+import { AppUpdateToast } from '@/features/app/app-update';
+import { ServerError } from '@/features/app/server-error';
 import { RouterLink } from '@/lib/router-link';
 import { useTheme } from '@/lib/theme';
 
@@ -16,18 +18,6 @@ export type RouterContext = {
 const Message = ({ children }: { children: React.ReactNode }) => (
 	<main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-center">{children}</main>
 );
-
-const ServerError = () => {
-	const router = useRouter();
-	return (
-		<Message>
-			<p role="alert">Could not reach the server.</p>
-			<button type="button" className="underline" onClick={() => void router.invalidate()}>
-				Try again
-			</button>
-		</Message>
-	);
-};
 
 const NotFound = () => (
 	<Message>
@@ -46,6 +36,7 @@ const Root = () => {
 		<LinkProvider component={RouterLink}>
 			<Outlet />
 			<Toaster theme={resolvedTheme} position="bottom-right" />
+			<AppUpdateToast />
 		</LinkProvider>
 	);
 };

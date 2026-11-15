@@ -10,6 +10,10 @@ overrides:
   # ESLint asks for minimatch 10, which has no patched release (GHSA-g3hv-75wg-m249).
   # Remove once ESLint depends on minimatch 11.
   'minimatch@<11.0.1': '>=11.0.1'
+  # glob 11 cannot read minimatch 11, which the line above forces, and finds no file at all, so
+  # vite-plugin-pwa would precache nothing. glob 14 is built for it. Remove once workbox-build
+  # depends on glob 14.
+  'workbox-build>glob': '^14.0.6'
 
 allowBuilds:
   better-sqlite3: true
