@@ -1,7 +1,8 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Scan } from '@workspace/contract/api-types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { listenForInstallPrompt } from '@/features/app/install-prompt';
 import { startFakeApi } from './support/fake-api';
 import { fakeColorScheme } from './support/fake-color-scheme';
 import { fakeSocket } from './support/fake-socket';
@@ -110,6 +111,83 @@ describe('the appearance', () => {
 		expect(appearance.queryAllByRole('radio')).not.toContain(document.activeElement);
 		await user.tab({ shift: true });
 		expect(document.activeElement).toBe(dark);
+	});
+});
+
+describe('the app section', () => {
+	beforeEach(() => {
+		listenForInstallPrompt();
+	});
+
+	/** Chromium's install prompt, as the browser fires it once the app can be installed. */
+	const offerInstall = (outcome: 'accepted' | 'dismissed') => {
+		const prompt = vi.fn(async () => {});
+		const event = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
+			prompt,
+			userChoice: Promise.resolve({ outcome }),
+		});
+		window.dispatchEvent(event);
+		return { prompt, event };
+	};
+
+	it('offers Install when the browser can install, and installs', async () => {
+		startFakeApi({ signedIn: true });
+		const user = userEvent.setup();
+
+		// The browser can offer before Settings is open.
+		const { prompt, event } = offerInstall('accepted');
+		expect(event.defaultPrevented).toBe(true);
+		openApp('/settings');
+		const app = await findSection('App');
+
+		await user.click(app.getByRole('button', { name: 'Install' }));
+
+		expect(prompt).toHaveBeenCalledTimes(1);
+		expect(await app.findByText(/ShowStream is installed/)).toBeTruthy();
+		expect(app.queryByRole('button', { name: 'Install' })).toBeNull();
+	});
+
+	it('explains how to install when the browser has not offered', async () => {
+		startFakeApi({ signedIn: true });
+
+		openApp('/settings');
+		const app = await findSection('App');
+
+		expect(app.queryByRole('button', { name: 'Install' })).toBeNull();
+		expect(app.getByText('Safari on iPhone or iPad: Share, then Add to Home Screen.')).toBeTruthy();
+	});
+
+	it('explains how to install when the user turned the dialog down', async () => {
+		startFakeApi({ signedIn: true });
+		const user = userEvent.setup();
+
+		offerInstall('dismissed');
+		openApp('/settings');
+		const app = await findSection('App');
+		await user.click(app.getByRole('button', { name: 'Install' }));
+
+		expect(await app.findByText('Safari on iPhone or iPad: Share, then Add to Home Screen.')).toBeTruthy();
+	});
+
+	it('is not there in the installed app', async () => {
+		startFakeApi({ signedIn: true });
+		const original = window.matchMedia;
+		window.matchMedia = (media: string) =>
+			Object.assign(new EventTarget(), {
+				media,
+				matches: media === '(display-mode: standalone)',
+			}) as unknown as MediaQueryList;
+
+		try {
+			offerInstall('accepted');
+			openApp('/settings');
+			await findSection('Appearance');
+
+			expect(screen.queryByRole('region', { name: 'App' })).toBeNull();
+			expect(screen.queryByRole('button', { name: 'Install' })).toBeNull();
+		} finally {
+			window.matchMedia = original;
+		}
 	});
 });
 

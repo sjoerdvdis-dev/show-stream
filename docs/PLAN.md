@@ -1,6 +1,6 @@
 # ShowStream Plan
 
-Last updated: 2026-11-08. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
+Last updated: 2026-11-15. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
 
 ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize and clean up, rebuild on a stable foundation, then add features one at a time.
 
@@ -8,7 +8,7 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns, and is what Caddy serves. The Next client is deleted, so Phase 2 is done ([section 12](#12-roadmap)). Home, Search and Shows were stubs there, and arrive in Phases 5 and 6. Next:
 
-1. **Phase 3: PWA and Electron** ([section 12](#12-roadmap)), which the maintainer starts, using the engineering skills ([section 10.5](#105-how-we-develop)).
+1. **Phase 3: PWA and Electron** ([section 12](#12-roadmap)). `apps/web` installs as a PWA since the first ticket of spec #71. Next is Media Session in the player, the spec's second ticket, then Electron, which gets its own spec.
 
 | Your question | Answer |
 |---|---|
@@ -58,6 +58,7 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. Every screen of `apps/web` is on them since item 6 |
 | Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, `GET /library/movies/:id` a movie's page with its art flags, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web`'s Movies screen uses all of it |
 | `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows arrive in Phases 5 and 6. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It is the only web client. It runs under `pnpm dev`, and Caddy serves its build since item 7, which the browser tests drive. Checked in Chromium, and native HLS in Safari is not tested |
+| PWA | Done for feature S10. `vite-plugin-pwa` builds the manifest, with first-version icons for the maintainer to review, and a Workbox service worker that precaches the shell, falls back to `index.html` for a page load and never answers `/api`, `/socket` or `/streams`. A waiting version is offered with Reload, never reloads a tab by itself, and waits while `/watch` is open. A session check with no answer shows "Cannot reach the server" with Retry, and a 401 still goes to login. Settings has an App section with Install. Caddy sends the worker and the manifest with `no-cache`, and the policy is unchanged apart from the first-paint script's hash. `pnpm test:browser` checks it through Caddy, and it was installed from Settings, opened standalone, logged into and played in Chromium over HTTPS once by hand. iOS, iPadOS, Android, Safari and Firefox are not tested. Media Session is not done yet |
 | Next client | Deleted in Phase 2 item 8, with its endpoints, configs, CORS and every package only it used |
 | `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
@@ -128,7 +129,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Debounce | `use-debounce` | 10.1.1 | In use today |
 | Fonts | `@fontsource-variable/geist`, `@fontsource-variable/geist-mono` | 5.3.0 | In use in `apps/web`, through `packages/ui` |
 | Color math in tests | `culori` | 4.0.2 | In use in the `packages/ui` contrast test |
-| PWA | `vite-plugin-pwa` | 2.0.0 | Tested, service worker generated |
+| PWA | `vite-plugin-pwa`, `workbox-window` | 2.0.0, 7.4.1 | In use in `apps/web`. `workbox-build` gets glob 14 through an override, because the repository's minimatch override breaks glob 11 |
 | Desktop | `electron`, `electron-builder` | 45.2.1, 26.18.0 | Planned |
 | Unit tests | `vitest`, with `jsdom` 30.1.3 in `apps/web` | 5.0.5 | In use |
 | Component tests | `@testing-library/react`, `@testing-library/user-event` | 16.3.3, 14.6.8 | In use in `apps/web` and `packages/ui` |
@@ -160,7 +161,7 @@ The spike did not test a full app, Base UI beyond a dialog, or browser behavior 
 
 Every primitive of `packages/ui` was checked in Chromium on 2026-11-03 at `/dev/primitives`, against `pnpm dev`, at 390 and 1280 wide, in both themes, by keyboard and with reduced motion. The patterns were checked the same way at `/dev/components` the same day, and `VideoPlayer` played a title the worker had prepared, through `/streams`, with every keyboard shortcut.
 
-Still not tested: the PWA build of a full app. `apps/web` behind Caddy is tested since item 7, by `pnpm test:browser`.
+The PWA build of the full app is tested since Phase 3, on 2026-11-15: `pnpm test:browser` checks the manifest and its icons, the worker controlling the page, `/api` and `/streams` answered by the network during playback and never cached, the shell loading with no network, and `no-cache` on the worker and the manifest, through Caddy with no policy violation. The build precaches 57 files, about 1.8 MB. `apps/web` behind Caddy is tested since item 7.
 
 ### 4.5 App structure
 
@@ -294,7 +295,7 @@ show-stream/
 | Client | How it works | Key work |
 |---|---|---|
 | Web | Static app, built into Caddy's image and served by it, with an SPA fallback and the policy in [section 5.2](#52-target-architecture) | Responsive layouts |
-| PWA | Same app plus manifest and service worker | Cache the app shell. **Never cache `/streams`.** Add Media Session controls |
+| PWA | Same app plus manifest and service worker, from `apps/web/pwa.ts` | Cache the app shell, done. **Never cache `/streams`**, nor `/api` or `/socket`, which the worker leaves to the network. Add Media Session controls, next |
 | Electron | Thin shell that asks for a server URL and loads it | `contextIsolation` on, no `nodeIntegration`, navigation limited to the chosen server |
 
 All three use the same origin as the server, so the same cookie session works. Bearer tokens are added when native apps arrive. Offline Electron can bundle `apps/web` later, which is possible because the build is static.
@@ -810,6 +811,12 @@ Manifest, service worker, install flow, Media Session. Electron shell with serve
 
 **Done when:** the app installs as a PWA over HTTPS, and Electron logs in and plays a film.
 
+**Status:** started. Spec #71 covers the PWA and Media Session, and Electron (S11) gets its own spec.
+
+- [x] **PWA (S10).** Done in the spec's first ticket. The manifest, icons, iOS meta tags, service worker, update toast, unreachable-server state and the App section in Settings are in `apps/web`, covered by component tests and by `tests/install.spec.ts` through Caddy. Checked by hand on 2026-11-15 in Chromium under Xvfb, over HTTPS with Caddy's CA trusted, against the browser-test stack with Caddy's 443 on `127.0.0.1:8443`: Settings offered Install, the browser's dialog showed the name and icon, the app installed and the section said so, the app opened standalone, controlled by the worker and with no App section, and logging out, logging in and playing Demo Movie worked there. The OS media controls were not checked, because Media Session is the next ticket. iOS, iPadOS, Android, Safari and Firefox were not tried, nor the `public` and `tailscale` modes.
+- [ ] **Media Session.** The spec's second ticket.
+- [ ] **Electron (S11).** Its own spec.
+
 ### Phase 4: Real playback
 
 The stage that decides whether this can replace Jellyfin: `ffprobe` data, client capability detection, direct play, remux or transcode per client, on-demand HLS, `.mkv` support, hardware acceleration, cache eviction.
@@ -843,7 +850,7 @@ Built top to bottom. Each row is one vertical slice, tested end to end. Sizes ar
 | S7 | Movie detail page | 2 | M | S6 |
 | S8 | Player page with keyboard controls | 2 | M | S7 |
 | S9 | Settings: theme and account | 2 | S | S5 |
-| S10 | Install as a PWA | 3 | M | HTTPS |
+| S10 | Install as a PWA. Done | 3 | M | HTTPS |
 | S11 | Desktop app connects to a server | 3 | M | S2 |
 | S12 | Real codec and resolution info | 4 | M | S3 |
 | S13 | Direct play when the client supports the file | 4 | M | S12 |

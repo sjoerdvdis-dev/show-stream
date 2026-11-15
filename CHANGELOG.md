@@ -41,6 +41,8 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `apps/web`'s Settings: the account with Log out, a choice of system, dark or light kept in the browser, and for an owner or admin a Library section with Scan library and the latest scan's status, time, counts, reason and problems, which refreshes while the scan runs.
 - `apps/web`'s Login and Setup in a card, on the design system. Setup says how long the password must be.
 - Security headers on the web app: `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, and a `Content-Security-Policy` that allows only the server's own origin, with the first-paint script allowed by its hash and no framing. The build of `apps/web` fails if that hash is out of date.
+- `apps/web` installs as an app, a PWA, over HTTPS: a manifest, a first-version icon for review, and a service worker that keeps the app's own files, so it opens fast and loads without the network. Settings has an App section with Install, or how to install where the browser has no prompt, and none in the installed app. A new version is offered with Reload, and never reloads by itself or cuts off a movie that is playing. The worker never answers or keeps `/api`, `/socket` or `/streams`, and Caddy sends it and the manifest with `no-cache`. `PWA_DEV=true pnpm dev` turns it on under `pnpm dev`.
+- When the server cannot be reached, a page says "Cannot reach the server" with Retry, rather than an error that looked the same for every failure. A 401 still goes to login.
 
 ### Changed
 
@@ -97,3 +99,7 @@ Notable changes to ShowStream. The format follows [Keep a Changelog](https://kee
 - `add-shadcn.sh`, which installed from shadcn's `canary`.
 - `fluent-ffmpeg`, which is deprecated. A small `spawn` wrapper replaces it, with the same arguments.
 - `tmdb-ts` from the API, which no longer calls TMDB, and the unused `lastScanTime` setting.
+
+### Security
+
+- `pnpm audit` ignores the low advisory GHSA-gcqx-w48m-w2h4, prototype poisoning in `deepmerge`, which has no patched release. It reaches `apps/web` only at build time, through `vite-plugin-pwa` > `workbox-build` > `@rollup/plugin-node-resolve`, on the plugin's own options, and none of it ships in the app. `pnpm-workspace.yaml` records why, to be removed once a fixed release exists.

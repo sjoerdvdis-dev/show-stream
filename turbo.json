@@ -22,7 +22,7 @@
 			"cache": false,
 			"persistent": true,
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local", ".env.development", ".env.development.local"],
-			"passThroughEnv": ["DATABASE_PATH", "MEDIA_FOLDER", "JOB_CONCURRENCY", "BACKUP_FOLDER", "TMDB_API_READ_ACCESS_TOKEN", "LOG_LEVEL"]
+			"passThroughEnv": ["DATABASE_PATH", "MEDIA_FOLDER", "JOB_CONCURRENCY", "BACKUP_FOLDER", "TMDB_API_READ_ACCESS_TOKEN", "LOG_LEVEL", "PWA_DEV"]
 		}
 	}
 }

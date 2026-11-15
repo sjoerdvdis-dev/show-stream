@@ -5,6 +5,15 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="color-scheme" content="light dark" />
 		<link rel="icon" href="/favicon.ico" />
+		<!-- vite-plugin-pwa links the manifest in the build. -->
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<!-- The page's background in each theme, from the tokens. The script below and ThemeProvider pick the one in use. -->
+		<meta name="theme-color" content="%THEME_COLOR_DARK%" data-dark="%THEME_COLOR_DARK%" data-light="%THEME_COLOR_LIGHT%" />
+		<!-- What iOS reads in place of the manifest. -->
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-title" content="ShowStream" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 		<title>ShowStream</title>
 		<!-- Applies the theme before first paint. ThemeProvider in src/lib/theme.tsx keeps it after that, with the same key. -->
 		<script>
@@ -20,6 +29,8 @@
 				root.classList.toggle('dark', theme === 'dark');
 				// Paints the canvas in the theme before the stylesheet arrives.
 				root.style.colorScheme = theme;
+				var themeColor = document.querySelector('meta[name="theme-color"]');
+				if (themeColor) themeColor.setAttribute('content', themeColor.getAttribute('data-' + theme));
 			})();
 		</script>
 	</head>

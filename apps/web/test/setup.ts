@@ -2,12 +2,15 @@ import { cleanup, configure } from '@testing-library/react';
 import { toast } from 'sonner';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 import { server } from './support/fake-api';
+import { resetFakeServiceWorker } from './support/fake-service-worker';
 import { resetFakeSocket } from './support/fake-socket';
 
 vi.mock('socket.io-client', async () => {
 	const { fakeIo } = await import('./support/fake-socket');
 	return { io: fakeIo };
 });
+
+vi.mock('virtual:pwa-register', () => import('./support/fake-service-worker'));
 
 // Route components load on demand, so a first visit can take a moment. The signed-in layout loads
 // AppShell and its primitives, which took over 5 seconds on a CI runner busy with other packages' tests.
@@ -24,6 +27,7 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 
 beforeEach(() => {
 	resetFakeSocket();
+	resetFakeServiceWorker();
 });
 
 afterEach(() => {

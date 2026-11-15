@@ -16,6 +16,11 @@ export default defineConfig({
 		// Through Caddy, as a browser reaches a real install. Its internal CA is not trusted here.
 		baseURL: 'https://caddy',
 		ignoreHTTPSErrors: true,
+		// Chromium registers no service worker from an origin whose certificate it does not trust,
+		// and `ignoreHTTPSErrors` does not reach the worker's script, so this flag does. A real
+		// device trusts Caddy's CA instead, as docs/guides/self-hosting.md says. Set here for every
+		// test, because a launch option in one file would move its tests out of file order.
+		launchOptions: { args: ['--ignore-certificate-errors'] },
 		screenshot: 'only-on-failure',
 		trace: 'retain-on-failure',
 	},

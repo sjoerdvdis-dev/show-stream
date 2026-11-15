@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { PageContainer, PageHeader } from '@workspace/ui/patterns/page';
 import { canManageLibrary } from '@/features/auth/roles';
 import { AccountSection } from '@/features/settings/account-section';
+import { AppSection } from '@/features/settings/app-section';
 import { AppearanceSection } from '@/features/settings/appearance-section';
 import { LibrarySection } from '@/features/settings/library-section';
 
@@ -13,6 +14,7 @@ const SettingsPage = () => {
 			<PageHeader title="Settings" />
 			<AccountSection user={user} />
 			<AppearanceSection />
+			<AppSection />
 			{canManageLibrary(user) ? <LibrarySection /> : null}
 		</PageContainer>
 	);

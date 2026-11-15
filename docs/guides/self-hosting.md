@@ -64,6 +64,16 @@ The file is public, and holds no key. Install it on each device that visits, the
 
 Fetching the root certificate and verifying `https://localhost` and an IP address against it with `curl` was tested. The steps for each device were not.
 
+## Install the app
+
+ShowStream installs as an app, a PWA, from the browser: on a phone's home screen, or as a window on a computer, with its own icon. Browsers install only over HTTPS they trust, so in `internal` mode trust the CA on the device first, as above. Without that the browser offers no install, and the app runs in a tab as before.
+
+Open **Settings** and use **Install** under **App**. Chrome and Edge show Install there. Browsers without an install prompt, such as Safari, show how to add the app from their own menu: on an iPhone or iPad, **Share**, then **Add to Home Screen**. Firefox on a computer cannot install apps. The installed app shows no App section.
+
+The app keeps its own files on the device, so it opens fast, and shows "Cannot reach the server" with Retry when the server is down or out of reach. It never keeps your library, art or video: those always come from the server. After an upgrade, an open app or tab offers the new version with **Reload**, and does not reload by itself, so a movie that is playing is never cut off.
+
+Installing from Chromium on a computer was tested over HTTPS. iOS, iPadOS and Android were not.
+
 ## Security headers
 
 Caddy sends these with the web app's pages and files:
@@ -72,8 +82,8 @@ Caddy sends these with the web app's pages and files:
 |---|---|
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `same-origin` |
-| `Content-Security-Policy` | Only the server's own origin, for scripts, styles, images, media, workers and connections, including the socket. The first-paint script is allowed by its hash, `data:` images and `blob:` media and workers for the player, and `'unsafe-inline'` styles for the toasts. No framing |
-| `Cache-Control` | A year, `immutable`, for the hashed files under `/assets`, and `no-cache` for the rest, so an upgrade shows on the next reload |
+| `Content-Security-Policy` | Only the server's own origin, for scripts, styles, images, media, workers, including the service worker, the manifest and connections, including the socket. The first-paint script is allowed by its hash, `data:` images and `blob:` media and workers for the player, and `'unsafe-inline'` styles for the toasts. No framing |
+| `Cache-Control` | A year, `immutable`, for the hashed files under `/assets`, and `no-cache` for the rest, including the service worker and the manifest, so an upgrade reaches every browser and installed app |
 
 The API sends its own headers for `/api`, `/socket` and `/streams`.
 

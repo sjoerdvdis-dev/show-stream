@@ -10,7 +10,20 @@ overrides:
   # ESLint asks for minimatch 10, which has no patched release (GHSA-g3hv-75wg-m249).
   # Remove once ESLint depends on minimatch 11.
   'minimatch@<11.0.1': '>=11.0.1'
+  # glob 11 cannot read minimatch 11, which the line above forces, and finds no file at all, so
+  # vite-plugin-pwa would precache nothing. glob 14 is built for it. Remove once workbox-build
+  # depends on glob 14.
+  'workbox-build>glob': '^14.0.6'
 
 allowBuilds:
   better-sqlite3: true
   esbuild: false
+
+auditConfig:
+  ignoreGhsas:
+    # Prototype poisoning in deepmerge 4.2.0 to 4.3.1, which has no patched release. It comes in
+    # through apps/web > vite-plugin-pwa > workbox-build > @rollup/plugin-node-resolve > deepmerge,
+    # and runs only at build time, on the plugin's own options. No untrusted input reaches it and
+    # none of it ships in the built app, so the maintainer accepted it on #72. Remove once
+    # deepmerge or @rollup/plugin-node-resolve has a fixed release.
+    - GHSA-gcqx-w48m-w2h4

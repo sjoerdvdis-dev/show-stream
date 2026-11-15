@@ -103,7 +103,7 @@ describe("a movie's page", () => {
 
 		expect(await screen.findByText('This page does not exist.')).toBeTruthy();
 		expect(screen.getByRole('link', { name: 'Go to the library' })).toBeTruthy();
-		expect(screen.queryByText('Could not reach the server.')).toBeNull();
+		expect(screen.queryByRole('heading', { name: 'Cannot reach the server' })).toBeNull();
 	});
 
 	it('offers to try again when it cannot load', async () => {

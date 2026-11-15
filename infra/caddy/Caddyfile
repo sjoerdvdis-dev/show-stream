@@ -59,7 +59,7 @@
 		header {
 			X-Content-Type-Options nosniff
 			Referrer-Policy same-origin
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-zz4AjMLi52jmBZQ/Laa6IXg1raUp1iCwKaBlZBxGbHg='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+			Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-7TbEwOyAoLnEgKkJVZiS3YZRTg3kfuiHqKy7y5hkZsI='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		}
 
 		# Vite puts a hash of its content in the name of every file under /assets, so a file that is

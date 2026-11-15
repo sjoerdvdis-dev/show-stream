@@ -33,6 +33,10 @@ export type FakeMovie = Partial<Omit<LibraryItem, 'id' | 'title'>> & {
 
 /** What the API knows. A test changes this, as another tab or an expired session would. */
 export type FakeApi = {
+	/** No answer arrives, as when the server is down or out of reach. */
+	unreachable: boolean;
+	/** Caddy answers 502 in the API's place, as when the API is down behind it. */
+	gatewayDown: boolean;
 	setupNeeded: boolean;
 	signedIn: boolean;
 	role: 'owner' | 'admin' | 'user';
@@ -78,6 +82,8 @@ const range = (values: (number | string | null)[]) => {
  */
 export const startFakeApi = (state: Partial<FakeApi> = {}) => {
 	const api: FakeApi = {
+		unreachable: false,
+		gatewayDown: false,
 		setupNeeded: false,
 		signedIn: false,
 		role: 'owner',
@@ -96,6 +102,12 @@ export const startFakeApi = (state: Partial<FakeApi> = {}) => {
 	const findMovie = (id: unknown) => api.movies.find((movie) => String(movie.id) === String(id));
 
 	server.use(
+		// First, so that it stands in for every route below. Answering nothing lets them answer.
+		http.all('/api/*', () => {
+			if (api.unreachable) return HttpResponse.error();
+			if (api.gatewayDown) return new HttpResponse(null, { status: 502 });
+			return undefined;
+		}),
 		http.get('/api/auth/setup', () => HttpResponse.json({ needed: api.setupNeeded })),
 		http.post('/api/auth/setup', () => {
 			api.setupNeeded = false;

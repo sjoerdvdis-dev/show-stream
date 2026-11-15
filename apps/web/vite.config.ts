@@ -5,6 +5,7 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+import { pwa, themeColorMeta } from './pwa';
 
 /** The API under `pnpm dev`, on its default port. */
 const apiServer = 'http://localhost:5000';
@@ -48,7 +49,9 @@ export default defineConfig({
 		tanstackRouter({ target: 'react', autoCodeSplitting: true, quoteStyle: 'single', semicolons: true }),
 		react(),
 		tailwindcss(),
+		themeColorMeta(),
 		inlineScriptsInPolicy(),
+		pwa(),
 	],
 	resolve: { tsconfigPaths: true },
 	// hls.js alone is this large, and only the player loads it.
