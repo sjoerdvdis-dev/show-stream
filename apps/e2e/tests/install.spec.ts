@@ -27,9 +27,14 @@ const watchPolicy = async (page: Page) => {
 /** Loads the app, waits for its service worker, and reloads, so that the worker controls the page. */
 const openControlled = async (page: Page, path = '/login') => {
 	await page.goto(path);
-	await page.evaluate(async () => {
-		await navigator.serviceWorker.ready;
-	});
+	await expect
+		.poll(() =>
+			page.evaluate(async () => {
+				const registration = await navigator.serviceWorker.getRegistration();
+				return registration?.active?.state ?? 'not registered';
+			}),
+		)
+		.toBe('activated');
 	await page.reload();
 	await expect
 		.poll(() => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL))
