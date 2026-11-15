@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayerControls, VideoPlayer } from '@workspace/ui/patterns/video-player';
-import { fakeMediaSession } from '../../support/fake-media-session';
+import { fakeMediaSession } from '../../support/fake-media-session.js';
 
 /** Stands in for hls.js, which needs a real browser, as `apps/web/test/player.test.tsx` does. */
 const fakeHls = vi.hoisted(() => {
@@ -391,7 +391,7 @@ describe('PlayerControls in the Media Session', () => {
 
 	it('keeps the other actions where the browser refuses one', () => {
 		const setActionHandler = mediaSession.session.setActionHandler.bind(mediaSession.session);
-		mediaSession.session.setActionHandler = (action, handler) => {
+		mediaSession.session.setActionHandler = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
 			if (action === 'seekto') throw new TypeError('seekto is not supported');
 			setActionHandler(action, handler);
 		};
