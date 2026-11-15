@@ -1,0 +1,53 @@
+name: Desktop
+
+# Packages apps/desktop on each system's own runner, and uploads the installers as artifacts.
+# Not a required check, so it cannot block a merge. Nothing is signed, so it needs no secret.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - apps/desktop/**
+      - apps/web/public/icon-512.png
+      - .github/workflows/desktop.yml
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: package (${{ matrix.system }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: linux
+            runs-on: ubuntu-latest
+            installer: apps/desktop/release/*.AppImage
+          - system: windows
+            runs-on: windows-latest
+            installer: apps/desktop/release/*.exe
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # Only the desktop app and what it builds from, so that Windows compiles no native module.
+      - run: pnpm install --frozen-lockfile --filter "desktop..."
+      - run: pnpm turbo package --filter=desktop --ui=stream
+        env:
+          # Never look for a signing certificate on the runner.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: showstream-desktop-${{ matrix.system }}
+          path: ${{ matrix.installer }}
+          if-no-files-found: error

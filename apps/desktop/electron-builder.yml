@@ -1,0 +1,43 @@
+# Packages the built app in `dist` for the computer it runs on: an NSIS installer on Windows and an
+# AppImage on Linux, in `release`. `pnpm package` builds first. Nothing is signed, and nothing is
+# published: CI uploads the files as artifacts.
+appId: app.showstream.desktop
+productName: ShowStream
+copyright: Copyright © ShowStream contributors
+directories:
+  output: release
+  buildResources: build
+# `dist` holds everything the app runs, with its dependencies bundled in, so no `node_modules` ships.
+files:
+  - dist/**
+  - package.json
+# Electron's own binary, with no native module to rebuild.
+npmRebuild: false
+nodeGypRebuild: false
+# The PWA's icon, 512 pixels square, which electron-builder turns into Windows' `.ico` and Linux's sizes.
+icon: ../web/public/icon-512.png
+win:
+  target: nsis
+  artifactName: ShowStream-Setup-${version}-${arch}.${ext}
+nsis:
+  # A per-user install, which asks for no administrator, in the start menu and on the desktop.
+  oneClick: true
+  perMachine: false
+  shortcutName: ShowStream
+  uninstallDisplayName: ShowStream
+linux:
+  target: AppImage
+  artifactName: ShowStream-${version}-${arch}.${ext}
+  executableName: showstream
+  category: AudioVideo
+  synopsis: A self-hosted media server's desktop app
+  description: Opens your ShowStream server in its own window.
+  # Names the `.desktop` file after `desktopName` in package.json, which Electron gives the window
+  # as its class, so that a desktop's task bar puts the window under the app's icon.
+  syncDesktopName: true
+appImage:
+  # electron-builder's default menu entry passes `--no-sandbox`, which turns off Chromium's sandbox
+  # for every page. With none, the AppImage's own launcher keeps the sandbox, and drops it only on
+  # a system with no unprivileged user namespaces, where Chromium could not start with it.
+  executableArgs: []
+publish: null

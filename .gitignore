@@ -23,6 +23,8 @@ test-results
 out/
 build
 dist
+# The installers that `pnpm --filter desktop package` writes.
+apps/desktop/release
 # The service worker that `PWA_DEV=true pnpm dev` writes in apps/web.
 dev-dist
 

@@ -63,6 +63,8 @@ It builds the shell and opens its setup page with `http://127.0.0.1:5173` filled
 
 A change to the web app shows after **View > Reload**. A change to the shell itself needs `pnpm --filter desktop dev` again. `apps/desktop/AGENTS.md` lists the security settings that must stay as they are.
 
+`pnpm turbo package --filter=desktop` packages the app for this computer into `apps/desktop/release`: an AppImage on Linux, an NSIS installer on Windows. A Windows installer needs Windows, or Wine. The `Desktop` workflow in CI builds both, on pull requests that touch `apps/desktop` and on `main`.
+
 ## Change the database
 
 Edit `packages/db/src/schema.ts`, then generate a migration and commit it:

@@ -1,0 +1,13 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/web/public/icon-512.png"]
+		},
+		"package": {
+			"dependsOn": ["build"],
+			"cache": false
+		}
+	}
+}

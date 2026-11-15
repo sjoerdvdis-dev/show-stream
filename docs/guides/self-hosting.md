@@ -78,13 +78,26 @@ Installing from Chromium on a computer was tested over HTTPS. iOS, iPadOS and An
 
 ShowStream also comes as a desktop program, `apps/desktop`, which opens your server in its own window, outside the browser. It holds no copy of the app: everything in the window comes from your server, so it is always the version your server runs.
 
-Installers for Windows and Linux are not built yet. Until they are, run it from a clone of this repository, with Node.js and pnpm as in the [local development guide](./local-development.md):
+### Get it
 
-```bash
-pnpm install
-pnpm --filter desktop build
-pnpm --filter desktop start
-```
+There are no releases yet. CI builds the app on every change to `main`, for Windows and Linux:
+
+1. Open the repository's **Actions** tab on GitHub, and the **Desktop** workflow.
+2. Open its latest run on `main` that passed.
+3. Under **Artifacts**, download `showstream-desktop-windows` or `showstream-desktop-linux`. GitHub asks you to sign in for this, and keeps each run's files for 90 days.
+
+Each download is a zip with one file in it:
+
+| System | File | Install |
+|---|---|---|
+| Windows | `ShowStream-Setup-<version>-x64.exe` | Run it. It installs for your user, with no administrator, and adds ShowStream to the start menu and the desktop. Uninstall it from **Settings > Apps** |
+| Linux | `ShowStream-<version>-x86_64.AppImage` | Make it executable, `chmod +x ShowStream-*.AppImage`, and run it. Any folder works, such as `~/Applications`. An AppImage needs FUSE 2: on Ubuntu 24.04 and later, `sudo apt install libfuse2t64`. Without it, `./ShowStream-*.AppImage --appimage-extract-and-run` still runs it |
+
+Nothing is signed. Windows SmartScreen says the publisher is unknown: choose **More info**, then **Run anyway**. Only x64 is built, and there is no macOS build. The app does not update itself: download a new build to update. It needs no update to follow your server, which serves everything in the window.
+
+On Linux the AppImage keeps Chromium's sandbox when the system allows unprivileged user namespaces, as most desktops do. Where they are off, its launcher starts the app with `--no-sandbox`, as every Electron AppImage must; the app's own isolation of the server's pages still holds.
+
+To build it yourself instead, from a clone with Node.js and pnpm as in the [local development guide](./local-development.md), run `pnpm install` and then `pnpm turbo package --filter=desktop`. The file is in `apps/desktop/release`. A Windows installer has to be built on Windows. Or run the app without installing it, with `pnpm --filter desktop build` and `pnpm --filter desktop start`.
 
 ### Connect
 
@@ -110,7 +123,7 @@ In `internal` mode, trust Caddy's CA on the computer first, as in [Trust the CA 
 | Windows | The Windows store, as in the table above |
 | Linux | The NSS database in `~/.pki/nssdb`, which Chromium uses too. With `certutil` from `libnss3-tools`: `certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "Caddy Local Authority" -i caddy-root.crt` |
 
-Restart the app after trusting the CA. Trusting it through Linux's NSS database was tested, in the browser tests. Windows was not.
+Restart the app after trusting the CA. Trusting it through Linux's NSS database was tested, in the browser tests and with the AppImage by hand. Windows was not: the installer was built, but not run.
 
 ## Security headers
 
