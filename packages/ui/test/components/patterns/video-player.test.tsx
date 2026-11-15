@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayerControls, VideoPlayer } from '@workspace/ui/patterns/video-player';
+import { fakeMediaSession } from '../../support/fake-media-session.js';
 
 /** Stands in for hls.js, which needs a real browser, as `apps/web/test/player.test.tsx` does. */
 const fakeHls = vi.hoisted(() => {
@@ -109,7 +110,7 @@ document.exitFullscreen = vi.fn(() => {
 });
 
 /** Renders the controls over a stubbed video, inside a player container that can go fullscreen. */
-const renderControls = (options?: { duration?: number; currentTime?: number }) => {
+const renderControls = (options?: { duration?: number; currentTime?: number; title?: string; artwork?: string }) => {
 	const media = stubMedia(options);
 	const container = document.createElement('div');
 	container.requestFullscreen = vi.fn(() => {
@@ -120,8 +121,11 @@ const renderControls = (options?: { duration?: number; currentTime?: number }) =
 	container.append(media);
 	document.body.append(container);
 	const host = container.appendChild(document.createElement('div'));
-	render(<PlayerControls media={media} container={container} />, { container: host });
-	return { media, container };
+	const view = render(
+		<PlayerControls media={media} container={container} title={options?.title} artwork={options?.artwork} />,
+		{ container: host },
+	);
+	return { media, container, unmount: view.unmount };
 };
 
 afterEach(() => {
@@ -282,6 +286,134 @@ describe('PlayerControls', () => {
 	});
 });
 
+describe('PlayerControls in the Media Session', () => {
+	let mediaSession: ReturnType<typeof fakeMediaSession>;
+
+	beforeEach(() => {
+		mediaSession = fakeMediaSession();
+	});
+
+	afterEach(() => mediaSession.remove());
+
+	it('publishes the title and its artwork', () => {
+		renderControls({ title: 'Alien', artwork: '/api/library/movies/7/images/poster' });
+
+		expect(mediaSession.session.metadata?.title).toBe('Alien');
+		expect(mediaSession.session.metadata?.artwork).toEqual([{ src: '/api/library/movies/7/images/poster' }]);
+	});
+
+	it('publishes no artwork for a title without a poster', () => {
+		renderControls({ title: 'Alien' });
+
+		expect(mediaSession.session.metadata?.title).toBe('Alien');
+		expect(mediaSession.session.metadata?.artwork).toEqual([]);
+	});
+
+	it('plays and pauses from the operating system, and tells it which', () => {
+		const { media } = renderControls({ title: 'Alien' });
+
+		act(() => mediaSession.press('play'));
+		expect(media.paused).toBe(false);
+		expect(mediaSession.session.playbackState).toBe('playing');
+		expect(screen.getByRole('button', { name: 'Pause' })).toBeTruthy();
+
+		act(() => mediaSession.press('pause'));
+		expect(media.paused).toBe(true);
+		expect(mediaSession.session.playbackState).toBe('paused');
+		expect(screen.getByRole('button', { name: 'Play' })).toBeTruthy();
+	});
+
+	it('seeks back and forward 10 seconds, as the arrow keys do, within the video', () => {
+		const { media } = renderControls({ duration: 600, currentTime: 30 });
+
+		act(() => mediaSession.press('seekbackward'));
+		expect(media.currentTime).toBe(20);
+		act(() => mediaSession.press('seekforward'));
+		act(() => mediaSession.press('seekforward'));
+		expect(media.currentTime).toBe(40);
+
+		media.currentTime = 5;
+		act(() => mediaSession.press('seekbackward'));
+		expect(media.currentTime).toBe(0);
+		media.currentTime = 595;
+		act(() => mediaSession.press('seekforward'));
+		expect(media.currentTime).toBe(600);
+	});
+
+	it('seeks to where the operating system asks, within the video', () => {
+		const { media } = renderControls({ duration: 600 });
+
+		act(() => mediaSession.press('seekto', { seekTime: 125 }));
+		expect(media.currentTime).toBe(125);
+		expect(mediaSession.session.position).toEqual({ duration: 600, position: 125, playbackRate: 1 });
+
+		act(() => mediaSession.press('seekto', { seekTime: 900 }));
+		expect(media.currentTime).toBe(600);
+		act(() => mediaSession.press('seekto', {}));
+		expect(media.currentTime).toBe(600);
+	});
+
+	it('keeps the position and length up to date as the video plays', () => {
+		const { media } = renderControls({ duration: 3725, currentTime: 0 });
+		expect(mediaSession.session.position).toEqual({ duration: 3725, position: 0, playbackRate: 1 });
+
+		act(() => {
+			media.currentTime = 61;
+		});
+		expect(mediaSession.session.position).toEqual({ duration: 3725, position: 61, playbackRate: 1 });
+
+		media.playbackRate = 2;
+		act(() => {
+			media.dispatchEvent(new Event('ratechange'));
+		});
+		expect(mediaSession.session.position?.playbackRate).toBe(2);
+	});
+
+	it('sends no position while the video has no length yet', () => {
+		renderControls({ duration: Number.NaN });
+
+		expect(mediaSession.session.positionUpdates).toBe(0);
+		expect(mediaSession.session.position).toBeNull();
+	});
+
+	it('clears the metadata, the handlers and the position when it unmounts', () => {
+		const { unmount } = renderControls({ title: 'Alien', artwork: '/poster' });
+		expect(mediaSession.actions()).toEqual(['pause', 'play', 'seekbackward', 'seekforward', 'seekto']);
+		expect(mediaSession.session.position).not.toBeNull();
+
+		unmount();
+
+		expect(mediaSession.session.metadata).toBeNull();
+		expect(mediaSession.actions()).toEqual([]);
+		expect(mediaSession.session.position).toBeNull();
+		expect(mediaSession.session.playbackState).toBe('none');
+	});
+
+	it('keeps the other actions where the browser refuses one', () => {
+		const setActionHandler = mediaSession.session.setActionHandler.bind(mediaSession.session);
+		mediaSession.session.setActionHandler = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
+			if (action === 'seekto') throw new TypeError('seekto is not supported');
+			setActionHandler(action, handler);
+		};
+
+		renderControls({ title: 'Alien' });
+
+		expect(mediaSession.actions()).toEqual(['pause', 'play', 'seekbackward', 'seekforward']);
+	});
+
+	it('plays as before in a browser without the Media Session', async () => {
+		mediaSession.remove();
+		const user = userEvent.setup();
+
+		const { media, unmount } = renderControls({ title: 'Alien', artwork: '/poster' });
+		await user.keyboard('k');
+		expect(media.paused).toBe(false);
+		expect('mediaSession' in navigator).toBe(false);
+
+		unmount();
+	});
+});
+
 describe('VideoPlayer', () => {
 	it('loads the playlist through hls.js, with its debug log off unless asked', () => {
 		const { rerender } = render(<VideoPlayer src="/streams/7/playlist.m3u8" title="Alien" onUnauthorized={() => {}} />);
@@ -295,6 +427,26 @@ describe('VideoPlayer', () => {
 		expect(fakeHls.destroyed).toBe(1);
 		expect(fakeHls.url).toBe('/streams/8/playlist.m3u8');
 		expect(fakeHls.config?.debug).toBe(true);
+	});
+
+	it('gives its title and artwork to the Media Session, and takes them back when it unmounts', () => {
+		const mediaSession = fakeMediaSession();
+		const { unmount } = render(
+			<VideoPlayer
+				src="/streams/7/playlist.m3u8"
+				title="Alien"
+				poster="/backdrop"
+				artwork="/poster"
+				onUnauthorized={() => {}}
+			/>,
+		);
+
+		expect(mediaSession.session.metadata?.title).toBe('Alien');
+		expect(mediaSession.session.metadata?.artwork).toEqual([{ src: '/poster' }]);
+
+		unmount();
+		expect(mediaSession.session.metadata).toBeNull();
+		mediaSession.remove();
 	});
 });
 
