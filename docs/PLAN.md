@@ -8,7 +8,7 @@ ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize a
 
 The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns, and is what Caddy serves. The Next client is deleted, so Phase 2 is done ([section 12](#12-roadmap)). Home, Search and Shows were stubs there, and arrive in Phases 5 and 6. Next:
 
-1. **Phase 3: PWA and Electron** ([section 12](#12-roadmap)). `apps/web` installs as a PWA, and the player publishes the playing title and its controls through Media Session, which finishes spec #71. Next is Electron, which gets its own spec.
+1. **Phase 3: PWA and Electron** ([section 12](#12-roadmap)). `apps/web` installs as a PWA, and the player publishes the playing title and its controls through Media Session, which finished spec #71. Spec #75 covers Electron: `apps/desktop`, the shell that connects to a server, logs in and plays, is done, and packaging it for Windows and Linux in CI is next.
 
 | Your question | Answer |
 |---|---|
@@ -35,7 +35,7 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | React 19.3.1 (latest) | Merged to `main` (`7efb290`), with Next.js 16.4.3 until Phase 2 removed it |
 | Node 26, pnpm 12, TypeScript 7, ESLint 10 | Done; CI and both images tested |
 | Setup from a clone | `scripts/setup.sh` tested in a clean container; `pnpm dev` works |
-| Repository layout | `apps/api`, `apps/worker`, `packages/contract`, `packages/api-client` and `packages/db` in place; later folders arrive with their steps |
+| Repository layout | Every folder in [section 5.4](#54-repository-layout) is in place, `apps/desktop` last |
 | Required CI check on `main` | Done, and includes the API tests |
 | API and browser tests | Done. No `it.fails` marker remains. The browser job only reports |
 | Shared contract, typed client, config validation, one error shape | Done. Every route is an endpoint in `packages/contract`, and `packages/api-client` is proven against the real API. Every endpoint is one `apps/web` or the worker's flow uses |
@@ -60,8 +60,9 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows arrive in Phases 5 and 6. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It is the only web client. It runs under `pnpm dev`, and Caddy serves its build since item 7, which the browser tests drive. Checked in Chromium, and native HLS in Safari is not tested |
 | PWA | Done for feature S10. `vite-plugin-pwa` builds the manifest, with first-version icons for the maintainer to review, and a Workbox service worker that precaches the shell, falls back to `index.html` for a page load and never answers `/api`, `/socket` or `/streams`. A waiting version is offered with Reload, never reloads a tab by itself, and waits while `/watch` is open. A session check with no answer shows "Cannot reach the server" with Retry, and a 401 still goes to login. Settings has an App section with Install. Caddy sends the worker and the manifest with `no-cache`, and the policy is unchanged apart from the first-paint script's hash. `pnpm test:browser` checks it through Caddy, and it was installed from Settings, opened standalone, logged into and played in Chromium over HTTPS once by hand. iOS, iPadOS, Android, Safari and Firefox are not tested |
 | Media Session | Done. `PlayerControls` publishes the title and, when it has one, its poster through the Media Session API, answers play, pause, seek back, seek forward and seek-to with the keyboard's 10-second step, keeps the position up to date, and clears it all when the player closes. A browser without the API plays as before. Component tests drive it with a fake `navigator.mediaSession`. Checked once in Chromium on Linux through MPRIS, which desktop media panels and media keys use. iOS, iPadOS, Android, Safari, Firefox, Windows and macOS are not tested |
+| Desktop app | Done for the shell of feature S11, not yet packaged. `apps/desktop` is a thin Electron shell: a local setup page on the tokens asks for the server's address, normalises it, refuses `http://` except to `localhost` and `127.0.0.1`, and accepts it only when `GET /api/auth/setup` answers with the contract's shape, with its own message for an unreachable address, one that is not ShowStream and an untrusted certificate. Then the window loads the server's `apps/web`, in a persistent session, with the window's size and position kept. `contextIsolation`, `sandbox` and `webSecurity` are on and `nodeIntegration` off, the preload gives only the setup page one function, navigation stays on the chosen origin, other `https:` links open in the system browser, everything else is denied, and only full screen is granted. The menu has Change Server, Reload, the edit and view roles, and Quit. Unit tests cover the address and the navigation rule, and `pnpm test:browser` drives it through Caddy. No API change was needed |
 | Next client | Deleted in Phase 2 item 8, with its endpoints, configs, CORS and every package only it used |
-| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
+| `AGENTS.md` files | Root, `docs/`, `apps/`, `apps/api`, `apps/web`, `apps/worker`, `apps/desktop`, `apps/e2e`, `packages/`, `packages/contract`, `packages/api-client`, `packages/db`, `packages/logger` and `packages/ui` written; the rest arrive with their apps and packages |
 
 **Phase 1 is the earliest the app may go on the internet.** The `public` HTTPS mode and a real TMDB token still have to be tried by the maintainer ([section 15](#15-risks-and-unknowns)).
 
@@ -131,7 +132,7 @@ The client is almost entirely client-rendered, and Next's server side was two se
 | Fonts | `@fontsource-variable/geist`, `@fontsource-variable/geist-mono` | 5.3.0 | In use in `apps/web`, through `packages/ui` |
 | Color math in tests | `culori` | 4.0.2 | In use in the `packages/ui` contrast test |
 | PWA | `vite-plugin-pwa`, `workbox-window` | 2.0.0, 7.4.1 | In use in `apps/web`. `workbox-build` gets glob 14 through an override, because the repository's minimatch override breaks glob 11 |
-| Desktop | `electron`, `electron-builder` | 45.2.1, 26.18.0 | Planned |
+| Desktop | `electron`, `electron-builder` | 45.3.2, 26.18.0 | `electron` in use in `apps/desktop`, and in `apps/e2e` for its test. `electron-builder` planned for packaging |
 | Unit tests | `vitest`, with `jsdom` 30.1.3 in `apps/web` | 5.0.5 | In use |
 | Component tests | `@testing-library/react`, `@testing-library/user-event` | 16.3.3, 14.6.8 | In use in `apps/web` and `packages/ui` |
 | API mocks | `msw` | 3.0.3 | In use in `apps/web` |
@@ -273,7 +274,7 @@ show-stream/
 │   ├── web/            React SPA (web and PWA)
 │   ├── api/            Express, Socket.IO, routes and services
 │   ├── worker/         ffmpeg jobs, library scans
-│   ├── desktop/        Electron shell
+│   ├── desktop/        Electron shell, with its setup page
 │   └── e2e/            Browser tests
 ├── packages/
 │   ├── ui/             Tokens, shadcn primitives, patterns
@@ -297,7 +298,7 @@ show-stream/
 |---|---|---|
 | Web | Static app, built into Caddy's image and served by it, with an SPA fallback and the policy in [section 5.2](#52-target-architecture) | Responsive layouts |
 | PWA | Same app plus manifest and service worker, from `apps/web/pwa.ts` | Cache the app shell, done. **Never cache `/streams`**, nor `/api` or `/socket`, which the worker leaves to the network. Media Session controls in `PlayerControls`, done |
-| Electron | Thin shell that asks for a server URL and loads it | `contextIsolation` on, no `nodeIntegration`, navigation limited to the chosen server |
+| Electron | Thin shell in `apps/desktop` that asks for a server's address, checks it with `GET /api/auth/setup`, and loads that server's own `apps/web` in a persistent session. Done, not yet packaged | `contextIsolation`, `sandbox` and `webSecurity` on, no `nodeIntegration`, a preload that gives the server's pages nothing, navigation limited to the chosen server with other `https:` links in the system browser, no permission but full screen, and no certificate error bypassed |
 
 All three use the same origin as the server, so the same cookie session works. Bearer tokens are added when native apps arrive. Offline Electron can bundle `apps/web` later, which is possible because the build is static.
 
@@ -698,7 +699,7 @@ Claude Code reads `AGENTS.md` natively as long as no `CLAUDE.md` exists, and nes
 | `apps/web/AGENTS.md` | Screens stay thin, use patterns before building new UI, API access only through `api-client`, no raw colors, verify UI in a browser |
 | `apps/api/AGENTS.md` | Every route validates with the contract and requires auth unless marked public, one error shape, no ffmpeg here |
 | `apps/worker/AGENTS.md` | Jobs must be retryable and record failures, ffmpeg only through the wrapper, recover on startup |
-| `apps/desktop/AGENTS.md` | Thin shell, security settings are not to be loosened, no product logic |
+| `apps/desktop/AGENTS.md` | Thin shell, security settings are not to be loosened, no product logic. Written |
 | `packages/AGENTS.md` | Packages never import from apps; changes to shared packages need a check of their consumers |
 | `packages/ui/AGENTS.md` | The layers and rules from [section 9.2](#92-layers), how to add shadcn components |
 | `packages/db/AGENTS.md` | Schema changes through migrations only, never edit an applied migration |
@@ -812,11 +813,12 @@ Manifest, service worker, install flow, Media Session. Electron shell with serve
 
 **Done when:** the app installs as a PWA over HTTPS, and Electron logs in and plays a film.
 
-**Status:** started. Spec #71 covered the PWA and Media Session, both done, and Electron (S11) gets its own spec.
+**Status:** started. Spec #71 covered the PWA and Media Session, both done. Spec #75 covers Electron (S11): the shell is done, and packaging is next.
 
 - [x] **PWA (S10).** Done in the spec's first ticket. The manifest, icons, iOS meta tags, service worker, update toast, unreachable-server state and the App section in Settings are in `apps/web`, covered by component tests and by `tests/install.spec.ts` through Caddy. Checked by hand on 2026-11-15 in Chromium under Xvfb, over HTTPS with Caddy's CA trusted, against the browser-test stack with Caddy's 443 on `127.0.0.1:8443`: Settings offered Install, the browser's dialog showed the name and icon, the app installed and the section said so, the app opened standalone, controlled by the worker and with no App section, and logging out, logging in and playing Demo Movie worked there. The OS media controls were not checked, because Media Session was the next ticket. iOS, iPadOS, Android, Safari and Firefox were not tried, nor the `public` and `tailscale` modes.
 - [x] **Media Session.** Done in the spec's second ticket. `PlayerControls` in `packages/ui` sets the metadata from its `title` and `artwork` props, which the watch screen fills from the title and `GET /library/movies/:id/images/poster`, so the pattern still gets its data through props. It handles play, pause, seekbackward, seekforward, with the arrow keys' 10 seconds, and seekto, calls `setPositionState` as the video moves, and clears the metadata, handlers and position on unmount. Covered by component tests in `packages/ui` and `apps/web` with a fake `navigator.mediaSession`. Checked by hand on 2026-11-15 in a headed Chromium under Xvfb with its own D-Bus session, over HTTPS against the browser-test stack with Caddy's 443 on `127.0.0.1:8443`, reading and driving the player through MPRIS, the D-Bus interface that Linux desktops' media panels and media keys use: while Demo Movie played, MPRIS showed its title, its length and the poster, which was replaced by a real JPEG because the fake TMDB's poster is 4 bytes that no browser can decode, and MPRIS Pause, Play, Seek of 10 seconds each way and SetPosition acted on the video, with the position following. Leaving the player cleared the metadata and the state. A desktop's panel itself was not looked at, because the check ran with no desktop. iOS and Android lock screens, headset buttons, Safari, Firefox, Windows and macOS were not tried. `pnpm test:browser` passed with the change.
-- [ ] **Electron (S11).** Its own spec.
+- [x] **Electron shell (S11).** Done in spec #75's first ticket. VERIFY_PLACEHOLDER
+- [ ] **Electron packaging.** Spec #75's second ticket: an NSIS installer for Windows and an AppImage for Linux from `electron-builder`, with the PWA's icons, built in CI.
 
 ### Phase 4: Real playback
 
@@ -852,7 +854,7 @@ Built top to bottom. Each row is one vertical slice, tested end to end. Sizes ar
 | S8 | Player page with keyboard controls | 2 | M | S7 |
 | S9 | Settings: theme and account | 2 | S | S5 |
 | S10 | Install as a PWA. Done | 3 | M | HTTPS |
-| S11 | Desktop app connects to a server | 3 | M | S2 |
+| S11 | Desktop app connects to a server. The shell is done, packaging is not | 3 | M | S2 |
 | S12 | Real codec and resolution info | 4 | M | S3 |
 | S13 | Direct play when the client supports the file | 4 | M | S12 |
 | S14 | `.mkv` and other containers | 4 | M | S12 |

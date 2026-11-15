@@ -71,11 +71,7 @@ export const SetupPage = ({
 								<FieldDescription id="address-hint">
 									Such as media.example.com. https:// is added for you.
 								</FieldDescription>
-								{message ? (
-									<FieldError id="address-error">
-										{message}
-									</FieldError>
-								) : null}
+								{message ? <FieldError id="address-error">{message}</FieldError> : null}
 							</Field>
 							<Button type="submit" size="lg" disabled={checking} aria-busy={checking || undefined}>
 								{checking ? <Spinner aria-hidden="true" data-icon="inline-start" /> : null}

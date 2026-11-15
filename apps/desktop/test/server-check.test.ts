@@ -54,7 +54,11 @@ describe('checkServer', () => {
 	});
 
 	it('tells a certificate this computer does not trust from a server it cannot reach', async () => {
-		for (const error of ['net::ERR_CERT_AUTHORITY_INVALID', 'net::ERR_CERT_COMMON_NAME_INVALID', 'net::ERR_CERT_DATE_INVALID']) {
+		for (const error of [
+			'net::ERR_CERT_AUTHORITY_INVALID',
+			'net::ERR_CERT_COMMON_NAME_INVALID',
+			'net::ERR_CERT_DATE_INVALID',
+		]) {
 			expect(await checkServer(server, failing(error)), error).toEqual({ ok: false, problem: 'certificate' });
 		}
 		for (const error of [

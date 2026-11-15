@@ -7,7 +7,7 @@
 	"main": "dist/main.js",
 	"scripts": {
 		"build": "vite build -c vite.main.config.mts && vite build",
-		"dev": "pnpm run build && electron . --suggest-server=http://localhost:5173",
+		"dev": "pnpm run build && electron . --suggest-server=http://127.0.0.1:5173",
 		"start": "electron .",
 		"lint": "eslint . --max-warnings 0",
 		"check-types": "tsc --noEmit && tsc --noEmit -p setup && tsc --noEmit -p test",

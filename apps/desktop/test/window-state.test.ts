@@ -13,7 +13,10 @@ describe('restoredBounds', () => {
 	});
 
 	it('keeps only the size when the window was on a screen that is gone', () => {
-		expect(restoredBounds({ x: 5000, y: 100, width: 1280, height: 800 }, screens)).toEqual({ width: 1280, height: 800 });
+		expect(restoredBounds({ x: 5000, y: 100, width: 1280, height: 800 }, screens)).toEqual({
+			width: 1280,
+			height: 800,
+		});
 	});
 
 	it('keeps only the size when too little of the window would show', () => {

@@ -12,10 +12,7 @@ const boundsSchema = z.object({
 const settingsSchema = z.object({
 	/** The chosen server's origin, such as `https://media.example.com`. */
 	server: z.string().optional().catch(undefined),
-	window: z
-		.object({ bounds: boundsSchema, maximized: z.boolean() })
-		.optional()
-		.catch(undefined),
+	window: z.object({ bounds: boundsSchema, maximized: z.boolean() }).optional().catch(undefined),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;

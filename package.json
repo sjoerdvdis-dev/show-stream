@@ -5,7 +5,7 @@
 	"license": "Apache-2.0",
 	"scripts": {
 		"build": "turbo build",
-		"dev": "turbo dev",
+		"dev": "turbo dev --filter=!desktop",
 		"lint": "turbo lint",
 		"check-types": "turbo check-types",
 		"test": "turbo test",

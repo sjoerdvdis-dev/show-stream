@@ -29,6 +29,12 @@ trap 'exit 130' INT TERM
 rm -rf test-results
 mkdir test-results
 
+# tests/native-app.spec.ts drives apps/desktop's build with the Electron binary from this checkout,
+# which the container mounts read-only. Electron downloads its binary on first use, so this does it
+# here, for this computer, which must therefore be Linux on x64, as CI is.
+pnpm turbo build --filter=desktop --output-logs=errors-only
+node -e "require('electron')" >/dev/null
+
 git -C ../.. ls-files -z --cached --others --exclude-standard |
   tar -C ../.. --null --files-from=- --ignore-failed-read -cf - |
   tar -C "$E2E_CONTEXT" -xf -

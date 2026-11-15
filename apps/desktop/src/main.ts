@@ -41,7 +41,9 @@ const withoutQuery = (url: string) => {
 const start = () => {
 	const store = settingsStore(app.getPath('userData'));
 	const windowSession = session.fromPartition(partition);
-	let server = store.read().server;
+	// The saved address goes through the same rules as a typed one, in case the file was edited.
+	const saved = normaliseAddress(store.read().server ?? '');
+	let server = saved.ok ? saved.origin : undefined;
 
 	// Nothing is granted but full screen, for the player, and only to the chosen server. Media keys
 	// reach the page through the Media Session API, which asks for no permission.
@@ -53,9 +55,9 @@ const start = () => {
 		(_contents, permission, requestingOrigin) => permission === 'fullscreen' && isServer(requestingOrigin),
 	);
 
-	const saved = store.read().window;
+	const savedWindow = store.read().window;
 	const bounds = restoredBounds(
-		saved?.bounds,
+		savedWindow?.bounds,
 		screen.getAllDisplays().map((display) => display.workArea),
 	);
 	const mainWindow = new BrowserWindow({
@@ -82,7 +84,7 @@ const start = () => {
 			spellcheck: false,
 		},
 	});
-	if (saved?.maximized) {
+	if (savedWindow?.maximized) {
 		mainWindow.maximize();
 	}
 	mainWindow.once('ready-to-show', () => mainWindow.show());
