@@ -51,6 +51,18 @@ The API creates its database at `data/app.db` on first start, and applies any ne
 
 The worker runs ffmpeg from the host, on the same database and media, and takes library scans and backups. It logs `Waiting for the API to migrate the database` until the API has started, which is normal. `JOB_CONCURRENCY` sets how many jobs run at once, and the worker reads `apps/api/.env` as well as your environment.
 
+### The desktop app
+
+`pnpm dev` leaves out `apps/desktop`, the Electron shell, because it opens a window. With `pnpm dev` running, start it in a second terminal:
+
+```bash
+pnpm --filter desktop dev
+```
+
+It builds the shell and opens its setup page with `http://127.0.0.1:5173` filled in, which is allowed over plain HTTP because it is this computer. Press **Connect**, and the window loads the web app from Vite, as a browser would. The address and the session are kept in Electron's user data folder, such as `~/.config/ShowStream`. **File > Change Server…** forgets the address. Electron downloads its binary the first time it starts, not at `pnpm install`. On WSL, it needs WSLg or another X server.
+
+A change to the web app shows after **View > Reload**. A change to the shell itself needs `pnpm --filter desktop dev` again. `apps/desktop/AGENTS.md` lists the security settings that must stay as they are.
+
 ## Change the database
 
 Edit `packages/db/src/schema.ts`, then generate a migration and commit it:
@@ -97,8 +109,8 @@ pnpm turbo check-types lint build test
 
 | Command | Runs | Needs |
 |---|---|---|
-| `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, database tests in `packages/db/test`, client tests in `apps/web/test`, and design token and component tests in `packages/ui/test` | Nothing beyond setup. No Docker |
-| `pnpm test:browser` | Chromium tests in `apps/e2e` | Docker |
+| `pnpm test` | API tests in `apps/api/test`, worker tests in `apps/worker/test`, database tests in `packages/db/test`, client tests in `apps/web/test`, design token and component tests in `packages/ui/test`, and the desktop app's rules in `apps/desktop/test` | Nothing beyond setup. No Docker |
+| `pnpm test:browser` | Chromium and Electron tests in `apps/e2e` | Docker, on Linux x64 |
 
 **API tests** start the real API and a real worker as child processes, from temporary copies of their source, and speak HTTP to the API. Each suite gets its own pair and its own temporary SQLite file. They use fake configuration and never read `apps/api/.env` or touch your media or backups. The worker's TMDB calls go to a closed port, so nothing leaves your machine, unless a test passes `fakeTmdb`, which answers them from `test/support/fake-tmdb.mjs`.
 
@@ -118,7 +130,7 @@ Almost every route needs a session, so a test starts with `api.createOwner()` an
 
 **Component tests** in `packages/ui/test/components` render the primitives and patterns in `jsdom` and drive them by keyboard, as a user does: focus traps and Escape, arrow keys and typeahead, toggles, command filtering, calendar dates, filters and the player's shortcuts. Check how they look in Chromium at `/dev/components`.
 
-**Browser tests** drive `apps/web` through the Caddy image that ships, over HTTPS: setup, login, the session cookie and the login limit, the library with its art, a filter that survives a reload, a movie's page, playback and seeking over HLS, a failed title with Retry, a toast from the socket, a scan from Settings and logout. `tests/install.spec.ts` checks the PWA: the manifest and its icons, the service worker controlling the page, `/api` and `/streams` answered by the network during playback and never cached, the shell loading with no network and saying the server cannot be reached, and `no-cache` on the worker and the manifest. `tests/proxy.spec.ts` checks that only Caddy's static files and the API answer, that streams are not compressed, the caching and security headers, a deep link on reload, and that the app runs under its `Content-Security-Policy` with no violation. They build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
+**Browser tests** drive `apps/web` through the Caddy image that ships, over HTTPS: setup, login, the session cookie and the login limit, the library with its art, a filter that survives a reload, a movie's page, playback and seeking over HLS, a failed title with Retry, a toast from the socket, a scan from Settings and logout. `tests/install.spec.ts` checks the PWA: the manifest and its icons, the service worker controlling the page, `/api` and `/streams` answered by the network during playback and never cached, the shell loading with no network and saying the server cannot be reached, and `no-cache` on the worker and the manifest. `tests/native-app.spec.ts` starts the desktop app, `apps/desktop`, with a new profile under Xvfb: its setup page refuses an address it cannot reach, plain HTTP, a server that is not ShowStream and a certificate it does not trust, each with its own message, then connects to Caddy, logs in, plays the movie over HLS in full screen, sends links to other sites to the system browser and keeps them out of the window, and after a restart opens on the server, still logged in, at the same size and position. Like a real desktop, it trusts Caddy's CA rather than ignoring certificates: the `caddy-ca` service copies the root certificate out, and `in-container.sh` adds it to the NSS database Electron reads. `run.sh` builds `apps/desktop` on the host first, and fetches Electron's binary there, which is why the host must be Linux on x64. `tests/proxy.spec.ts` checks that only Caddy's static files and the API answer, that streams are not compressed, the caching and security headers, a deep link on reload, and that the app runs under its `Content-Security-Policy` with no violation. They build the whole system under the Compose project `show-stream-browser-tests` with fake secrets, then run Playwright in a container on that project's network. Nothing is published to the host, and `./media` and `./data` are not mounted. Afterwards the script removes the containers, volumes and network, the images it built, and any image it had to pull. Docker's build cache stays, so later runs are faster. To run beside another copy, set `COMPOSE_PROJECT_NAME`.
 
 After a failure, screenshots and traces are in `apps/e2e/test-results`. The movies come from `apps/e2e/fixtures/seed.mjs`, which the one-shot `seed` service runs after the API has migrated a new volume. `clip.mp4` beside it is a generated 30-second H.264 and AAC clip, and `corrupt.mp4` is a text file that the worker fails on. The worker preloads `fake-tmdb.mjs` beside them, so that a scan needs no network.
 

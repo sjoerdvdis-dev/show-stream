@@ -11,6 +11,7 @@ A self-hosted media server, built to replace Jellyfin. Early development.
 - Converting a video to HLS and playing it in the browser, with seeking
 - Scanning the library from Settings, as an admin
 - A daily backup of the database, keeping the last 7
+- Installing it as an app from the browser, a PWA, and a desktop app that connects to your server, which you run from a clone for now
 
 Filters exist, but scans have not been tested against real TMDB responses. TV shows are not supported yet. Where this is going is in [the plan](./docs/PLAN.md).
 

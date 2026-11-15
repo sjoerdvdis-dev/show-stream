@@ -1,0 +1,36 @@
+{
+	"name": "desktop",
+	"productName": "ShowStream",
+	"version": "0.0.0",
+	"private": true,
+	"description": "The ShowStream desktop app: a thin Electron shell around a ShowStream server.",
+	"main": "dist/main.js",
+	"scripts": {
+		"build": "vite build -c vite.main.config.mts && vite build",
+		"dev": "pnpm run build && electron . --suggest-server=http://127.0.0.1:5173",
+		"start": "electron .",
+		"lint": "eslint . --max-warnings 0",
+		"check-types": "tsc --noEmit && tsc --noEmit -p setup && tsc --noEmit -p test",
+		"test": "vitest run"
+	},
+	"devDependencies": {
+		"@tailwindcss/vite": "^4.3.3",
+		"@types/node": "^26.6.6",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"@vitejs/plugin-react": "^6.1.2",
+		"@workspace/contract": "workspace:*",
+		"@workspace/eslint-config": "workspace:*",
+		"@workspace/typescript-config": "workspace:*",
+		"@workspace/ui": "workspace:*",
+		"electron": "45.3.2",
+		"eslint": "^10.14.0",
+		"react": "19.3.1",
+		"react-dom": "19.3.1",
+		"tailwindcss": "^4.3.3",
+		"typescript": "7.0.2",
+		"vite": "^8.3.5",
+		"vitest": "^5.0.5",
+		"zod": "^4.6.7"
+	}
+}

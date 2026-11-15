@@ -74,6 +74,44 @@ The app keeps its own files on the device, so it opens fast, and shows "Cannot r
 
 Installing from Chromium on a computer was tested over HTTPS. iOS, iPadOS and Android were not.
 
+## The desktop app
+
+ShowStream also comes as a desktop program, `apps/desktop`, which opens your server in its own window, outside the browser. It holds no copy of the app: everything in the window comes from your server, so it is always the version your server runs.
+
+Installers for Windows and Linux are not built yet. Until they are, run it from a clone of this repository, with Node.js and pnpm as in the [local development guide](./local-development.md):
+
+```bash
+pnpm install
+pnpm --filter desktop build
+pnpm --filter desktop start
+```
+
+### Connect
+
+The first start asks for your server's address: the one you open in a browser, such as `media.example.com` or `192.168.1.20`. `https://` is added when you leave it out, and any path is dropped. The app asks the server's `/api/auth/setup` before saving the address, and says which of these went wrong:
+
+| Message | Means |
+|---|---|
+| Could not reach … | No answer: a typo, the server is down, or this computer cannot reach it |
+| … is not a ShowStream server | Something answered, such as a router's page, but not ShowStream |
+| … has a certificate this computer does not trust | Usually Caddy's internal CA, which this computer must trust. See below |
+| Use https:// | Plain `http://` is refused, except to `localhost` and `127.0.0.1`, so that your session never travels unencrypted |
+
+Then the window shows your server's login, and you log in and play as in the browser. The session is kept when you close the app, and so are the window's size and position. **File > Change Server…** goes back to the setup page with the address forgotten. If the server cannot be reached when the app starts, the setup page says so, and **Connect** tries again.
+
+Links to other sites open in your browser. The window only ever shows your server, and the app gives the server's pages no access to your computer, and no permission but full screen. Media keys should work while a film plays, as in the browser, but have not been tried in the app.
+
+### Trust the CA for the app
+
+In `internal` mode, trust Caddy's CA on the computer first, as in [Trust the CA on a device](#trust-the-ca-on-a-device). The app has no way to skip the certificate check, by design. It uses what the browser uses:
+
+| System | Store the app reads |
+|---|---|
+| Windows | The Windows store, as in the table above |
+| Linux | The NSS database in `~/.pki/nssdb`, which Chromium uses too. With `certutil` from `libnss3-tools`: `certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "Caddy Local Authority" -i caddy-root.crt` |
+
+Restart the app after trusting the CA. Trusting it through Linux's NSS database was tested, in the browser tests. Windows was not.
+
 ## Security headers
 
 Caddy sends these with the web app's pages and files:
