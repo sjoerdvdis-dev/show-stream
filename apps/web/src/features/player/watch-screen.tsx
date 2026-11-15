@@ -121,6 +121,7 @@ export const WatchScreen = ({ id }: { id: number }) => {
 				src={playlist.data.playlistUrl}
 				title={title}
 				poster={movieArt(details, 'backdrop') ?? undefined}
+				artwork={movieArt(details, 'poster') ?? undefined}
 				// eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite sets DEV, and it is false in a build.
 				debug={import.meta.env.DEV}
 				onUnauthorized={onSessionLost}

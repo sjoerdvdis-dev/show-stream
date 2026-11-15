@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startFakeApi } from './support/fake-api';
+import { fakeMediaSession } from './support/fake-media-session';
 import { fakeSocket } from './support/fake-socket';
 import { currentPath, findLoginPage, openApp, returnPath } from './support/render-app';
 
@@ -121,6 +122,48 @@ describe('the player', () => {
 		await user.keyboard('m');
 		expect(controls().getByRole('button', { name: 'Unmute' })).toBeTruthy();
 		expect(volume.getAttribute('aria-valuenow')).toBe('0');
+	});
+
+	it("shows the title and its poster in the operating system's media controls, and clears them on leaving", async () => {
+		const mediaSession = fakeMediaSession();
+		try {
+			startFakeApi({ signedIn: true, movies: [{ ...readyMovie, hasPoster: true, hasBackdrop: true }] });
+			const user = userEvent.setup();
+
+			openApp('/watch/7');
+			await screen.findByRole('group', { name: 'Player controls' });
+
+			expect(mediaSession.session.metadata?.title).toBe('Demo Movie');
+			expect(mediaSession.session.metadata?.artwork).toEqual([{ src: '/api/library/movies/7/images/poster' }]);
+			act(() => mediaSession.press('play'));
+			expect(controls().getByRole('button', { name: 'Pause' })).toBeTruthy();
+			act(() => mediaSession.press('pause'));
+			expect(controls().getByRole('button', { name: 'Play' })).toBeTruthy();
+
+			await user.click(within(screen.getByRole('main')).getByRole('link', { name: 'Movie details' }));
+			// The player stays until the movie's page has loaded in its place.
+			await waitFor(() => expect(screen.queryByRole('group', { name: 'Player controls' })).toBeNull());
+			expect(currentPath()).toBe('/movies/7');
+			expect(mediaSession.session.metadata).toBeNull();
+			expect(mediaSession.actions()).toEqual([]);
+		} finally {
+			mediaSession.remove();
+		}
+	});
+
+	it('shows no artwork in the media controls for a title without a poster', async () => {
+		const mediaSession = fakeMediaSession();
+		try {
+			startFakeApi({ signedIn: true, movies: [readyMovie] });
+
+			openApp('/watch/7');
+			await screen.findByRole('group', { name: 'Player controls' });
+
+			expect(mediaSession.session.metadata?.title).toBe('Demo Movie');
+			expect(mediaSession.session.metadata?.artwork).toEqual([]);
+		} finally {
+			mediaSession.remove();
+		}
 	});
 
 	it('returns to login on a 401 from a stream', async () => {

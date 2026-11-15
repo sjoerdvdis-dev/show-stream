@@ -373,6 +373,7 @@ const PreparedTitle = ({ id }: { id: number }) => {
 		<VideoPlayer
 			src={data.playlistUrl}
 			title="A prepared title"
+			artwork={poster}
 			// eslint-disable-next-line turbo/no-undeclared-env-vars -- Vite sets DEV, and it is false in a build.
 			debug={import.meta.env.DEV}
 			onUnauthorized={onSessionLost}

@@ -74,6 +74,100 @@ const seekTo = (media: HTMLMediaElement, seconds: number) => {
 
 const seekBy = (media: HTMLMediaElement, seconds: number) => seekTo(media, media.currentTime + seconds);
 
+/** How far Left and Right, and the operating system's seek back and forward, move. */
+const seekStep = 10;
+
+const mediaSessionActions = ['play', 'pause', 'seekbackward', 'seekforward', 'seekto'] as const;
+
+/** The browser's Media Session, or nothing where it has none. */
+const getMediaSession = () =>
+	typeof navigator !== 'undefined' && 'mediaSession' in navigator && typeof MediaMetadata !== 'undefined'
+		? navigator.mediaSession
+		: undefined;
+
+/** Tells the operating system where the video is, for its progress bar. Without a length there is nothing to show. */
+const updatePositionState = (session: MediaSession, media: HTMLMediaElement) => {
+	if (!session.setPositionState) return;
+	const { duration } = media;
+	if (!Number.isFinite(duration) || duration <= 0) return;
+	try {
+		session.setPositionState({
+			duration,
+			position: clamp(media.currentTime, 0, duration),
+			playbackRate: media.playbackRate || 1,
+		});
+	} catch {
+		// A browser that refuses the state keeps showing the last one it took.
+	}
+};
+
+/**
+ * Publishes the title, its art and the player's controls to the operating system through the Media
+ * Session API, for the lock screen, a headset's buttons and the media keys, and clears them on unmount.
+ * Seek back and forward move as far as the arrow keys. A browser without the API is left alone.
+ */
+const useMediaSession = (media: HTMLMediaElement | null, title: string | undefined, artwork: string | undefined) => {
+	useEffect(() => {
+		const session = getMediaSession();
+		if (!session || !media) return;
+
+		session.metadata = new MediaMetadata({ title: title ?? '', artwork: artwork ? [{ src: artwork }] : [] });
+
+		const handlers: Record<(typeof mediaSessionActions)[number], MediaSessionActionHandler> = {
+			play: () => void media.play().catch(() => {}),
+			pause: () => media.pause(),
+			seekbackward: () => seekBy(media, -seekStep),
+			seekforward: () => seekBy(media, seekStep),
+			seekto: (details) => {
+				if (details.seekTime === undefined) return;
+				seekTo(media, details.seekTime);
+				// The OS's own position follows the seek at once, rather than at the next `timeupdate`.
+				updatePositionState(session, media);
+			},
+		};
+		const setHandlers = (on: boolean) => {
+			for (const action of mediaSessionActions) {
+				try {
+					session.setActionHandler(action, on ? handlers[action] : null);
+				} catch {
+					// A browser that does not know an action throws, and offers the rest.
+				}
+			}
+		};
+		setHandlers(true);
+
+		const onPlay = () => {
+			session.playbackState = 'playing';
+			updatePositionState(session, media);
+		};
+		const onPause = () => {
+			session.playbackState = 'paused';
+			updatePositionState(session, media);
+		};
+		const onPosition = () => updatePositionState(session, media);
+		const positionEvents = ['timeupdate', 'durationchange', 'loadedmetadata', 'ratechange', 'seeked'];
+		media.addEventListener('play', onPlay);
+		media.addEventListener('pause', onPause);
+		for (const type of positionEvents) media.addEventListener(type, onPosition);
+		updatePositionState(session, media);
+
+		return () => {
+			media.removeEventListener('play', onPlay);
+			media.removeEventListener('pause', onPause);
+			for (const type of positionEvents) media.removeEventListener(type, onPosition);
+			setHandlers(false);
+			session.metadata = null;
+			session.playbackState = 'none';
+			try {
+				// With no state, the browser forgets the position.
+				session.setPositionState?.();
+			} catch {
+				// Nothing left to clear.
+			}
+		};
+	}, [media, title, artwork]);
+};
+
 /** Sets the volume from a percentage, muting at zero and unmuting above it. */
 const setVolumePercent = (media: HTMLMediaElement, percent: number) => {
 	media.volume = clamp(percent / 100, 0, 1);
@@ -176,16 +270,20 @@ type PlayerControlsProps = {
 	media: HTMLMediaElement | null;
 	/** The element that goes fullscreen, holding the video and the controls. */
 	container: HTMLElement | null;
-	/** Shown at the top while the controls show. */
+	/** Shown at the top while the controls show, and in the operating system's media controls. */
 	title?: string;
+	/** The title's poster, shown in the operating system's media controls. */
+	artwork?: string;
 	className?: string;
 };
 
 /**
  * Play, seek, volume and fullscreen controls laid over a video, with keyboard shortcuts on the whole page outside
  * text fields: Space or K, Left and Right to seek, Up and Down for volume, M and F. They hide while the video plays.
+ * The title, its artwork, play, pause and seeking also reach the operating system through the Media Session API.
  */
-export const PlayerControls = ({ media, container, title, className }: PlayerControlsProps) => {
+export const PlayerControls = ({ media, container, title, artwork, className }: PlayerControlsProps) => {
+	useMediaSession(media, title, artwork);
 	const { paused, currentTime, duration, volume, muted } = useMediaState(media);
 	const fullscreen = useFullscreen(container);
 	const { awake, wake } = useAutoHide();
@@ -210,7 +308,7 @@ export const PlayerControls = ({ media, container, title, className }: PlayerCon
 				togglePlay(media);
 			} else if (key === 'arrowleft' || key === 'arrowright') {
 				event.preventDefault();
-				seekBy(media, key === 'arrowleft' ? -10 : 10);
+				seekBy(media, key === 'arrowleft' ? -seekStep : seekStep);
 			} else if (key === 'arrowup' || key === 'arrowdown') {
 				event.preventDefault();
 				changeVolume(media, key === 'arrowup' ? 0.1 : -0.1);
@@ -314,7 +412,10 @@ type VideoPlayerProps = {
 	/** The HLS playlist URL. */
 	src: string;
 	title: string;
+	/** Shown on the video before it plays, such as the title's backdrop. */
 	poster?: string;
+	/** The title's poster, for the operating system's media controls. */
+	artwork?: string;
 	/** Called on a 401 from any request hls.js makes, so that the app can send the user to log in. */
 	onUnauthorized: () => void;
 	/**
@@ -332,6 +433,7 @@ export const VideoPlayer = ({
 	src,
 	title,
 	poster,
+	artwork,
 	onUnauthorized,
 	onFatalError,
 	debug = false,
@@ -379,7 +481,7 @@ export const VideoPlayer = ({
 					description="The stream stopped with an error."
 				/>
 			) : (
-				<PlayerControls media={video} container={container} title={title} />
+				<PlayerControls media={video} container={container} title={title} artwork={artwork} />
 			)}
 		</div>
 	);
