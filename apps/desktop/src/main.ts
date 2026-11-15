@@ -67,6 +67,8 @@ const start = () => {
 		minWidth: 360,
 		minHeight: 480,
 		title: 'ShowStream',
+		// The PWA's icon, which the build copies into `dist`. Windows uses the executable's own.
+		icon: join(__dirname, 'icon.png'),
 		show: false,
 		webPreferences: {
 			partition,

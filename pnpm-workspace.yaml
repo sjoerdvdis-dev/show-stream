@@ -18,6 +18,9 @@ overrides:
 allowBuilds:
   better-sqlite3: true
   esbuild: false
+  # electron-builder depends on it for Squirrel.Windows, which apps/desktop does not build: its
+  # installer is NSIS. Its script only picks a 7-Zip binary for that.
+  electron-winstaller: false
 
 auditConfig:
   ignoreGhsas:
