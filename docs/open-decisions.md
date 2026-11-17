@@ -23,6 +23,7 @@ Each row has a recommendation, which [PLAN.md](./PLAN.md) follows. When one is a
 | E2 | Component docs | A `/dev/components` route rather than Storybook |
 | E3 | Fonts | Geist Sans and Geist Mono, which `apps/web` uses. Zain and the font variable mismatch left with the old client |
 | E4 | TV navigation | Keep components keyboard-navigable now, so TV remote support is possible later |
+| E5 | Navigation on a phone | The shadcn sidebar on every width, as a sheet from the header's trigger on a phone, plus today's bottom bar for Home, Search, Movies and Shows, so the main places stay one tap away. Decided at the start of Phase 4 |
 
 ## Items not yet on your list
 

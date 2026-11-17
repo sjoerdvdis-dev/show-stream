@@ -14,5 +14,7 @@ Decisions that are hard to reverse, surprising without context, and the result o
 | [0008](./0008-schema-in-packages-db-migrated-at-startup.md) | The schema lives in `packages/db` and migrates at API startup |
 | [0009](./0009-job-queue-in-sqlite-with-a-separate-worker.md) | Jobs live in SQLite, and a separate worker runs them |
 | [0010](./0010-own-player-controls-on-hls-js.md) | Own player controls on hls.js, not media-chrome |
+| [0011](./0011-one-component-kit-over-the-primitives.md) | One component kit, and primitives only through it |
+| [0012](./0012-first-version-scoped-from-jellyfin-movies-only.md) | The first version is scoped from a Jellyfin archive, and is movies only |
 
 ADRs are not rewritten once accepted. To change one, add a new ADR that supersedes it.

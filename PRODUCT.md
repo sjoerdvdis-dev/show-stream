@@ -20,7 +20,7 @@ One static web app serves the browser, an installable PWA and an Electron shell 
 
 ShowStream is a self-hosted media server that plays a library of movies in the browser, built to replace Jellyfin. It reads a media folder, matches each movie on TMDB, and streams it as HLS to any device on the owner's network or tailnet.
 
-Success is the owner switching off Jellyfin: a typical `.mkv` H.265 file starts within seconds and seeks freely, on the web, as a PWA and on the desktop (`PLAN.md` Phase 4 "Done when").
+Success is the owner switching off Jellyfin: a typical `.mkv` H.265 file starts within seconds and seeks freely, on the web, as a PWA and on the desktop (`PLAN.md` Phase 5 "Done when").
 
 ## Positioning
 
@@ -50,7 +50,7 @@ Success is the owner switching off Jellyfin: a typical `.mkv` H.265 file starts 
 - Everything works by keyboard, which prepares for TV remotes (open decision E4).
 - Terms follow `GLOSSARY.md`: a title, not media; a movie, not a film; a transcode, not a conversion.
 
-**Undecided:** how titles from TV shows will be presented, and whether a mobile or TV app comes before Phase 7 _(inferred as open from the roadmap)_.
+**Undecided:** how titles from TV shows will be presented, and whether a mobile or TV app comes before Phase 8 _(inferred as open from the roadmap)_.
 
 ## Brand Commitments
 
@@ -68,7 +68,7 @@ Success is the owner switching off Jellyfin: a typical `.mkv` H.265 file starts 
 
 1. **The library is the color.** Posters and backdrops carry the visual weight, so the interface stays out of their way.
 2. **The owner's server, the owner's data.** Nothing depends on a third-party service at runtime except metadata lookups, and nothing is sent elsewhere.
-3. **Playback first.** Starting and seeking a film quickly matters more than any other screen _(inferred from the Phase 4 framing)_.
+3. **Playback first.** Starting and seeking a film quickly matters more than any other screen _(inferred from the Phase 5 framing)_.
 4. **Honest status.** A transcode or scan shows what really happened, including failures and their reasons, never a false success.
 5. **One codebase everywhere.** Every screen works at phone width, at desktop width and by keyboard.
 

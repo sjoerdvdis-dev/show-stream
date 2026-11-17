@@ -1,14 +1,16 @@
 # ShowStream Plan
 
-Last updated: 2026-11-15. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
+Last updated: 2026-11-17. Companions: the [repository audit](./audits/2026-10-31-repository-audit.md), [accepted decisions](./adr/README.md) and [open decisions](./open-decisions.md).
 
 ShowStream becomes a self-hosted Jellyfin replacement in this order: modernize and clean up, rebuild on a stable foundation, then add features one at a time.
 
 ## 1. Where we start
 
-The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns, and is what Caddy serves. The Next client is deleted, so Phase 2 is done ([section 12](#12-roadmap)). Home, Search and Shows were stubs there, and arrive in Phases 5 and 6. Next:
+The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contributor setup, repository restructure, tests, shared contract, SQLite move, API authentication, worker, Caddy, HTTPS, health checks, runtime secrets, structured logs and `PUID`. Phase 2 has started: `apps/web` exists with login working end to end, on the design tokens and fonts, `packages/ui` has shadcn's primitives on Base UI and the product patterns, which `/dev/components` shows, the API serves a paged, searchable library and each title's stored art, and `apps/web` has Login, Setup, Movies, a movie's page, the player and Settings on the patterns, and is what Caddy serves. The Next client is deleted, so Phase 2 is done ([section 12](#12-roadmap)). Home, Search and Shows were stubs there: Phase 4 builds their skeletons, and Phases 6 and 7 fill them. Next:
 
-1. **Phase 3: PWA and Electron** ([section 12](#12-roadmap)). `apps/web` installs as a PWA, and the player publishes the playing title and its controls through Media Session, which finished spec #71. Spec #75 covered Electron: `apps/desktop`, the shell that connects to a server, logs in and plays, and its Windows installer and Linux AppImage, which CI builds. Phase 3 is done, and Phase 4 waits for the maintainer.
+1. **Scope from Jellyfin, first** ([section 12](#scope-first-a-functional-archive-of-jellyfin)). The highest priority: archive what Jellyfin v12.4 does in the eight areas a streaming MVP needs, by the method in [functional/README.md](./functional/README.md), and prune it to what ShowStream's first version keeps. Phase 4's kit and Phase 5 wait for it.
+2. **Phase 3: PWA and Electron** ([section 12](#12-roadmap)). `apps/web` installs as a PWA, and the player publishes the playing title and its controls through Media Session, which finished spec #71. Spec #75 covered Electron: `apps/desktop`, the shell that connects to a server, logs in and plays, and its Windows installer and Linux AppImage, which CI builds. Phase 3 is done.
+3. **Phase 4: UI foundation** ([section 12](#12-roadmap)). Every shadcn base component in `packages/ui`, used only by one component kit in `packages/ui/src/kit`, built the way shadcn's blocks are, with a clear sidebar and a breadcrumb on every page ([section 9.5.1](#951-the-component-kit)), and every page the roadmap knows, as a skeleton or a work-in-progress page ([section 4.5](#45-app-structure)), before real playback moves to Phase 5. The kit waits behind a gate: the maintainer chooses the design first, which settles E1, E3 and E5. The primitives can be added now.
 
 | Your question | Answer |
 |---|---|
@@ -57,7 +59,7 @@ The foundation decisions are made, and Phase 1 is done: the toolchain, CI, contr
 | shadcn on Base UI | Done for Phase 2 item 3. `packages/ui` has 32 primitives in the `base-nova` style on Base UI, with keyboard tests in the required check, and `/dev/components` shows them. The old Radix copies left with the Next client in item 8 |
 | Patterns | Done for Phase 2 item 4. `packages/ui/src/patterns` has every pattern in [section 9.5](#95-components), on the primitives and tokens, with data through props and loading, empty and error states, and component tests in the required check. `apps/web`'s signed-in layout uses `AppShell`, and `/dev/components` shows every token, primitive and pattern from fixture data, except the player, which asks the API for a prepared title's playlist. Every screen of `apps/web` is on them since item 6 |
 | Library queries and art | Done for Phase 2 item 5. `GET /library/movies` searches with FTS5, filters, sorts and pages in SQLite, `GET /library/movies/facets` gives the filters' ranges and counts, `GET /library/movies/:id` a movie's page with its art flags, and endpoints declare a query schema that the contract validates and the typed client sends. A scan stores each title's poster and backdrop in `media/cache/images`, which `GET /library/movies/:id/images/:kind` serves to signed-in users. Tested with a fake TMDB only, so no real image has been downloaded ([section 15](#15-risks-and-unknowns)). `apps/web`'s Movies screen uses all of it |
-| `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows arrive in Phases 5 and 6. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It is the only web client. It runs under `pnpm dev`, and Caddy serves its build since item 7, which the browser tests drive. Checked in Chromium, and native HLS in Safari is not tested |
+| `apps/web` | Done for Phase 2 items 1 and 6. A static Vite SPA with setup, login, sessions, the 401 path and an authenticated socket. Login, Setup, Movies, a movie's page, the player and Settings are on the patterns. Home, Search and Shows get skeletons in Phase 4 and their data in Phases 6 and 7. Movies is a paged poster grid with search, sort and filters in the URL, and a movie's page has Play, or Retry for a failed title. `/watch/$id` plays on `VideoPlayer` with keyboard shortcuts, and shows the status of a title that is not ready. Settings has the account with Log out, the theme, and, for admins, Scan library with the latest scan. Notifications refresh what is on screen, and only an active scan is polled. It is the only web client. It runs under `pnpm dev`, and Caddy serves its build since item 7, which the browser tests drive. Checked in Chromium, and native HLS in Safari is not tested |
 | PWA | Done for feature S10. `vite-plugin-pwa` builds the manifest, with first-version icons for the maintainer to review, and a Workbox service worker that precaches the shell, falls back to `index.html` for a page load and never answers `/api`, `/socket` or `/streams`. A waiting version is offered with Reload, never reloads a tab by itself, and waits while `/watch` is open. A session check with no answer shows "Cannot reach the server" with Retry, and a 401 still goes to login. Settings has an App section with Install. Caddy sends the worker and the manifest with `no-cache`, and the policy is unchanged apart from the first-paint script's hash. `pnpm test:browser` checks it through Caddy, and it was installed from Settings, opened standalone, logged into and played in Chromium over HTTPS once by hand. iOS, iPadOS, Android, Safari and Firefox are not tested |
 | Media Session | Done. `PlayerControls` publishes the title and, when it has one, its poster through the Media Session API, answers play, pause, seek back, seek forward and seek-to with the keyboard's 10-second step, keeps the position up to date, and clears it all when the player closes. A browser without the API plays as before. Component tests drive it with a fake `navigator.mediaSession`. Checked once in Chromium on Linux through MPRIS, which desktop media panels and media keys use. iOS, iPadOS, Android, Safari, Firefox, Windows and macOS are not tested |
 | Desktop app | Done, feature S11. `apps/desktop` is a thin Electron shell: a local setup page on the tokens asks for the server's address, normalises it, refuses `http://` except to `localhost` and `127.0.0.1`, and accepts it only when `GET /api/auth/setup` answers with the contract's shape, with its own message for an unreachable address, one that is not ShowStream and an untrusted certificate. Then the window loads the server's `apps/web`, in a persistent session, with the window's size and position kept. `contextIsolation`, `sandbox` and `webSecurity` are on and `nodeIntegration` off, the preload gives only the setup page one function, navigation stays on the chosen origin, other `https:` links open in the system browser, everything else is denied, and only full screen is granted. The menu has Change Server, Reload, the edit and view roles, and Quit. Unit tests cover the address and the navigation rule, and `pnpm test:browser` drives it through Caddy. No API change was needed. `electron-builder` packages it as ShowStream, with the PWA's icon, as an NSIS installer for Windows and an AppImage for Linux, unsigned. The `Desktop` workflow builds each on its own runner, on pull requests that touch `apps/desktop` and on `main`, and uploads them as artifacts, outside the required check. The AppImage was run by hand against a local stack over HTTPS; the Windows installer was built, not run |
@@ -175,17 +177,34 @@ apps/web/src/
 └── main.tsx
 ```
 
-| Route | Screen | Replaces |
-|---|---|---|
-| `/setup` | First-run owner account | New |
-| `/login` | Login | `/login` |
-| `/` | Home | `/dashboard` |
-| `/movies`, `/movies/$id` | Movie library, detail. Search, sort, filters and the page live in the URL, validated with the contract's library query | `/dashboard/movies` |
-| `/shows`, `/shows/$id` | Show library, detail | `/dashboard/shows` |
-| `/search` | Search | `/dashboard/search` |
-| `/settings` | Account and Log out, the theme, and Scan library for admins | `/dashboard/settings` |
-| `/watch/$id` | Player, inside the shell, with the title and a way back to its page. A title that is not ready shows its status, with Play or Retry | `/video/$id` |
-| `/dev/components` | Every token, primitive and pattern in both themes, from fixture data, under `pnpm dev` only. It took in `/dev/theme` and `/dev/primitives` | New |
+Every page the roadmap knows. Phase 4 builds each one on the kit, the ones that exist today included, as a **skeleton**, its real layout, or a **work-in-progress** page, the shell and `WorkInProgress`, for a page whose data has no model yet ([Phase 4](#phase-4-ui-foundation)). The last column says which phase fills it.
+
+| Route | Breadcrumb | Phase 4 | Screen and kit parts | Today | Filled in |
+|---|---|---|---|---|---|
+| `/setup` | None | Real | First-run owner account, in `auth-card` | Built | Done |
+| `/login` | None | Real | Login, in `auth-card` | Built | Done |
+| `/` | Home | Skeleton | `media-hero` for a featured title, then `media-shelf`s: Continue watching, Recently added, Popular movies, Top rated. Popular and Top rated come from `GET /library/movies` sorted today | Stub | 6 (S21, S22) |
+| `/search` | Search | Skeleton | A search field and results by kind in `media-browse`. Movies come from the library's FTS5 search today | Missing | 6 (S23) |
+| `/movies` | Movies | Real | Movie library in `media-browse`. Search, sort, filters and the page live in the URL, validated with the contract's library query | Built | Done |
+| `/movies/$id` | Movies › title | Real | `media-detail`: hero, facts, Play or Retry, and an Overview tab. Files and Similar join it with their data | Built | 5 (S12), 6 (S27) |
+| `/watch/$id` | Title › Watch | Real | `player-layout`: the player, the title and a way back to its page. A title that is not ready shows its status, with Play or Retry. `TrackMenu` joins it with tracks | Built | 5 (S16), 6 (S19, S20) |
+| `/settings/account` | Settings › Account | Real | `settings-layout`: the account and Log out | Built, as one page | 6 (S24) |
+| `/settings/appearance` | Settings › Appearance | Real | The theme | Built, as one page | Done |
+| `/settings/app` | Settings › App | Real | Install as an app, today's App section | Built, as one page | Done |
+| `/settings/playback` | Settings › Playback | Work in progress | Preferred quality, audio and subtitle language | Missing | 5, 6 |
+| `/admin` | Admin | Skeleton | `admin-overview`: the library's counts and the latest scan, with storage and the job queue to come | Missing | 6 (S25) |
+| `/admin/libraries` | Admin › Libraries | Real | Scan library and the latest scan, moved from Settings. Folders and watching come later | Built, in Settings | 6 (S26) |
+| `/admin/jobs` | Admin › Jobs | Work in progress | Transcodes, scans and backups | Missing | 6 (S25) |
+| `/admin/users` | Admin › Users | Work in progress | Users, roles and invites | Missing | 6 (S24) |
+| `/shows` | Shows | Work in progress | Show library | Stub | 7 (S28) |
+| `/shows/$id` | Shows › show | Work in progress | A show, its seasons and episodes | Missing | 7 (S29) |
+| `/shows/$id/seasons/$season` | Shows › show › season | Work in progress | One season's episodes | Missing | 7 (S29, S30) |
+| Not found, error, offline | None | Real | Full-page states from `states` | Partly | Done |
+| `/dev/components` | None | Real | Every token, kit component and primitive the kit uses, in both themes, from fixture data, under `pnpm dev` only | Built | Done |
+
+A work-in-progress page becomes a skeleton or a real page once its data is modelled, which [section 12](#12-roadmap) leaves to the phase that fills it.
+
+Each route names its crumb in TanStack Router's `staticData`, or in its loader's data for a title's name, and the signed-in layout builds the trail from `useMatches` and hands it to `site-header`, so a new page gets its breadcrumb by declaring one.
 
 In development, Vite proxies `/api`, `/socket` and `/streams` to the API, so cookies behave as they do behind Caddy.
 
@@ -204,7 +223,7 @@ Keeping one public entry point and hiding the API is correct. These problems rem
 | 3 | All video flows through Next | Each segment takes an extra hop and an auth call | Caddy routes streams straight to the API |
 | 4 | Two backends | Logic and auth are spread across Next and Express | The API is the only backend |
 | 5 | ffmpeg ran inside the API process | One bad file took the API down | Done: a separate worker with a job table ([section 5.7](#57-worker-and-jobs)) |
-| 6 | Whole-file conversion before playback | Long waits and doubled storage | On-demand HLS in Phase 4 |
+| 6 | Whole-file conversion before playback | Long waits and doubled storage | On-demand HLS in Phase 5 |
 | 7 | Login uses Next server actions | Only web pages can call it | Plain API endpoints |
 | 8 | Socket.IO broadcasts to everyone | Events are not scoped to a user | Authenticated sockets and per-user rooms |
 | 9 | Client downloads and filters the whole library | Poor scaling with large libraries | Server-side queries with pagination. Done in the API, and `apps/web` uses them in Phase 2 item 6 |
@@ -486,10 +505,10 @@ Row groups move in their own commits. On the 2026-11-01 upgrade Node and pnpm sh
 | `media` | `id`, `type`, `tmdb_id` (nullable), `title`, `year`, `path`, `release_date`, `runtime`, `vote_average`, `vote_count`, `popularity`, `metadata` JSON, `poster_format`, `backdrop_format` | `media`, `movies`, `shows`; unique `(type, tmdb_id)` fixes the ID collision. A format is NULL until that image is stored |
 | `media_genres` | `media_id`, `genre` | Genre filters and counts. Triggers fill it from `metadata` |
 | `media_search` | FTS5 over `title` and `original_title`, with the title's `id` as its rowid | Search. Triggers keep it in step with `media` |
-| `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 4 playback. Not yet created |
-| `seasons`, `episodes` | Link to `media` | Phase 6. Not yet created |
+| `media_files` | `id`, `media_id`, `path`, codec, resolution and stream data | Phase 5 playback. Not yet created |
+| `seasons`, `episodes` | Link to `media` | Phase 7. Not yet created |
 | `jobs` | `id`, `type`, `media_id` (nullable), `status`, `payload`, `attempts`, `error`, `announced` | `transcodes`, in-memory state. `payload` holds a transcode's video, output folder and the users who asked, or a scan's request time and result. See [section 5.7](#57-worker-and-jobs) |
-| `watch_progress` | `user_id`, `media_file_id`, `position` | Phase 5. Not yet created |
+| `watch_progress` | `user_id`, `media_file_id`, `position` | Phase 6. Not yet created |
 | `settings` | `key`, `value` | `metadatas`. `lastBackupDay` schedules backups |
 
 ### Steps
@@ -518,16 +537,17 @@ Posters and backdrops supply the color, so the interface stays quiet: dark-first
 ```text
 Tokens       colors, type, spacing, radius, motion
    ↓
-Primitives   shadcn components in packages/ui/src/components
+Primitives   shadcn components in packages/ui/src/components, used only by the kit
    ↓
-Patterns     product components in packages/ui/src/patterns
+Kit          the component kit in packages/ui/src/kit, which takes in
+             packages/ui/src/patterns in Phase 4
    ↓
-Screens      thin route files in apps/web
+Screens      thin route files in apps/web, which use the kit only
 ```
 
 **Rules:**
 
-- Screens contain layout and data wiring, not styling decisions.
+- Screens compose the kit and wire data. They import no primitive and make no styling decisions, and from Phase 4 lint rules hold them to both.
 - Components use semantic tokens, never raw colors like `text-red-500`.
 - Icons come only from [Lucide](https://lucide.dev/), through `lucide-react`.
 - Primitives stay close to upstream shadcn so they can be updated.
@@ -583,6 +603,59 @@ A dev-only `/dev/components` route shows every pattern in both themes.
 - **Shell.** `AppShell` shows `NavSidebar`, which collapses to icons, on a wide screen, and the `MobileNav` bottom bar with a More sheet for the footer on a phone. The bottom bar fits about four items at 390px.
 - **Preview and the player route.** `/dev/components` renders fixture data, except its player, which asks the API for a prepared title's playlist, so it needs a session and a 401 goes to login. `/watch/$id` uses `VideoPlayer` inside the shell, so navigation stays one key away and F gives the full screen. It asks for the playlist only once the title is ready, so a title being prepared starts to play there when its notification arrives.
 - **Paging.** `Pager` has Previous and Next around "Page 2 of 5", and hides at one page. Item 6 added it, and `BackLink`, which a title's page shows above its hero.
+
+### 9.5.1 The component kit
+
+Phase 4 builds one kit in `packages/ui/src/kit`, the way [shadcn's blocks](https://ui.shadcn.com/blocks) are built: small files that compose primitives, exported as `@workspace/ui/kit/<folder>`. It takes in today's patterns, so there is one place to look, in folders by area: `shell`, `page`, `media`, `player`, `forms`, `settings`, `admin` and `states`. The primitives in `src/components` are its raw material, and nothing outside the kit imports them. The layout patterns, `AppShell`, `NavSidebar`, `MobileNav`, `PageContainer` and `PageHeader`, give way to the first five parts below. Some parts are sections of a page, after a shadcn block:
+
+| Part | Holds | After | Used by |
+|---|---|---|---|
+| `app-sidebar` | `AppSidebar` from `NavMain` (Home, Search), `NavLibrary` (Movies, Shows), `NavAdmin` (admins only) and `NavUser`, a menu with the account, the theme and Log out. It collapses to icons with Ctrl+B and keeps the choice, and opens as a sheet on a phone | `sidebar-07` | Every signed-in page |
+| `site-header` | `SidebarTrigger`, a separator, the breadcrumb, a search button for `command-menu`, and a slot for the page's actions | `sidebar-16`, `dashboard-01` | Every signed-in page |
+| `app-layout` | `SidebarProvider`, `app-sidebar`, `SidebarInset` with `site-header`, and the page | `sidebar-07` | The signed-in layout |
+| `command-menu` | Ctrl+K: go to a page, find a title | | `site-header` |
+| `page` | `PageHeader` with a title, a description and actions, `PageSection` with a heading and See all, and `PageToolbar` | | Every page |
+| `media-shelf` | A titled row of `MediaCard`s on `carousel`, moved by arrow keys, with its states | | Home, a title's Similar |
+| `media-browse` | `FilterBar`, `MediaGrid` and `Pager`, with the states | | Movies, Shows, Search |
+| `media-detail` | `MediaHero`, `MediaMeta`, `GenreList`, `FactList`, `MediaActions`, tabs and a side column | | A movie, a show |
+| `episode-list` | `SeasonPicker` and `EpisodeRow`s, on `item` | | A show, a season |
+| `player-layout` | The player's stage, the title bar with a way back, and `TrackMenu` | | Watch |
+| `auth-card` | `BrandMark`, a card, the fields and a footer link | `login-01` to `login-05` | Login, Setup, the desktop app's setup page |
+| `settings-layout` | A section nav, as a side list on a wide screen and tabs on a phone, with `SettingsSection` rows | | Settings, Admin |
+| `admin-overview` | `StatTile`s, a chart and a `DataTable` | `dashboard-01` | Admin |
+| `states` | Full-page not found, error and offline, and `WorkInProgress` | `empty` | Every page |
+
+**The components the pages need.** The sections are made of smaller kit components, and each one exists once. These come from walking the pages in [section 4.5](#45-app-structure), beside today's patterns, which grow where a page needs more of them, such as `MediaCard` with a progress bar and a menu:
+
+| Component | What it shows | Used by |
+|---|---|---|
+| `BrandMark` | The name and the mark | `app-sidebar`, `auth-card`, the desktop app's setup page |
+| `MediaMeta` | Year, runtime, rating and certification in one line, in one order | Cards, `media-hero`, `episode-list`, search results |
+| `RatingBadge` | A score out of ten, with its source | `MediaMeta`, `media-detail` |
+| `GenreList` | Genres as badges, each a link to the filtered library | `media-detail`, `media-hero` |
+| `FactList` | Labelled facts, such as director, release date, file and codec | `media-detail`, a season, admin pages |
+| `WatchProgress` | How much of a title is watched, as a bar | `MediaCard`, `episode-list`, Continue watching |
+| `MediaActions` | Play, and a menu of a title's other actions, the same on a card's context menu and a page | Cards, `media-detail`, `episode-list` |
+| `SectionHeading` | A heading with a count and See all | `PageSection`, `media-shelf`, Settings, Admin |
+| `SearchField` | The search input with its shortcut and clear button | `FilterBar`, Search, `command-menu` |
+| `SeasonPicker` | A season choice, as tabs or a select by width | `episode-list` |
+| `EpisodeRow` | A still, the number and name, `MediaMeta`, `WatchProgress` and the play action | `episode-list`, Continue watching, search results |
+| `TrackMenu` | Audio, subtitles and quality, each a radio list | `player-layout` |
+| `StatTile` | A number with a label, a change and a link | `admin-overview` |
+| `JobStatus` | A job's state, on the same icons and colors as `StatusBadge` | Admin's jobs, the latest scan |
+| `UserBadge` | An avatar, a name and the role | `NavUser`, Admin's users, Settings' account |
+| `Timestamp` | A time as "3 minutes ago" with the exact time in a tooltip, and durations and file sizes in one format | Scans, jobs, files, users |
+| `ShortcutHint` | A key or a combination, on `kbd` | Tooltips, `command-menu`, the player |
+| `WorkInProgress` | What a page will hold, and the phase it comes in, for a page whose shape is not known yet | Every work-in-progress page |
+
+**The rules that keep it one kit:**
+
+- A part that appears twice is a kit component, and a third use reuses it rather than copying it. `apps/web` imports `@workspace/ui/kit` only, never `@workspace/ui/components`. A screen in `apps/web` defines no component of its own that shows something: features hold data wiring, and the kit holds what is shown.
+- One thing has one component. A title's facts are always `MediaMeta`, a status always `StatusBadge` or `JobStatus`, a time always `Timestamp`, so they read the same on every page.
+- When a page needs something the kit lacks, the kit gains it, in `packages/ui/src/kit` with its states, its tests and its place in `/dev/components`, before the page uses it. A part that needs a variant gets a prop, not a copy.
+- Formatting, such as durations, sizes, dates and ratings, lives in `packages/ui/src/lib`, so every component formats the same way.
+
+Each part takes its data and its states through props, and `/dev/components` shows it at 390 and 1280 wide in both themes from fixture data. A screen that needs something the kit lacks gets a new kit component, or a prop on one, never classes of its own. Lists of cards, shelves and the sidebar move by arrow keys, which keeps E4's path to TV remotes open.
 
 ### 9.6 Updating shadcn
 
@@ -665,7 +738,7 @@ max_rows = 100
 |---|---|---|
 | Playwright MCP | **Done** | Agents can check the real UI |
 | `docker-skills` (Docker, Inc.) | Later, if Docker work repeats | Plugin install is unavailable in WSL |
-| `ffmpeg-llm` | Skip | Community plugin with privileged reach; Phase 4 needs careful review anyway |
+| `ffmpeg-llm` | Skip | Community plugin with privileged reach; Phase 5 needs careful review anyway |
 | Other Docker and test generator plugins | Skip | Low benefit over Playwright and normal review |
 | Built-in `code-review`, `security-review`, `run` | Use | Already available |
 
@@ -781,9 +854,9 @@ Checked on 2026-11-02:
    - The `transcode:failed` notification as a toast.
    - A Library section in Settings for admins: a Scan library button, disabled while a scan is queued or running, with the status, time, counts, reason and problems of the latest scan. Without it, a new install cannot fill its library.
 
-   Home, Search and Shows are stubs in the Next client, so they are not rebuilt here, and wait for Phases 5 and 6.
+   Home, Search and Shows are stubs in the Next client, so they are not rebuilt here. Phase 4 builds their skeletons, and Phases 6 and 7 fill them.
 
-   **Status:** done, in two tickets. The first put the shell, Movies and a movie's page on the patterns, with the failed status, the failure's reason with Retry on the movie's page, the failure toast with Retry from a card and the `transcode:failed` toast. Notifications carry the title's ID, so a toast can play or retry it. The second put the player on `VideoPlayer`, with the title, a way back, the keyboard shortcuts, the 401 path and the status of a title that is not ready, and rebuilt Settings, with the account and Log out, the theme, and the admin's Library section, and Login and Setup, in a card on the field primitives. The thin `/movies` and the bare player from item 1 are gone. Home, Search and Shows were stubs in the Next client, so they were not rebuilt, and wait for Phases 5 and 6. The first ticket was checked in Chromium under the dev servers with a fake TMDB, at 390 and 1280 wide, by keyboard, dark at 1280 and light at 390. The second was checked the same way on 2026-11-03, in both themes at both widths: setup, login with a wrong password, a scan from Settings, playing a prepared title by keyboard, a title prepared from the player's page that started to play when it was ready, a failed title with its reason and Retry, a session ended on the server, which returned to login and back to the player, the theme kept across a reload, logout from Settings, and Settings as a user without the Library section. The browser saw that lost session as a 401 when the player loaded its stream, not in the middle of playback, because the 30-second fixture is buffered in full at once. The jsdom test in `apps/web/test/player.test.tsx` covers a 401 after the stream has started. Safari and native HLS are not tested.
+   **Status:** done, in two tickets. The first put the shell, Movies and a movie's page on the patterns, with the failed status, the failure's reason with Retry on the movie's page, the failure toast with Retry from a card and the `transcode:failed` toast. Notifications carry the title's ID, so a toast can play or retry it. The second put the player on `VideoPlayer`, with the title, a way back, the keyboard shortcuts, the 401 path and the status of a title that is not ready, and rebuilt Settings, with the account and Log out, the theme, and the admin's Library section, and Login and Setup, in a card on the field primitives. The thin `/movies` and the bare player from item 1 are gone. Home, Search and Shows were stubs in the Next client, so they were not rebuilt. Phase 4 builds their skeletons, and Phases 6 and 7 fill them. The first ticket was checked in Chromium under the dev servers with a fake TMDB, at 390 and 1280 wide, by keyboard, dark at 1280 and light at 390. The second was checked the same way on 2026-11-03, in both themes at both widths: setup, login with a wrong password, a scan from Settings, playing a prepared title by keyboard, a title prepared from the player's page that started to play when it was ready, a failed title with its reason and Retry, a session ended on the server, which returned to login and back to the player, the theme kept across a reload, logout from Settings, and Settings as a user without the Library section. The browser saw that lost session as a 401 when the player loaded its stream, not in the middle of playback, because the 30-second fixture is buffered in full at once. The jsdom test in `apps/web/test/player.test.tsx` covers a 401 after the stream has started. Safari and native HLS are not tested.
 7. Switch Caddy to serve `apps/web`.
 
    **Status:** done. `apps/web/Dockerfile` builds the app with the repo's Node and pnpm pins and ends on the pinned Caddy image, with the build and the Caddyfile inside and no Node, and that image is the `caddy` service. Caddy serves the build with an SPA fallback, `immutable` caching for `/assets` and `no-cache` for the rest, and the headers and policy in [section 5.2](#52-target-architecture). The `next-client` service is gone from every Compose file, Caddy waits only for a healthy API, and the `/api/streams` exception from compression is gone. Zod's compiled parsers are off in `apps/web`, because they use `new Function`, which the policy forbids. `apps/e2e` drives `apps/web` through that image: setup, login and the rate limit, the library with art, a filter that survives a reload, the movie page, HLS playback and seek, a failed title with Retry, a socket toast, a scan from Settings and logout, plus the headers, a deep link on reload, and no policy violation in the console. The planted-secret check reads the Caddy image too. Checked by hand on 2026-11-03: a clean copy of the branch, with no `.env` and no setup script, started with `docker compose up --build`, and Chromium reached `/setup` on `apps/web` over HTTPS. The maintainer's own stack held ports 80 and 443 on that host, so the check published Caddy's 443 on `127.0.0.1:8443` through an override, and port 80 was not tried by hand; `pnpm test:browser` covers its redirect. Safari is not tested.
@@ -813,28 +886,71 @@ Manifest, service worker, install flow, Media Session. Electron shell with serve
 
 **Done when:** the app installs as a PWA over HTTPS, and Electron logs in and plays a film.
 
-**Status:** done. Spec #71 covered the PWA and Media Session, and spec #75 covered Electron (S11), the shell and its packaging. The app installs as a PWA over HTTPS, and the desktop app, the shell in `tests/native-app.spec.ts` and the AppImage by hand, logs in and plays a film. Phase 4 waits for the maintainer.
+**Status:** done. Spec #71 covered the PWA and Media Session, and spec #75 covered Electron (S11), the shell and its packaging. The app installs as a PWA over HTTPS, and the desktop app, the shell in `tests/native-app.spec.ts` and the AppImage by hand, logs in and plays a film. Phase 4, the UI foundation, is next.
 
 - [x] **PWA (S10).** Done in the spec's first ticket. The manifest, icons, iOS meta tags, service worker, update toast, unreachable-server state and the App section in Settings are in `apps/web`, covered by component tests and by `tests/install.spec.ts` through Caddy. Checked by hand on 2026-11-15 in Chromium under Xvfb, over HTTPS with Caddy's CA trusted, against the browser-test stack with Caddy's 443 on `127.0.0.1:8443`: Settings offered Install, the browser's dialog showed the name and icon, the app installed and the section said so, the app opened standalone, controlled by the worker and with no App section, and logging out, logging in and playing Demo Movie worked there. The OS media controls were not checked, because Media Session was the next ticket. iOS, iPadOS, Android, Safari and Firefox were not tried, nor the `public` and `tailscale` modes.
 - [x] **Media Session.** Done in the spec's second ticket. `PlayerControls` in `packages/ui` sets the metadata from its `title` and `artwork` props, which the watch screen fills from the title and `GET /library/movies/:id/images/poster`, so the pattern still gets its data through props. It handles play, pause, seekbackward, seekforward, with the arrow keys' 10 seconds, and seekto, calls `setPositionState` as the video moves, and clears the metadata, handlers and position on unmount. Covered by component tests in `packages/ui` and `apps/web` with a fake `navigator.mediaSession`. Checked by hand on 2026-11-15 in a headed Chromium under Xvfb with its own D-Bus session, over HTTPS against the browser-test stack with Caddy's 443 on `127.0.0.1:8443`, reading and driving the player through MPRIS, the D-Bus interface that Linux desktops' media panels and media keys use: while Demo Movie played, MPRIS showed its title, its length and the poster, which was replaced by a real JPEG because the fake TMDB's poster is 4 bytes that no browser can decode, and MPRIS Pause, Play, Seek of 10 seconds each way and SetPosition acted on the video, with the position following. Leaving the player cleared the metadata and the state. A desktop's panel itself was not looked at, because the check ran with no desktop. iOS and Android lock screens, headset buttons, Safari, Firefox, Windows and macOS were not tried. `pnpm test:browser` passed with the change.
 - [x] **Electron shell (S11).** Done in spec #75's first ticket. `apps/desktop` is the shell, on `electron` 45.3.2, with the setup page, the address check and its three messages, the remembered address, session and window, the security settings, the navigation and permission rules, and the menu. Unit tests cover the address normalisation, the navigation rule, the check and the window's bounds. `tests/native-app.spec.ts` drives it with Playwright's Electron support under Xvfb, through Caddy, with Caddy's CA trusted in the NSS database as a user would: the setup page, an unreachable address, plain HTTP, a server that is not ShowStream and an untrusted certificate, then login, the server's pages with no Node and no bridge, a denied notification and geolocation, playing Demo Movie over HLS and full screen, `https:` links sent to the system browser and others refused with the window unchanged, a restart that opens logged in at the same bounds, and Change Server. `pnpm test:browser` passed with it on 2026-11-15, and the setup page was looked at in both themes and at 390 wide. No API change was needed: the page is loaded from the server, so its `Origin` is the server's own. Not verified: media keys through the shell, which use the same Media Session code that was checked in Chromium; `pnpm --filter desktop dev` against the dev servers, of which only the build was run; Windows, a desktop's own window manager, and a real CA trusted by hand rather than by the test.
 - [x] **Electron packaging.** Done in spec #75's second ticket. `apps/desktop/electron-builder.yml` makes an NSIS installer for Windows, per user and with no administrator, and an AppImage for Linux, both named ShowStream with the PWA's 512-pixel icon, which the window also uses on Linux. `pnpm turbo package --filter=desktop` builds for the computer it runs on. `.github/workflows/desktop.yml` runs it on `ubuntu-latest` and `windows-latest`, on pull requests that touch `apps/desktop` and on every push to `main`, and uploads `showstream-desktop-linux` and `showstream-desktop-windows`. It is not a required check, and needs no secret: nothing is signed. The AppImage's menu entry does not pass `--no-sandbox`, so its launcher keeps Chromium's sandbox wherever user namespaces allow it. Checked by hand on 2026-11-15: the AppImage from the branch, copied to a folder and started under Xvfb with a fresh profile and a home whose NSS database trusts Caddy's CA, against the browser-test stack with Caddy's 443 on `127.0.0.1:8443`. It opened on the setup page, connected to `localhost:8443` over HTTPS, showed the server's first-run setup and login, logged in, kept the session across a restart, and played Demo Movie over HLS. Started without Playwright, its renderers ran in Chromium's sandbox. The host had no `libfuse2`, so the AppImage ran with `APPIMAGE_EXTRACT_AND_RUN=1`, which unpacks it rather than mounting it. The Windows installer from CI was opened with 7-Zip and holds `ShowStream.exe` with the icon and the name, but it was not run: no Windows computer was at hand. Not verified: a desktop's menu, task bar and window icon, Wayland, and Windows' own start menu.
 
-### Phase 4: Real playback
+### Scope first: a functional archive of Jellyfin
+
+**The highest priority, ahead of every phase still open.** ShowStream replaces Jellyfin, but the roadmap's features were listed from memory. Before the first version is designed, an archive records what Jellyfin does: its functionalities, the processes behind them and the decisions it made, area by area, at one pinned version. The maintainer then prunes it to Keep, Later or Drop, and what is kept becomes the scope and the functional design of ShowStream's first version.
+
+[functional/README.md](./functional/README.md) pins the method: Jellyfin v12.4, primary sources at that tag, functional description only, one template per area, and how pruning works. Only the eight areas a streaming MVP needs are archived now: users and access, libraries and scanning, metadata, browsing, home and search, playback, transcoding and streaming, audio and subtitle tracks, and administration.
+
+**The first version is movies**, delivered by Phases 4 to 6. **TV shows come right after it**, in Phase 7: they are not archived or designed now, but no design may rule them out ([ADR 0012](./adr/0012-first-version-scoped-from-jellyfin-movies-only.md)).
+
+1. **Archive** the eight areas into `docs/functional/jellyfin/`, each done by the README's measure: one research run per area, 01 to 03 first, each checked by a second run and, where reading is not enough, on a local Jellyfin 12.4.
+2. **Prune** each area with the maintainer, and collect the result in `docs/functional/scope.md`.
+3. **Update this plan** from the scope: the feature list in [section 13](#13-feature-list), the pages in [section 4.5](#45-app-structure), and the phases that hold them.
+
+**Done when:** every area is archived with a source for every functionality, every row has a Scope, `scope.md` lists what is kept and why each Drop was dropped, and this plan reflects it. It is a gate for Phase 4's kit, which is built from the pages the scope keeps, and for Phase 5. It does not block the design gate or Phase 4 item 1, which can run beside it.
+
+Each area's ShowStream functional design follows its pruning, in `docs/functional/<area>.md`, before the specs that build it.
+
+### Phase 4: UI foundation
+
+Phase 2 rebuilt the screens the Next client had, and no more. The result is a skeleton: six screens, each laying itself out, no breadcrumbs, no place yet for Home, Search, Shows or Admin, and a look that #68 calls stale. Every later phase adds screens, so this phase builds the frame they drop into first: every shadcn component, one component kit built from them the way [shadcn's blocks](https://ui.shadcn.com/blocks) are built, and every page the roadmap knows, as a skeleton or a work-in-progress page.
+
+**The model is shadcn's blocks.** A block is a few small files that compose primitives and nothing else. The sidebar blocks, such as `sidebar-07`, put a `SidebarProvider` around an `AppSidebar`, made of `NavMain`, `NavUser` and their siblings, and a `SidebarInset`, whose header holds `SidebarTrigger`, a separator and a `Breadcrumb`, above the page's content. `dashboard-01` adds `SectionCards`, a chart and a `DataTable`, and `login-01` to `login-05` put a form in a card. ShowStream's kit follows that structure, on its own tokens and for a media library rather than a dashboard.
+
+**Gate: the design is chosen.** No kit work starts until the maintainer has chosen the design, because a kit built on a provisional look is rebuilt when the look changes. The gate is passed when all of these hold:
+
+- [ ] `/prototype` or `/impeccable shape` has shown two or three directions, each on the same three screens: the shell with its sidebar and header, Home, and Movies, at 390 and 1280 wide in both themes, from fixture data.
+- [ ] The maintainer has chosen one, in writing, on the issue for this gate.
+- [ ] `DESIGN.md` records it: the sidebar, the header, the poster grid's density, the hero, the shelves, type and spacing.
+- [ ] `tokens.css` holds the chosen theme, and its test passes.
+- [ ] E1, E3 and E5 are closed in [open-decisions.md](./open-decisions.md), as ADRs where they are hard to reverse.
+
+Item 1 may run before the gate, because the primitives take their look from the tokens. Items 2 and 3 may not, and also wait for [the functional scope](#scope-first-a-functional-archive-of-jellyfin), because the kit is built from the pages it keeps.
+
+1. **Every shadcn base component.** `packages/ui/src/components` takes every general-purpose component in the `base-nova` registry that it does not have yet: accordion, alert, aspect-ratio, breadcrumb, button-group, carousel, chart, collapsible, combobox, context-menu, empty, hover-card, input-otp, item, kbd, menubar, native-select, navigation-menu, pagination, resizable, toggle and toggle-group. Each comes the way [section 9.6](#96-updating-shadcn) and `packages/ui/AGENTS.md` describe, one commit each, and the existing ones are checked with `add --diff`, keeping only the intended differences. Left out: the chat components (attachment, bubble, code-block, marker, message, message-scroller, questionnaire, trace), `form`, which `field` replaces, `toast`, which `sonner` replaces, and `direction`, until a right-to-left language is needed. The new dependencies, such as `recharts`, `embla-carousel-react`, `react-resizable-panels` and `input-otp`, follow pnpm's minimum release age, and `pnpm audit --prod` stays at 0. **The primitives are the kit's raw material, not the app's:** only `packages/ui/src/kit` imports them, which a lint rule enforces, and a primitive gets its keyboard test and its place in `/dev/components` when the kit first uses it. One that no kit component uses stays installed and unexported.
+2. **The component kit.** One folder, `packages/ui/src/kit`, in [section 9.5.1](#951-the-component-kit), which takes in today's patterns. It starts from the pages, not from a list: the spec walks every page in [section 4.5](#45-app-structure) and names each part it shows, such as a title's facts, a rating, a watch-progress bar, a job's status or a user's role. Anything that appears twice, on two pages or in two kit components, becomes one kit component, and the list in section 9.5.1 is that inventory's starting point, which the spec completes. The kit keeps the patterns' rules: props in, callbacks out, links through `AppLink`, no router, no fetching, loading, empty and error states, keyboard first, no raw colors, at 390 and 1280 wide in both themes. Because the kit knows no app, `apps/web`, and so the PWA and the desktop app, which load it, and the desktop app's own setup page use the same kit, and later mobile and TV wrappers built on the static bundle can too.
+3. **Every page, as a skeleton or a work-in-progress page.** Every route in [section 4.5](#45-app-structure) exists, has its place in the sidebar and its breadcrumb, and is composed only of the kit. A page whose shape is known becomes a **skeleton**: its real layout, with live data where the API has it, and an empty state that says what will come where it does not, never fake data. A page whose shape is not known yet, because the data it shows has no model, becomes a **work-in-progress page**: the shell, its breadcrumb and `WorkInProgress`, which names what the page will hold and the phase it comes in. The phase that models its data replaces it with the real page. Fixtures stay in `/dev/components` and the tests. Admin pages show to admins only, as a courtesy: the API stays the authority, and the pages call nothing it does not already allow. Library scanning moves from Settings to `/admin/libraries`.
+
+Item 1 can start now. Item 2 starts once the gate is passed, with the shell first: sidebar, header, breadcrumbs and the command menu, with today's six screens moved onto it. Item 3 needs the kit components it composes. The gate and each item become a spec with tickets, as [section 10.5](#105-how-we-develop) describes.
+
+**Done when:** the gate is passed and the functional scope is done; every route in [section 4.5](#45-app-structure) renders on the kit, as a skeleton or a work-in-progress page, with the sidebar and a breadcrumb on every signed-in page, in both themes at 390 and 1280 wide and by keyboard; `apps/web` imports `@workspace/ui/kit` only, never a primitive, and its route and screen files add no styling of their own, which lint rules check; every part that appears on two pages is one kit component, and `apps/web` defines none that shows something; every kit component, and every primitive it uses, is in `/dev/components` with tests in the required check; `pnpm test:browser` passes through Caddy; and the maintainer has looked at it in a browser and closed #68.
+
+### Phase 5: Real playback
 
 The stage that decides whether this can replace Jellyfin: `ffprobe` data, client capability detection, direct play, remux or transcode per client, on-demand HLS, `.mkv` support, hardware acceleration, cache eviction.
 
 **Done when:** a typical `.mkv` H.265 file starts within seconds and seeks freely.
 
-### Phase 5: A real media server
+### Phase 6: A real media server
 
-Audio and subtitle tracks, resume, Home, Search, users and roles, admin, file watching, metadata correction.
+Audio and subtitle tracks, resume, Home, Search, users and roles, admin, file watching, metadata correction. Each fills a page that Phase 4 left as a skeleton.
 
-### Phase 6: TV shows
+### Phase 7: TV shows
 
-Seasons, episodes, next-episode flow, reusing the Movies patterns.
+The first phase after the first version.
 
-### Phase 7: Reach
+
+Seasons, episodes, next-episode flow. It models a show's data, then replaces the Shows work-in-progress pages from Phase 4 with real ones on the kit.
+
+### Phase 8: Reach
 
 Public API docs, mobile and TV wrappers, casting, SyncPlay.
 
@@ -855,30 +971,30 @@ Built top to bottom. Each row is one vertical slice, tested end to end. Sizes ar
 | S9 | Settings: theme and account | 2 | S | S5 |
 | S10 | Install as a PWA. Done | 3 | M | HTTPS |
 | S11 | Desktop app connects to a server. Done, with a Windows installer and a Linux AppImage from CI | 3 | M | S2 |
-| S12 | Real codec and resolution info | 4 | M | S3 |
-| S13 | Direct play when the client supports the file | 4 | M | S12 |
-| S14 | `.mkv` and other containers | 4 | M | S12 |
-| S15 | Instant start with on-demand transcoding and seeking | 4 | L | S13 |
-| S16 | Quality selection and adaptive bitrate | 4 | L | S15 |
-| S17 | Hardware acceleration | 4 | M | S15 |
-| S18 | HLS cache limits and eviction | 4 | S | S15 |
-| S19 | Audio track selection | 5 | M | S15 |
-| S20 | Subtitles: embedded, external, burn-in | 5 | L | S15 |
-| S21 | Watch progress and resume | 5 | M | S8 |
-| S22 | Home with Continue Watching and Recently Added | 5 | M | S21 |
-| S23 | Global search | 5 | M | S6 |
-| S24 | Multiple users, roles, invites | 5 | M | S2 |
-| S25 | Admin dashboard: jobs, library, users, storage | 5 | L | S24 |
-| S26 | Automatic library watching | 5 | M | S3 |
-| S27 | Fix a wrong metadata match | 5 | M | S7 |
-| S28 | TV library and folder scanning | 6 | L | S6 |
-| S29 | Season and episode pages | 6 | M | S28 |
-| S30 | Next-episode autoplay | 6 | S | S29, S21 |
-| S31 | Documented public API with bearer tokens | 7 | M | Contract |
-| S32 | Mobile and TV apps from the static bundle | 7 | L | S31 |
-| S33 | Offline downloads in desktop and PWA | 7 | L | S15 |
-| S34 | Casting | 7 | L | S15 |
-| S35 | SyncPlay | 7 | L | S21 |
+| S12 | Real codec and resolution info | 5 | M | S3 |
+| S13 | Direct play when the client supports the file | 5 | M | S12 |
+| S14 | `.mkv` and other containers | 5 | M | S12 |
+| S15 | Instant start with on-demand transcoding and seeking | 5 | L | S13 |
+| S16 | Quality selection and adaptive bitrate | 5 | L | S15 |
+| S17 | Hardware acceleration | 5 | M | S15 |
+| S18 | HLS cache limits and eviction | 5 | S | S15 |
+| S19 | Audio track selection | 6 | M | S15 |
+| S20 | Subtitles: embedded, external, burn-in | 6 | L | S15 |
+| S21 | Watch progress and resume | 6 | M | S8 |
+| S22 | Home with Continue Watching and Recently Added | 6 | M | S21 |
+| S23 | Global search | 6 | M | S6 |
+| S24 | Multiple users, roles, invites | 6 | M | S2 |
+| S25 | Admin dashboard: jobs, library, users, storage | 6 | L | S24 |
+| S26 | Automatic library watching | 6 | M | S3 |
+| S27 | Fix a wrong metadata match | 6 | M | S7 |
+| S28 | TV library and folder scanning | 7 | L | S6 |
+| S29 | Season and episode pages | 7 | M | S28 |
+| S30 | Next-episode autoplay | 7 | S | S29, S21 |
+| S31 | Documented public API with bearer tokens | 8 | M | Contract |
+| S32 | Mobile and TV apps from the static bundle | 8 | L | S31 |
+| S33 | Offline downloads in desktop and PWA | 8 | L | S15 |
+| S34 | Casting | 8 | L | S15 |
+| S35 | SyncPlay | 8 | L | S21 |
 
 ## 14. What was missing
 
@@ -904,7 +1020,10 @@ Added to your list, each tracked in this plan or in [open-decisions.md](./open-d
 | Risk | Plan |
 |---|---|
 | TypeScript 7 or ESLint 10 may not fit the stack | Try in Phase 1; stay on the newest supported version if not |
-| Phase 4 is much larger than it looks | Direct play first, so value arrives early |
+| Real playback, Phase 5, is much larger than it looks | Direct play first, so value arrives early |
+| Skeleton pages promise what is phases away | A page whose data has no model is a work-in-progress page, not a guessed layout. A skeleton says what will come in an empty state, shows no fake data, and calls nothing the API does not have. Admin pages show to admins only |
+| Every shadcn component grows the bundle | Only the kit imports primitives, so an unused one never reaches a chunk, and route splitting keeps `recharts`, `embla-carousel-react` and the like in the chunks that use them, and the build's output size is compared before and after |
+| The kit drifts from upstream shadcn | Primitives stay upstream with the listed differences, and the kit follows shadcn's own block structure, so an update is still an `add --diff` |
 | Plugin, skill and MCP behavior in WSL desktop sessions | Verified at install; documentation does not confirm project skills in the Code tab |
 | Real TMDB responses have never been verified | Test with a real token in Phase 1. Only the maintainer can, because agents do not read real `.env` values. That includes downloading art from `image.tmdb.org` |
 | Drizzle is pre-1.0 | Pin versions; keep queries behind `packages/db` |
